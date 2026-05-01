@@ -23,7 +23,7 @@ export function AppSidebar() {
   const expanded =
     mode === "expanded" || (mode === "hover" && hovered);
   const collapsed = !expanded;
-  // 펼쳐진 상태의 고정 너비 (호버 모드에서도 동일하게 사용 → 내부 컨텐츠가 찌그러지지 않음)
+  // 사이드바 외부 너비만 바꾸고, 내부 컨텐츠는 항상 펼친 레이아웃으로 렌더 → 찌그러짐 없음
   const EXPANDED_WIDTH = 240;
   const COLLAPSED_WIDTH = 72;
 
@@ -39,21 +39,19 @@ export function AppSidebar() {
         mode === "hover" && hovered && "z-40 shadow-card",
       )}
     >
-      {/* 내부는 항상 펼친 너비로 고정 → width 애니메이션 중 컨텐츠가 압축/리플로우 되지 않음 */}
+      {/* 내부는 항상 펼친 너비로 고정 (왼쪽 정렬). collapsed일 때는 aside의 overflow-hidden이 오른쪽을 잘라 아이콘만 보이게 함 */}
       <div
-        className="flex flex-col h-full"
-        style={{ width: EXPANDED_WIDTH, minWidth: EXPANDED_WIDTH }}
+        className="flex flex-col h-full self-start shrink-0"
+        style={{ width: EXPANDED_WIDTH }}
       >
       {/* Logo */}
-      <div className={cn("pt-6 pb-5 flex items-center gap-3", collapsed ? "px-3 justify-center" : "px-5")}>
+      <div className="pt-6 pb-5 flex items-center gap-3 px-5">
         <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
           <Sparkles className="h-5 w-5 text-primary-foreground" />
         </div>
-        {!collapsed && (
-          <div>
-            <div className="text-lg font-bold tracking-tight text-sidebar-foreground">ICNO</div>
-          </div>
-        )}
+        <div>
+          <div className="text-lg font-bold tracking-tight text-sidebar-foreground">ICNO</div>
+        </div>
       </div>
 
       {/* Nav */}
@@ -67,8 +65,7 @@ export function AppSidebar() {
               to={item.to}
               title={collapsed ? item.label : undefined}
               className={cn(
-                "group relative flex items-center gap-3 rounded-xl py-2.5 text-sm font-medium transition-all min-w-0",
-                collapsed ? "px-2 justify-center" : "px-3",
+                "group relative flex items-center gap-3 rounded-xl py-2.5 px-3 text-sm font-medium transition-all min-w-0",
                 active
                   ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-card"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
@@ -82,7 +79,7 @@ export function AppSidebar() {
                   </span>
                 ) : null}
               </span>
-              {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+              <span className="flex-1 truncate">{item.label}</span>
             </NavLink>
           );
         })}
@@ -91,22 +88,15 @@ export function AppSidebar() {
       {/* User */}
       <div className="p-3 border-t border-sidebar-border">
         <DropdownMenu>
-          <DropdownMenuTrigger className={cn(
-            "w-full flex items-center gap-3 rounded-xl p-2.5 hover:bg-sidebar-accent transition-colors text-left",
-            collapsed && "justify-center"
-          )}>
+          <DropdownMenuTrigger className="w-full flex items-center gap-3 rounded-xl p-2.5 hover:bg-sidebar-accent transition-colors text-left">
             <div className="h-9 w-9 rounded-full bg-gradient-primary grid place-items-center text-base">
               {currentUser.avatar}
             </div>
-            {!collapsed && (
-              <>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-sidebar-foreground truncate">{currentUser.name}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">{currentUser.role}</div>
-                </div>
-                <ChevronUp className="h-4 w-4 text-muted-foreground" />
-              </>
-            )}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-sidebar-foreground truncate">{currentUser.name}</div>
+              <div className="text-[11px] text-muted-foreground truncate">{currentUser.role}</div>
+            </div>
+            <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="top" className="w-56">
             <DropdownMenuLabel>{currentUser.username}</DropdownMenuLabel>
