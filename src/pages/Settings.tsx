@@ -68,29 +68,10 @@ export default function Settings() {
           <Row label="평점 알림"><Switch defaultChecked /></Row>
         </Section>
 
-        <Section id="upload" title="업로드 / 판매">
-          <Row label="기본 업로드 유형">
-            <Select defaultValue="preset"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="preset">프리셋</SelectItem><SelectItem value="iconpack">아이콘 팩</SelectItem><SelectItem value="icon">단일 아이콘</SelectItem></SelectContent></Select>
-          </Row>
-          <Row label="기본 무료/유료">
-            <Select defaultValue="free"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="free">무료</SelectItem><SelectItem value="paid">유료</SelectItem></SelectContent></Select>
-          </Row>
-          <Row label="기본 댓글 허용"><Switch defaultChecked /></Row>
-          <Row label="기본 평점 허용"><Switch defaultChecked /></Row>
-          <Row label="라이선스 (준비 중)"><Button variant="outline" size="sm" disabled>관리</Button></Row>
-          <Row label="판매자 정보"><Button variant="outline" size="sm">관리</Button></Row>
-        </Section>
-
         <Section id="library" title="보관함">
           <Row label="기본 정렬">
             <Select defaultValue="recent"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="recent">최근순</SelectItem><SelectItem value="name">이름순</SelectItem></SelectContent></Select>
-          </Row>
-          <Row label="보기 모드">
-            <Select defaultValue="grid"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="grid">그리드</SelectItem><SelectItem value="list">리스트</SelectItem></SelectContent></Select>
           </Row>
           <Row label="즐겨찾기 우선 표시"><Switch /></Row>
           <Row label="다운로드한 프리셋 자동 저장"><Switch defaultChecked /></Row>
@@ -100,23 +81,7 @@ export default function Settings() {
 
         <Section id="windows" title="Windows 적용">
           <Row label="앱 시작 시 오버레이 자동 시작"><Switch /></Row>
-          <Row label="오버레이 시작 시 기본 데스크톱 아이콘 숨기기"><Switch defaultChecked /></Row>
           <Row label="앱 종료 시 기본 데스크톱 아이콘 복원"><Switch defaultChecked /></Row>
-          <Row label="기본 아이콘 크기 (px)"><Input type="number" defaultValue={96} className="w-32" /></Row>
-          <Row label="기본 라벨 표시"><Switch defaultChecked /></Row>
-          <Row label="기본 폰트">
-            <Select defaultValue="pretendard"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="pretendard">Pretendard</SelectItem><SelectItem value="noto">Noto Sans KR</SelectItem></SelectContent></Select>
-          </Row>
-          <Row label="기본 배치 모드">
-            <Select defaultValue="free"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="free">자유 배치</SelectItem><SelectItem value="grid">그리드</SelectItem></SelectContent></Select>
-          </Row>
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Button variant="outline" size="sm">매핑 무결성 검사</Button>
-            <Button variant="outline" size="sm">레이아웃 초기화</Button>
-            <Button variant="outline" size="sm">기본 데스크톱 복원</Button>
-          </div>
         </Section>
 
         <Section id="notif" title="알림">
