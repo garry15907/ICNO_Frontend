@@ -23,17 +23,27 @@ export function AppSidebar() {
   const expanded =
     mode === "expanded" || (mode === "hover" && hovered);
   const collapsed = !expanded;
+  // 펼쳐진 상태의 고정 너비 (호버 모드에서도 동일하게 사용 → 내부 컨텐츠가 찌그러지지 않음)
+  const EXPANDED_WIDTH = 240;
+  const COLLAPSED_WIDTH = 72;
 
   return (
     <aside
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      style={{
+        width: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH,
+      }}
       className={cn(
         "flex shrink-0 flex-col bg-sidebar border-r border-sidebar-border sticky top-0 h-screen overflow-hidden transition-[width] duration-200",
-        collapsed ? "w-[72px]" : "w-[clamp(180px,18vw,16rem)]",
         mode === "hover" && hovered && "z-40 shadow-card",
       )}
     >
+      {/* 내부는 항상 펼친 너비로 고정 → width 애니메이션 중 컨텐츠가 압축/리플로우 되지 않음 */}
+      <div
+        className="flex flex-col h-full"
+        style={{ width: EXPANDED_WIDTH, minWidth: EXPANDED_WIDTH }}
+      >
       {/* Logo */}
       <div className={cn("pt-6 pb-5 flex items-center gap-3", collapsed ? "px-3 justify-center" : "px-5")}>
         <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
@@ -110,6 +120,7 @@ export function AppSidebar() {
             <DropdownMenuItem className="text-destructive focus:text-destructive"><LogOut className="h-4 w-4 mr-2" />로그아웃</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
       </div>
     </aside>
   );
