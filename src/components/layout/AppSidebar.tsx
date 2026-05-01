@@ -17,7 +17,7 @@ export function AppSidebar() {
   const nav = useNavigate();
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col bg-sidebar border-r border-sidebar-border sticky top-0 h-screen">
+    <aside className="flex w-[clamp(64px,18vw,16rem)] shrink-0 flex-col bg-sidebar border-r border-sidebar-border sticky top-0 h-screen overflow-hidden">
       {/* Logo */}
       <div className="px-5 pt-6 pb-5 flex items-center gap-3">
         <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
