@@ -122,7 +122,14 @@ export function ProfileMain() {
 
 export function Wishlist() {
   const nav = useNavigate();
-  const items = marketplacePresets.filter((p) => wishlistIds.includes(p.id));
+  const [removed, setRemoved] = useState<string[]>([]);
+  const items = marketplacePresets.filter(
+    (p) => wishlistIds.includes(p.id) && !removed.includes(p.id),
+  );
+  const handleUnlike = (id: string, name: string) => {
+    setRemoved((prev) => [...prev, id]);
+    toast({ title: "찜 해제됨", description: `${name}을(를) 찜 목록에서 제거했습니다.` });
+  };
   return (
     <ProfileList title="찜한 프리셋" subtitle="저장해 둔 마켓 프리셋입니다.">
       {items.length === 0 ? <Empty text="찜한 프리셋이 없습니다." /> : items.map((p) => (
@@ -134,7 +141,15 @@ export function Wishlist() {
           </div>
           <span className="text-sm font-semibold">{p.price === 0 ? "무료" : `₩${p.price.toLocaleString()}`}</span>
           <Button size="sm" className="bg-gradient-primary text-primary-foreground" onClick={() => nav(`/explore?preset=${p.id}`)}>{p.price === 0 ? "다운로드" : "구매"}</Button>
-          <Button size="sm" variant="ghost"><Heart className="h-4 w-4 fill-destructive text-destructive" /></Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-label="찜 해제"
+            title="찜 해제"
+            onClick={() => handleUnlike(p.id, p.name)}
+          >
+            <Heart className="h-4 w-4 fill-destructive text-destructive" />
+          </Button>
         </div>
       ))}
     </ProfileList>
