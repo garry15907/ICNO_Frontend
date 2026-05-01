@@ -19,8 +19,8 @@ export default function Settings() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="grid lg:grid-cols-[220px_1fr] gap-8">
-      <aside className="space-y-1 sticky top-20 h-fit">
+    <div className="grid grid-cols-[200px_1fr] gap-8">
+      <aside className="space-y-1 sticky top-20 h-fit min-w-0">
         {sections.map((s) => (
           <a key={s.id} href={`#${s.id}`} className="block px-3 py-2 rounded-lg text-sm hover:bg-muted text-muted-foreground hover:text-foreground">
             {s.label}
