@@ -7,11 +7,10 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  :root {
-    /* Minimum window/app width to prevent layout breaking */
-  }
   html, body {
-    min-width: 1024px;
+    /* Minimum app width — below this, horizontal scroll appears
+       so the sidebar + content never collapse or overlap. */
+    min-width: 1100px;
   }
   :root {
     /* ICNO – Light theme */
