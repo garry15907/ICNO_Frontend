@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const priceFilters = ["전체", "무료", "유료"] as const;
 const categories = ["전체", "자연", "캐릭터", "다크", "미니멀", "게임", "파스텔", "사이버펑크"];
-const sortOptions = ["인기순", "최신순", "다운로드순", "평점순"];
+const sortOptions = ["인기순", "최신순", "다운로드순", "평점순", "가격 높은 순", "가격 낮은 순"];
 
 export default function Explore() {
   const [params, setParams] = useSearchParams();
@@ -32,6 +32,8 @@ export default function Explore() {
     if (sort === "다운로드순") list.sort((a, b) => b.downloads - a.downloads);
     if (sort === "평점순") list.sort((a, b) => b.rating - a.rating);
     if (sort === "최신순") list.reverse();
+    if (sort === "가격 높은 순") list.sort((a, b) => b.price - a.price);
+    if (sort === "가격 낮은 순") list.sort((a, b) => a.price - b.price);
     return list;
   }, [price, category, query, sort]);
 
