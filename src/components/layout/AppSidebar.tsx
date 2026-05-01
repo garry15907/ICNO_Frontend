@@ -25,7 +25,6 @@ export function AppSidebar() {
         </div>
         <div>
           <div className="text-lg font-bold tracking-tight text-sidebar-foreground">ICNO</div>
-          <div className="text-[11px] text-muted-foreground -mt-0.5">데스크톱 프리셋 마켓</div>
         </div>
       </div>
 
