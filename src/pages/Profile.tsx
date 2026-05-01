@@ -2,11 +2,23 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { marketplacePresets, libraryPresets, wishlistIds, downloadedIds, purchasedIds, currentUser } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
-import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen } from "lucide-react";
+import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
 
 export function ProfileMain() {
   const nav = useNavigate();
+  const [editOpen, setEditOpen] = useState(false);
+  const [form, setForm] = useState({
+    name: currentUser.name,
+    nickname: "Yuri",
+    status: "오늘도 새벽합주 준비해볼까요?",
+    bio: "인디/모던록 좋아하는 보컬. 합주 기록 꼼꼼하게 남기는 편.",
+    avatar: currentUser.avatar,
+  });
   const stats = [
     { label: "찜", value: wishlistIds.length, to: "/profile/wishlist", icon: Heart },
     { label: "다운로드", value: downloadedIds.length, to: "/profile/downloads", icon: Download },
@@ -16,12 +28,13 @@ export function ProfileMain() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-5 p-6 rounded-2xl bg-gradient-surface border border-border">
-        <div className="h-20 w-20 rounded-full bg-gradient-primary grid place-items-center text-4xl shadow-glow">{currentUser.avatar}</div>
+        <div className="h-20 w-20 rounded-full bg-gradient-primary grid place-items-center text-4xl shadow-glow">{form.avatar}</div>
         <div className="flex-1">
-          <h2 className="text-2xl font-bold">{currentUser.name}</h2>
+          <h2 className="text-2xl font-bold">{form.name}</h2>
           <div className="text-sm text-muted-foreground">{currentUser.username} · {currentUser.role}</div>
+          {form.status && <div className="text-xs text-muted-foreground mt-1 italic">"{form.status}"</div>}
         </div>
-        <Button variant="outline">프로필 편집</Button>
+        <Button variant="outline" onClick={() => setEditOpen(true)}>프로필 편집</Button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((s) => (
@@ -32,6 +45,77 @@ export function ProfileMain() {
           </button>
         ))}
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button onClick={() => setEditOpen(false)} className="p-1 rounded-md hover:bg-muted">
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <DialogTitle>프로필 수정</DialogTitle>
+              </div>
+              <Button
+                size="sm"
+                className="bg-primary/20 text-primary hover:bg-primary/30 rounded-full"
+                onClick={() => {
+                  setEditOpen(false);
+                  toast({ title: "프로필이 저장되었습니다" });
+                }}
+              >
+                저장
+              </Button>
+            </div>
+            <DialogDescription className="sr-only">프로필 정보를 수정합니다.</DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-center py-4">
+            <div className="relative">
+              <div className="h-24 w-24 rounded-full bg-gradient-primary grid place-items-center text-5xl shadow-glow">
+                {form.avatar}
+              </div>
+              <button
+                onClick={() => {
+                  const next = prompt("이모지를 입력하세요", form.avatar);
+                  if (next) setForm({ ...form, avatar: next });
+                }}
+                className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-card border border-border grid place-items-center hover:border-primary transition"
+              >
+                <Camera className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-2xl bg-muted/30 p-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">이름</Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">닉네임</Label>
+              <Input value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">상태 메시지</Label>
+              <Input
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
+                placeholder="지금 떠오르는 한마디"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">자기소개</Label>
+              <Textarea
+                rows={4}
+                value={form.bio}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                placeholder="자신을 소개해 보세요"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
