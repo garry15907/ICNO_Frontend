@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Home, Compass, Library, Bell, Settings, Sparkles, ChevronUp, User, Heart, Download, Receipt, Store, UserCog, LogOut } from "lucide-react";
+import { Home, Compass, Library, Bell, Settings, Sparkles, ChevronUp, User, Heart, Download, Receipt, Store, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { currentUser } from "@/data/mockData";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -78,7 +78,6 @@ export function AppSidebar() {
             <DropdownMenuItem onClick={() => nav("/profile/downloads")}><Download className="h-4 w-4 mr-2" />다운로드 목록</DropdownMenuItem>
             <DropdownMenuItem onClick={() => nav("/profile/purchases")}><Receipt className="h-4 w-4 mr-2" />구매 내역</DropdownMenuItem>
             <DropdownMenuItem onClick={() => nav("/profile/sales")}><Store className="h-4 w-4 mr-2" />판매/업로드 관리</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => nav("/settings")}><UserCog className="h-4 w-4 mr-2" />계정 설정</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive focus:text-destructive"><LogOut className="h-4 w-4 mr-2" />로그아웃</DropdownMenuItem>
           </DropdownMenuContent>
