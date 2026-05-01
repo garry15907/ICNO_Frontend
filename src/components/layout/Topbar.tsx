@@ -24,7 +24,7 @@ export function Topbar() {
   const title = titleMap[pathname] ?? "ICNO";
 
   return (
-    <header className="h-14 shrink-0 border-b border-border bg-card/40 backdrop-blur-md flex items-center px-6 gap-4 sticky top-0 z-30">
+    <header className="h-14 shrink-0 border-b border-border bg-card/40 backdrop-blur-md flex items-center px-6 pr-[240px] gap-4 sticky top-0 z-30">
       <h1 className="shrink-0 text-sm font-semibold text-foreground/80">{title}</h1>
       <div className="flex-1 min-w-[320px] max-w-md mx-auto relative">
         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -33,7 +33,7 @@ export function Topbar() {
           className="pl-9 h-9 bg-muted/50 border-transparent focus-visible:bg-background"
         />
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="fixed right-6 top-2.5 z-50 flex shrink-0 items-center gap-2 rounded-md bg-card/80 backdrop-blur-md">
         <Button size="sm" className="bg-gradient-primary hover:opacity-90 text-primary-foreground" onClick={() => nav("/upload")}>
           <Upload className="h-4 w-4 mr-1.5" />업로드
         </Button>
