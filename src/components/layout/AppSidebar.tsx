@@ -1,7 +1,9 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Home, Compass, Library, Bell, Settings, Sparkles, ChevronUp, User, Heart, Download, Receipt, Store, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { currentUser } from "@/data/mockData";
+import { useSidebarMode } from "@/lib/sidebar-mode";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const navItems = [
@@ -15,17 +17,33 @@ const navItems = [
 export function AppSidebar() {
   const { pathname } = useLocation();
   const nav = useNavigate();
+  const { mode } = useSidebarMode();
+  const [hovered, setHovered] = useState(false);
+
+  const expanded =
+    mode === "expanded" || (mode === "hover" && hovered);
+  const collapsed = !expanded;
 
   return (
-    <aside className="flex w-[clamp(64px,18vw,16rem)] shrink-0 flex-col bg-sidebar border-r border-sidebar-border sticky top-0 h-screen overflow-hidden">
+    <aside
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={cn(
+        "flex shrink-0 flex-col bg-sidebar border-r border-sidebar-border sticky top-0 h-screen overflow-hidden transition-[width] duration-200",
+        collapsed ? "w-[72px]" : "w-[clamp(180px,18vw,16rem)]",
+        mode === "hover" && hovered && "z-40 shadow-card",
+      )}
+    >
       {/* Logo */}
-      <div className="px-5 pt-6 pb-5 flex items-center gap-3">
+      <div className={cn("pt-6 pb-5 flex items-center gap-3", collapsed ? "px-3 justify-center" : "px-5")}>
         <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
           <Sparkles className="h-5 w-5 text-primary-foreground" />
         </div>
-        <div>
-          <div className="text-lg font-bold tracking-tight text-sidebar-foreground">ICNO</div>
-        </div>
+        {!collapsed && (
+          <div>
+            <div className="text-lg font-bold tracking-tight text-sidebar-foreground">ICNO</div>
+          </div>
+        )}
       </div>
 
       {/* Nav */}
@@ -37,8 +55,10 @@ export function AppSidebar() {
             <NavLink
               key={item.to}
               to={item.to}
+              title={collapsed ? item.label : undefined}
               className={cn(
-                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all min-w-0",
+                "group relative flex items-center gap-3 rounded-xl py-2.5 text-sm font-medium transition-all min-w-0",
+                collapsed ? "px-2 justify-center" : "px-3",
                 active
                   ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-card"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
@@ -52,7 +72,7 @@ export function AppSidebar() {
                   </span>
                 ) : null}
               </span>
-              <span className="flex-1 truncate">{item.label}</span>
+              {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
             </NavLink>
           );
         })}
@@ -61,15 +81,22 @@ export function AppSidebar() {
       {/* User */}
       <div className="p-3 border-t border-sidebar-border">
         <DropdownMenu>
-          <DropdownMenuTrigger className="w-full flex items-center gap-3 rounded-xl p-2.5 hover:bg-sidebar-accent transition-colors text-left">
+          <DropdownMenuTrigger className={cn(
+            "w-full flex items-center gap-3 rounded-xl p-2.5 hover:bg-sidebar-accent transition-colors text-left",
+            collapsed && "justify-center"
+          )}>
             <div className="h-9 w-9 rounded-full bg-gradient-primary grid place-items-center text-base">
               {currentUser.avatar}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-sidebar-foreground truncate">{currentUser.name}</div>
-              <div className="text-[11px] text-muted-foreground truncate">{currentUser.role}</div>
-            </div>
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            {!collapsed && (
+              <>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-sidebar-foreground truncate">{currentUser.name}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">{currentUser.role}</div>
+                </div>
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              </>
+            )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="top" className="w-56">
             <DropdownMenuLabel>{currentUser.username}</DropdownMenuLabel>

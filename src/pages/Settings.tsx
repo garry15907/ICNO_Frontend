@@ -1,4 +1,5 @@
 import { useTheme } from "@/lib/theme";
+import { useSidebarMode } from "@/lib/sidebar-mode";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +18,7 @@ const sections = [
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
+  const { mode: sidebarMode, setMode: setSidebarMode } = useSidebarMode();
 
   return (
     <div className="grid grid-cols-[200px_1fr] gap-8">
@@ -37,6 +39,16 @@ export default function Settings() {
                 <SelectItem value="system">시스템 설정</SelectItem>
                 <SelectItem value="light">라이트</SelectItem>
                 <SelectItem value="dark">다크</SelectItem>
+              </SelectContent>
+            </Select>
+          </Row>
+          <Row label="사이드바 표시">
+            <Select value={sidebarMode} onValueChange={(v: any) => setSidebarMode(v)}>
+              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="expanded">펼치기</SelectItem>
+                <SelectItem value="collapsed">아이콘만 표시</SelectItem>
+                <SelectItem value="hover">마우스 오버 시 펼치기</SelectItem>
               </SelectContent>
             </Select>
           </Row>
