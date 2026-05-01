@@ -50,7 +50,6 @@ export default function Settings() {
               </SelectContent>
             </Select>
           </Row>
-          <Row label="사이드바 기본 접힘"><Switch /></Row>
         </Section>
 
         <Section id="market" title="마켓 / 탐색">
