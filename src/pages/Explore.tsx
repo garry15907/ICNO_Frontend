@@ -8,6 +8,7 @@ import { marketplacePresets, wishlistIds } from "@/data/mockData";
 import { ExplorePresetModal } from "@/components/presets/ExplorePresetModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const priceFilters = ["전체", "무료", "유료"] as const;
 const categories = ["전체", "자연", "캐릭터", "다크", "미니멀", "게임", "파스텔", "사이버펑크"];
@@ -21,6 +22,12 @@ export default function Explore() {
   const [sort, setSort] = useState("인기순");
   const [wishlist, setWishlist] = useState<string[]>(wishlistIds);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [categoryQuery, setCategoryQuery] = useState("");
+
+  const filteredCategories = useMemo(
+    () => categories.filter((c) => c.toLowerCase().includes(categoryQuery.toLowerCase())),
+    [categoryQuery],
+  );
 
   const openId = params.get("preset");
   const openPreset = marketplacePresets.find((p) => p.id === openId);
@@ -93,15 +100,35 @@ export default function Explore() {
               </div>
             </div>
             <div>
-              <div className="text-xs font-semibold text-muted-foreground mb-2">카테고리</div>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((c) => (
-                  <Chip key={c} active={category === c} onClick={() => setCategory(c)}>{c}</Chip>
-                ))}
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-muted-foreground">카테고리</div>
+                {category !== "전체" && (
+                  <button onClick={() => setCategory("전체")} className="text-[11px] text-primary hover:underline">선택 해제</button>
+                )}
               </div>
+              <div className="relative mb-2">
+                <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={categoryQuery}
+                  onChange={(e) => setCategoryQuery(e.target.value)}
+                  placeholder="카테고리 검색"
+                  className="pl-8 h-8 text-xs"
+                />
+              </div>
+              <ScrollArea className="h-48 -mx-1 px-1">
+                <div className="flex flex-wrap gap-2 pb-1">
+                  <Chip active={category === "전체"} onClick={() => setCategory("전체")}>전체</Chip>
+                  {filteredCategories.filter((c) => c !== "전체").map((c) => (
+                    <Chip key={c} active={category === c} onClick={() => setCategory(c)}>{c}</Chip>
+                  ))}
+                  {filteredCategories.length === 0 && (
+                    <div className="w-full text-center text-xs text-muted-foreground py-6">검색 결과가 없습니다.</div>
+                  )}
+                </div>
+              </ScrollArea>
             </div>
             <div className="flex justify-between pt-2 border-t border-border">
-              <Button variant="ghost" size="sm" onClick={() => { setPrice("전체"); setCategory("전체"); }}>초기화</Button>
+              <Button variant="ghost" size="sm" onClick={() => { setPrice("전체"); setCategory("전체"); setCategoryQuery(""); }}>초기화</Button>
               <Button size="sm" onClick={() => setFilterOpen(false)}>적용</Button>
             </div>
           </PopoverContent>
