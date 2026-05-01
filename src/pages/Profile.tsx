@@ -4,6 +4,7 @@ import { marketplacePresets, libraryPresets, wishlistIds, downloadedIds, purchas
 import { Button } from "@/components/ui/button";
 import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -123,12 +124,15 @@ export function ProfileMain() {
 export function Wishlist() {
   const nav = useNavigate();
   const [removed, setRemoved] = useState<string[]>([]);
+  const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string } | null>(null);
   const items = marketplacePresets.filter(
     (p) => wishlistIds.includes(p.id) && !removed.includes(p.id),
   );
-  const handleUnlike = (id: string, name: string) => {
-    setRemoved((prev) => [...prev, id]);
-    toast({ title: "찜 해제됨", description: `${name}을(를) 찜 목록에서 제거했습니다.` });
+  const handleUnlike = () => {
+    if (!confirmTarget) return;
+    setRemoved((prev) => [...prev, confirmTarget.id]);
+    toast({ title: "찜 해제됨", description: `${confirmTarget.name}을(를) 찜 목록에서 제거했습니다.` });
+    setConfirmTarget(null);
   };
   return (
     <ProfileList title="찜한 프리셋" subtitle="저장해 둔 마켓 프리셋입니다.">
@@ -146,12 +150,26 @@ export function Wishlist() {
             variant="ghost"
             aria-label="찜 해제"
             title="찜 해제"
-            onClick={() => handleUnlike(p.id, p.name)}
+            onClick={() => setConfirmTarget({ id: p.id, name: p.name })}
           >
             <Heart className="h-4 w-4 fill-destructive text-destructive" />
           </Button>
         </div>
       ))}
+      <AlertDialog open={!!confirmTarget} onOpenChange={(o) => !o && setConfirmTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>찜 목록에서 제거할까요?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmTarget ? `"${confirmTarget.name}"을(를) 찜 목록에서 제거합니다.` : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnlike} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">제거</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ProfileList>
   );
 }
