@@ -7,6 +7,7 @@ import { PresetCard } from "@/components/presets/PresetCard";
 import { marketplacePresets, wishlistIds } from "@/data/mockData";
 import { ExplorePresetModal } from "@/components/presets/ExplorePresetModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const priceFilters = ["전체", "무료", "유료"] as const;
 const categories = ["전체", "자연", "캐릭터", "다크", "미니멀", "게임", "파스텔", "사이버펑크"];
@@ -19,6 +20,7 @@ export default function Explore() {
   const [category, setCategory] = useState("전체");
   const [sort, setSort] = useState("인기순");
   const [wishlist, setWishlist] = useState<string[]>(wishlistIds);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const openId = params.get("preset");
   const openPreset = marketplacePresets.find((p) => p.id === openId);
@@ -69,14 +71,47 @@ export default function Explore() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <SlidersHorizontal className="h-4 w-4 text-muted-foreground mr-1" />
-        {priceFilters.map((f) => (
-          <Chip key={f} active={price === f} onClick={() => setPrice(f)}>{f}</Chip>
-        ))}
-        <span className="mx-2 h-5 w-px bg-border" />
-        {categories.map((c) => (
-          <Chip key={c} active={category === c} onClick={() => setCategory(c)}>{c}</Chip>
-        ))}
+        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9 gap-2">
+              <SlidersHorizontal className="h-4 w-4" />
+              필터
+              {(price !== "전체" || category !== "전체") && (
+                <span className="ml-1 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">
+                  {(price !== "전체" ? 1 : 0) + (category !== "전체" ? 1 : 0)}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-80 p-4 space-y-4">
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground mb-2">가격</div>
+              <div className="flex flex-wrap gap-2">
+                {priceFilters.map((f) => (
+                  <Chip key={f} active={price === f} onClick={() => setPrice(f)}>{f}</Chip>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground mb-2">카테고리</div>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((c) => (
+                  <Chip key={c} active={category === c} onClick={() => setCategory(c)}>{c}</Chip>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-between pt-2 border-t border-border">
+              <Button variant="ghost" size="sm" onClick={() => { setPrice("전체"); setCategory("전체"); }}>초기화</Button>
+              <Button size="sm" onClick={() => setFilterOpen(false)}>적용</Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+        {price !== "전체" && (
+          <Chip active onClick={() => setPrice("전체")}>{price} ✕</Chip>
+        )}
+        {category !== "전체" && (
+          <Chip active onClick={() => setCategory("전체")}>{category} ✕</Chip>
+        )}
         <span className="ml-auto text-xs text-muted-foreground">라이선스 필터 (준비 중)</span>
       </div>
 
