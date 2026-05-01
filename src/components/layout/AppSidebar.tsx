@@ -39,19 +39,21 @@ export function AppSidebar() {
               key={item.to}
               to={item.to}
               className={cn(
-                "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all min-w-0",
                 active
                   ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-card"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
               )}
             >
-              <Icon className={cn("h-[18px] w-[18px]", active && "text-primary")} />
-              <span className="flex-1">{item.label}</span>
-              {item.badge ? (
-                <span className="text-[10px] font-semibold bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">
-                  {item.badge}
-                </span>
-              ) : null}
+              <span className="relative shrink-0">
+                <Icon className={cn("h-[18px] w-[18px]", active && "text-primary")} />
+                {item.badge ? (
+                  <span className="absolute -top-1.5 -right-1.5 text-[9px] leading-none font-semibold bg-primary text-primary-foreground rounded-full min-w-[14px] h-[14px] px-1 grid place-items-center">
+                    {item.badge}
+                  </span>
+                ) : null}
+              </span>
+              <span className="flex-1 truncate">{item.label}</span>
             </NavLink>
           );
         })}
