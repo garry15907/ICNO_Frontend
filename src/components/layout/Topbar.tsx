@@ -24,20 +24,20 @@ export function Topbar() {
   const title = titleMap[pathname] ?? "ICNO";
 
   return (
-    <header className="h-14 shrink-0 border-b border-border bg-card/40 backdrop-blur-md flex items-center px-6 pr-[240px] gap-4 sticky top-0 z-30">
+    <header className="h-14 shrink-0 border-b border-border bg-card/40 backdrop-blur-md flex items-center px-3 sm:px-4 md:px-6 gap-2 sm:gap-3 md:gap-4 sticky top-0 z-30">
       <h1 className="shrink-0 text-sm font-semibold text-foreground/80">{title}</h1>
-      <div className="flex-1 min-w-[320px] max-w-md mx-auto relative">
+      <div className="flex-1 min-w-0 max-w-md mx-auto relative">
         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="프리셋, 크리에이터, 태그 검색"
           className="pl-9 h-9 bg-muted/50 border-transparent focus-visible:bg-background"
         />
       </div>
-      <div className="fixed right-6 top-2.5 z-50 flex shrink-0 items-center gap-2 rounded-md bg-card/80 backdrop-blur-md">
-        <Button size="sm" className="bg-gradient-primary hover:opacity-90 text-primary-foreground" onClick={() => nav("/upload")}>
-          <Upload className="h-4 w-4 mr-1.5" />업로드
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <Button size="sm" className="bg-gradient-primary hover:opacity-90 text-primary-foreground px-2 sm:px-3" onClick={() => nav("/upload")}>
+          <Upload className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">업로드</span>
         </Button>
-        <div className="flex items-center gap-1 ml-2 border-l border-border pl-3">
+        <div className="flex items-center gap-0.5 sm:gap-1 ml-1 sm:ml-2 border-l border-border pl-1.5 sm:pl-3">
           <button className="h-7 w-7 grid place-items-center rounded hover:bg-muted text-muted-foreground"><Minus className="h-3.5 w-3.5" /></button>
           <button className="h-7 w-7 grid place-items-center rounded hover:bg-muted text-muted-foreground"><Square className="h-3 w-3" /></button>
           <button className="h-7 w-7 grid place-items-center rounded hover:bg-destructive hover:text-destructive-foreground text-muted-foreground"><X className="h-3.5 w-3.5" /></button>
