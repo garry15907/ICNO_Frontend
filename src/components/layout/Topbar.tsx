@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Search, Upload, Wand2, Minus, Square, X } from "lucide-react";
+import { Search, Upload, Minus, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -34,9 +34,6 @@ export function Topbar() {
         />
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={() => nav("/icon-maker")}>
-          <Wand2 className="h-4 w-4 mr-1.5" />아이콘 제작
-        </Button>
         <Button size="sm" className="bg-gradient-primary hover:opacity-90 text-primary-foreground" onClick={() => nav("/upload")}>
           <Upload className="h-4 w-4 mr-1.5" />업로드
         </Button>
