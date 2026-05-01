@@ -29,10 +29,7 @@ const Index = () => {
             <Sparkles className="h-3.5 w-3.5" /> 현재 적용 중인 프리셋
           </div>
           <h2 className="text-4xl font-bold tracking-tight mb-3">{current.name}</h2>
-          <p className="text-muted-foreground mb-6 max-w-md">
-            {current.description} 매핑 {current.mappedCount} / {current.iconCount} · 마지막 수정 {current.lastModified}
-          </p>
-          <div className="flex gap-3">
+          <div className="flex gap-3 mt-6">
             <Button onClick={() => nav(`/library/${current.id}`)} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
               프리셋 관리
             </Button>
