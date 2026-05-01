@@ -8,6 +8,12 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
+    /* Minimum window/app width to prevent layout breaking */
+  }
+  html, body {
+    min-width: 1024px;
+  }
+  :root {
     /* ICNO – Light theme */
     --background: 220 20% 97%;
     --foreground: 224 30% 12%;
