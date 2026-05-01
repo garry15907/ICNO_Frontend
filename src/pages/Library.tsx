@@ -8,13 +8,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { cn } from "@/lib/utils";
 
 const statusStyles: Record<LibraryStatus, string> = {
-  "현재 적용 중": "bg-success/15 text-success border-success/30",
-  "매핑 필요": "bg-warning/15 text-warning border-warning/30",
+  "현재 적용 중": "bg-success text-success-foreground border-success",
+  "매핑 필요": "bg-warning text-background border-warning",
   "로컬 수정됨": "bg-primary/15 text-primary border-primary/30",
   "다운로드됨": "bg-muted text-muted-foreground border-border",
   "구매함": "bg-accent text-accent-foreground border-border",
   "내가 만든 프리셋": "bg-primary/15 text-primary border-primary/30",
 };
+
+const visibleStatuses: LibraryStatus[] = ["현재 적용 중", "매핑 필요"];
 
 export default function Library() {
   const nav = useNavigate();
@@ -50,9 +52,11 @@ export default function Library() {
           >
             <div className="relative aspect-[16/10] overflow-hidden cursor-pointer" onClick={() => nav(`/library/${p.id}`)}>
               <img src={p.thumbnail} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-              <span className={cn("absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md border backdrop-blur-md", statusStyles[p.status])}>
-                {p.status}
-              </span>
+              {visibleStatuses.includes(p.status) && (
+                <span className={cn("absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md border shadow-card", statusStyles[p.status])}>
+                  {p.status}
+                </span>
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4 gap-2">
                 <Button size="sm" className="h-8 bg-gradient-primary text-primary-foreground"><Play className="h-3 w-3 mr-1" />적용</Button>
                 <Button size="sm" variant="secondary" className="h-8" onClick={(e) => { e.stopPropagation(); nav(`/library/${p.id}`); }}><Edit className="h-3 w-3 mr-1" />수정</Button>
