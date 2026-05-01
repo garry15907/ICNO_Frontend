@@ -51,27 +51,6 @@ export default function Settings() {
             </Select>
           </Row>
           <Row label="사이드바 기본 접힘"><Switch /></Row>
-          <Row label="카드 보기 스타일">
-            <Select defaultValue="grid"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="grid">그리드</SelectItem><SelectItem value="list">리스트</SelectItem></SelectContent>
-            </Select>
-          </Row>
-        </Section>
-
-        <Section id="icon" title="아이콘 제작 기본값">
-          <Row label="기본 내보내기 형식">
-            <Select defaultValue="PNG"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>{["PNG","SVG","ICO"].map(o=><SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
-          </Row>
-          <Row label="기본 가로 (px)"><Input type="number" defaultValue={128} className="w-32" /></Row>
-          <Row label="기본 세로 (px)"><Input type="number" defaultValue={128} className="w-32" /></Row>
-          <Row label="비율 고정"><Switch defaultChecked /></Row>
-          <Row label="투명 배경"><Switch defaultChecked /></Row>
-          <Row label="모서리 둥글기"><Input type="number" defaultValue={16} className="w-32" /></Row>
-          <Row label="그림자"><Switch /></Row>
-          <Row label="빠른 크기 프리셋">
-            <div className="flex gap-1">{[32,48,64,128,256,512].map(p => <span key={p} className="text-xs px-2 py-1 rounded border border-border">{p}</span>)}</div>
-          </Row>
         </Section>
 
         <Section id="market" title="마켓 / 탐색">
