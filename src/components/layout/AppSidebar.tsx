@@ -117,7 +117,7 @@ export function AppSidebar() {
             {!collapsed && (
               <>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-sidebar-foreground truncate">{profile.name}</div>
+                  <div className="text-sm font-semibold text-sidebar-foreground truncate">{profile.nickname}</div>
                   <div className="text-[11px] text-muted-foreground truncate">{currentUser.role}</div>
                 </div>
                 <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
