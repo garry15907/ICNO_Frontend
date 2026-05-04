@@ -388,11 +388,6 @@ export default function LibraryDetail() {
                       {ic.label}
                       {isMoved && <span className="h-1.5 w-1.5 rounded-full bg-warning" />}
                     </div>
-                    <div className="text-[11px] text-muted-foreground flex items-center gap-1 flex-wrap">
-                      {mapped ? <><CheckCircle2 className="h-3 w-3 text-success" />연결됨</> : <><AlertCircle className="h-3 w-3 text-warning" />연결 필요</>}
-                      <span>· {ic.size.w}×{ic.size.h}</span>
-                      <span className="font-mono">· X {px.x}, Y {px.y}</span>
-                    </div>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
