@@ -306,6 +306,225 @@ export const wishlistIds = ["mp-002", "mp-008"];
 export const downloadedIds = ["mp-001", "mp-003", "mp-005"];
 export const purchasedIds = ["mp-002", "mp-005", "mp-008"];
 
+// =====================================================
+// 마켓 상품 확장: 아이콘 단품 / 아이콘 팩
+// =====================================================
+
+export type MarketItemType = "preset" | "icon" | "iconpack";
+
+export type MarketIcon = {
+  id: string;
+  type: "icon";
+  name: string;
+  emoji: string; // visual stand-in
+  creator: { name: string; role: string; avatar: string };
+  price: number;
+  rating: number;
+  reviews: number;
+  downloads: number;
+  tags: string[];
+  category: string;
+  description: string;
+  fileName: string;
+  fileType: "PNG" | "SVG" | "ICO";
+  resolution: string;
+  transparent: boolean;
+  style: string;
+  license: string;
+};
+
+export type MarketIconPack = {
+  id: string;
+  type: "iconpack";
+  name: string;
+  thumbnailEmojis: string[]; // grid preview
+  creator: { name: string; role: string; avatar: string };
+  price: number;
+  rating: number;
+  reviews: number;
+  downloads: number;
+  tags: string[];
+  category: string;
+  description: string;
+  icons: { id: string; label: string; emoji: string; fileName: string; fileType: "PNG" | "SVG" | "ICO"; resolution: string }[];
+  license: string;
+};
+
+export type MarketItem =
+  | (MarketplacePreset & { type: "preset" })
+  | MarketIcon
+  | MarketIconPack;
+
+export const marketIcons: MarketIcon[] = [
+  {
+    id: "ic-001", type: "icon", name: "커비 별",
+    emoji: "⭐", creator: { name: "pinkpuff", role: "캐릭터 아티스트", avatar: "🩷" },
+    price: 0, rating: 4.9, reviews: 128, downloads: 4320,
+    tags: ["귀여움", "캐릭터", "별"], category: "캐릭터",
+    description: "사랑스러운 별 아이콘. 투명 배경 PNG.",
+    fileName: "kirby_star.png", fileType: "PNG", resolution: "256 × 256",
+    transparent: true, style: "캐릭터", license: "개인 사용 가능",
+  },
+  {
+    id: "ic-002", type: "icon", name: "네온 폴더",
+    emoji: "📁", creator: { name: "neonlab", role: "탑 크리에이터", avatar: "🌃" },
+    price: 1900, rating: 4.7, reviews: 56, downloads: 1280,
+    tags: ["네온", "사이버펑크", "폴더"], category: "사이버펑크",
+    description: "사이버펑크 무드 폴더 아이콘.",
+    fileName: "neon_folder.png", fileType: "PNG", resolution: "512 × 512",
+    transparent: true, style: "네온", license: "개인 · 상업 사용 가능",
+  },
+  {
+    id: "ic-003", type: "icon", name: "미니멀 디스코드",
+    emoji: "💬", creator: { name: "mono", role: "미니멀 스튜디오", avatar: "⬛" },
+    price: 0, rating: 4.8, reviews: 220, downloads: 8810,
+    tags: ["미니멀", "블랙", "디스코드"], category: "미니멀",
+    description: "단정한 미니멀 디스코드 아이콘.",
+    fileName: "minimal_discord.svg", fileType: "SVG", resolution: "벡터",
+    transparent: true, style: "미니멀", license: "개인 사용 가능",
+  },
+  {
+    id: "ic-004", type: "icon", name: "픽셀 게임패드",
+    emoji: "🎮", creator: { name: "8bitcat", role: "픽셀 아티스트", avatar: "👾" },
+    price: 1500, rating: 4.95, reviews: 88, downloads: 920,
+    tags: ["픽셀", "레트로", "게임"], category: "게임",
+    description: "레트로 픽셀 게임패드 아이콘.",
+    fileName: "pixel_pad.png", fileType: "PNG", resolution: "128 × 128",
+    transparent: true, style: "픽셀", license: "개인 사용 가능",
+  },
+];
+
+export const marketIconPacks: MarketIconPack[] = [
+  {
+    id: "pk-001", type: "iconpack", name: "파스텔 앱 아이콘 24종",
+    thumbnailEmojis: ["🌸", "🍓", "🩷", "🎀", "🦄", "☁️"],
+    creator: { name: "soft", role: "디자이너", avatar: "🌸" },
+    price: 4900, rating: 4.9, reviews: 312, downloads: 3210,
+    tags: ["파스텔", "핑크", "묶음"], category: "파스텔",
+    description: "파스텔 톤 앱 아이콘 24종 묶음.",
+    icons: Array.from({ length: 6 }).map((_, i) => ({
+      id: `pk-001-${i}`, label: ["메일","사진","음악","메모","캘린더","설정"][i],
+      emoji: ["💌","🖼️","🎵","📝","📅","⚙️"][i],
+      fileName: `pastel_${i}.png`, fileType: "PNG", resolution: "256 × 256",
+    })),
+    license: "개인 사용 가능",
+  },
+  {
+    id: "pk-002", type: "iconpack", name: "커비 아이콘 팩",
+    thumbnailEmojis: ["🩷", "⭐", "🌈", "🍰", "🎈", "✨"],
+    creator: { name: "pinkpuff", role: "캐릭터 아티스트", avatar: "🩷" },
+    price: 0, rating: 4.85, reviews: 540, downloads: 6520,
+    tags: ["귀여움", "캐릭터"], category: "캐릭터",
+    description: "커비 컨셉 아이콘 팩 12종.",
+    icons: Array.from({ length: 6 }).map((_, i) => ({
+      id: `pk-002-${i}`, label: ["별","무지개","케이크","풍선","반짝","하트"][i],
+      emoji: ["⭐","🌈","🍰","🎈","✨","💖"][i],
+      fileName: `kirby_${i}.png`, fileType: "PNG", resolution: "256 × 256",
+    })),
+    license: "개인 사용 · 비상업적",
+  },
+  {
+    id: "pk-003", type: "iconpack", name: "다크 미니멀 시스템 아이콘",
+    thumbnailEmojis: ["⬛", "🔲", "▪️", "🔘", "⬜", "🔳"],
+    creator: { name: "mono", role: "미니멀 스튜디오", avatar: "⬛" },
+    price: 3500, rating: 4.75, reviews: 188, downloads: 2240,
+    tags: ["다크", "미니멀", "시스템"], category: "다크",
+    description: "다크 톤 시스템 아이콘 팩.",
+    icons: Array.from({ length: 6 }).map((_, i) => ({
+      id: `pk-003-${i}`, label: ["홈","검색","설정","파일","폴더","휴지통"][i],
+      emoji: ["🏠","🔎","⚙️","📄","📁","🗑️"][i],
+      fileName: `dark_${i}.svg`, fileType: "SVG", resolution: "벡터",
+    })),
+    license: "개인 사용 가능",
+  },
+];
+
+/** 통합된 마켓 아이템 목록 (탐색에서 사용) */
+export const marketItems: MarketItem[] = [
+  ...marketplacePresets.map((p) => ({ ...p, type: "preset" as const })),
+  ...marketIcons,
+  ...marketIconPacks,
+];
+
+// =====================================================
+// 사용자 아이콘 보관함
+// =====================================================
+
+export type IconLibraryStatus = "다운로드됨" | "구매함" | "내가 만든 아이콘";
+
+export type LibraryIcon = {
+  id: string;
+  kind: "icon";
+  sourceMarketId?: string;
+  name: string;
+  emoji: string;
+  fileName: string;
+  fileType: "PNG" | "SVG" | "ICO";
+  resolution: string;
+  tags: string[];
+  status: IconLibraryStatus;
+  source?: string; // e.g. 마켓 또는 출처
+};
+
+export type LibraryIconPack = {
+  id: string;
+  kind: "iconpack";
+  sourceMarketId?: string;
+  name: string;
+  thumbnailEmojis: string[];
+  iconCount: number;
+  icons: { id: string; label: string; emoji: string; fileName: string; fileType: "PNG" | "SVG" | "ICO"; resolution: string }[];
+  tags: string[];
+  status: IconLibraryStatus;
+  source?: string;
+};
+
+export const libraryIcons: LibraryIcon[] = [
+  {
+    id: "li-001", kind: "icon", sourceMarketId: "ic-001",
+    name: "커비 별", emoji: "⭐",
+    fileName: "kirby_star.png", fileType: "PNG", resolution: "256 × 256",
+    tags: ["귀여움", "별"], status: "다운로드됨", source: "@pinkpuff",
+  },
+  {
+    id: "li-002", kind: "icon", sourceMarketId: "ic-002",
+    name: "네온 폴더", emoji: "📁",
+    fileName: "neon_folder.png", fileType: "PNG", resolution: "512 × 512",
+    tags: ["네온"], status: "구매함", source: "@neonlab",
+  },
+  {
+    id: "li-003", kind: "icon",
+    name: "내 첫 아이콘", emoji: "🎨",
+    fileName: "my_first.png", fileType: "PNG", resolution: "128 × 128",
+    tags: ["직접 제작"], status: "내가 만든 아이콘", source: "내가 만든 아이콘",
+  },
+];
+
+export const libraryIconPacks: LibraryIconPack[] = [
+  {
+    id: "lp-001", kind: "iconpack", sourceMarketId: "pk-002",
+    name: "커비 아이콘 팩", thumbnailEmojis: ["🩷", "⭐", "🌈", "🍰", "🎈", "✨"],
+    iconCount: 6,
+    icons: Array.from({ length: 6 }).map((_, i) => ({
+      id: `lp-001-${i}`, label: ["별","무지개","케이크","풍선","반짝","하트"][i],
+      emoji: ["⭐","🌈","🍰","🎈","✨","💖"][i],
+      fileName: `kirby_${i}.png`, fileType: "PNG", resolution: "256 × 256",
+    })),
+    tags: ["귀여움"], status: "다운로드됨", source: "@pinkpuff",
+  },
+  {
+    id: "lp-002", kind: "iconpack", sourceMarketId: "pk-001",
+    name: "파스텔 앱 아이콘 24종", thumbnailEmojis: ["💌","🖼️","🎵","📝","📅","⚙️"],
+    iconCount: 6,
+    icons: Array.from({ length: 6 }).map((_, i) => ({
+      id: `lp-002-${i}`, label: ["메일","사진","음악","메모","캘린더","설정"][i],
+      emoji: ["💌","🖼️","🎵","📝","📅","⚙️"][i],
+      fileName: `pastel_${i}.png`, fileType: "PNG", resolution: "256 × 256",
+    })),
+    tags: ["파스텔"], status: "구매함", source: "@soft",
+  },
+];
+
 export type Notice = {
   id: string;
   type: "comment" | "rating" | "download" | "sale" | "report" | "update" | "error";
