@@ -139,7 +139,6 @@ export default function Explore() {
         {category !== "전체" && (
           <Chip active onClick={() => setCategory("전체")}>{category} ✕</Chip>
         )}
-        <span className="ml-auto text-xs text-muted-foreground">라이선스 필터 (준비 중)</span>
       </div>
 
       {/* Grid */}
