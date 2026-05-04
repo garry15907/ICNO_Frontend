@@ -131,6 +131,13 @@ All colors MUST be HSL.
   .bg-gradient-surface { background: var(--gradient-surface); }
   .shadow-card { box-shadow: var(--shadow-card); }
   .shadow-glow { box-shadow: var(--shadow-glow); }
+  .card-hover-surface {
+    isolation: isolate;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    clip-path: inset(0 round 1rem);
+    contain: paint;
+  }
   .text-gradient {
     background: var(--gradient-primary);
     -webkit-background-clip: text;
