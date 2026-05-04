@@ -91,11 +91,6 @@ export default function Library() {
               >
                 <Pin className={cn("h-3.5 w-3.5", pinned.includes(p.id) && "fill-current")} />
               </button>
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4 gap-2">
-                <Button size="sm" className="h-8 bg-gradient-primary text-primary-foreground"><Play className="h-3 w-3 mr-1" />적용</Button>
-                <Button size="sm" variant="secondary" className="h-8" onClick={(e) => { e.stopPropagation(); nav(`/library/${p.id}`); }}><Edit className="h-3 w-3 mr-1" />수정</Button>
-                <Button size="sm" variant="secondary" className="h-8"><Eye className="h-3 w-3 mr-1" />미리보기</Button>
-              </div>
             </div>
             <div className="p-4">
               <div className="flex items-start justify-between gap-2">
