@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { marketplacePresets, libraryPresets, wishlistIds, downloadedIds, purchasedIds, currentUser, reviews as mockReviews } from "@/data/mockData";
+import { marketplacePresets, libraryPresets, wishlistIds, downloadedIds, purchasedIds, currentUser, reviews as mockReviews, followedCreators } from "@/data/mockData";
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { Button } from "@/components/ui/button";
-import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft, TrendingUp, MessageSquare, Activity, Calendar, Shield, Upload, Eye, EyeOff, Pencil, Trash2, Flag, CheckCircle2, Info, ChevronRight } from "lucide-react";
+import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft, TrendingUp, MessageSquare, Activity, Calendar, Shield, Upload, Eye, EyeOff, Pencil, Trash2, Flag, CheckCircle2, Info, ChevronRight, Users, UserMinus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -36,6 +36,14 @@ export function ProfileMain() {
     { label: "구매", value: purchasedIds.length, to: "/profile/purchases", icon: Receipt },
     { label: "내 상품", value: 3, to: "/profile/sales", icon: Store },
   ];
+  const [following, setFollowing] = useState(followedCreators);
+  const [unfollowTarget, setUnfollowTarget] = useState<string | null>(null);
+  const handleUnfollow = () => {
+    if (!unfollowTarget) return;
+    setFollowing((prev) => prev.filter((c) => c.name !== unfollowTarget));
+    toast({ title: "팔로우 해제됨", description: `@${unfollowTarget} 팔로우를 해제했습니다.` });
+    setUnfollowTarget(null);
+  };
   const quickMenus = [
     { title: "찜한 프리셋", desc: "관심 있는 프리셋 모아보기", icon: Heart, to: "/profile/wishlist" },
     { title: "다운로드 목록", desc: "원본 재다운로드 및 초기 복원", icon: Download, to: "/profile/downloads" },
@@ -124,6 +132,73 @@ export function ProfileMain() {
           ))}
         </ul>
       </div>
+
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold">팔로우한 크리에이터</h3>
+            <Badge variant="secondary" className="text-[10px]">{following.length}</Badge>
+          </div>
+          <Users className="h-4 w-4 text-muted-foreground" />
+        </div>
+        {following.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            아직 팔로우한 크리에이터가 없습니다.
+          </div>
+        ) : (
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {following.map((c) => (
+              <li
+                key={c.name}
+                className="group flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:shadow-glow transition-all"
+              >
+                <button
+                  onClick={() => nav(`/explore?creator=${c.name}`)}
+                  className="h-11 w-11 rounded-full bg-gradient-primary grid place-items-center text-2xl shrink-0"
+                  aria-label={`${c.name} 프로필 보기`}
+                >
+                  {c.avatar}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold truncate">@{c.name}</span>
+                    {c.isNew && <Badge className="text-[9px] h-4 px-1.5 bg-primary/15 text-primary hover:bg-primary/20">NEW</Badge>}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground truncate">{c.role}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    업로드 {c.uploads} · 팔로워 {c.followers.toLocaleString()}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="opacity-0 group-hover:opacity-100 transition"
+                  onClick={() => setUnfollowTarget(c.name)}
+                  aria-label="팔로우 해제"
+                  title="팔로우 해제"
+                >
+                  <UserMinus className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <AlertDialog open={!!unfollowTarget} onOpenChange={(o) => !o && setUnfollowTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>팔로우를 해제할까요?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {unfollowTarget ? `@${unfollowTarget} 크리에이터를 팔로우 해제합니다.` : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnfollow}>해제</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-md">
