@@ -498,8 +498,15 @@ export function ActivityFeed() {
 }
 
 function ProfileList({ title, subtitle, children }: any) {
+  const nav = useNavigate();
   return (
     <div className="space-y-4">
+      <button
+        onClick={() => nav("/profile")}
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition"
+      >
+        <ChevronLeft className="h-4 w-4" /> 프로필로 돌아가기
+      </button>
       <div>
         <h2 className="text-3xl font-bold tracking-tight">{title}</h2>
         <p className="text-muted-foreground mt-1">{subtitle}</p>
