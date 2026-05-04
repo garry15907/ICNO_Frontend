@@ -35,6 +35,7 @@ export function ProfileMain() {
     { label: "다운로드", value: downloadedIds.length, to: "/profile/downloads", icon: Download },
     { label: "구매", value: purchasedIds.length, to: "/profile/purchases", icon: Receipt },
     { label: "내 상품", value: 3, to: "/profile/sales", icon: Store },
+    { label: "팔로잉", value: followedCreators.length, to: "/profile/following", icon: Users },
   ];
   const [following, setFollowing] = useState(followedCreators);
   const [unfollowTarget, setUnfollowTarget] = useState<string | null>(null);
@@ -49,6 +50,7 @@ export function ProfileMain() {
     { title: "다운로드 목록", desc: "원본 재다운로드 및 초기 복원", icon: Download, to: "/profile/downloads" },
     { title: "구매 내역", desc: "구매한 유료 프리셋 확인", icon: Receipt, to: "/profile/purchases" },
     { title: "내 상품 관리", desc: "업로드한 프리셋 관리", icon: Store, to: "/profile/sales" },
+    { title: "팔로우 목록", desc: "팔로우한 크리에이터 모아보기", icon: Users, to: "/profile/following" },
   ];
   const recent = [
     { icon: Download, text: "노을 프리셋을 다운로드했습니다.", preset: "노을", time: "10분 전" },
@@ -83,7 +85,7 @@ export function ProfileMain() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {stats.map((s) => (
           <button key={s.label} onClick={() => nav(s.to)} className="rounded-2xl border border-border bg-card p-5 text-left hover:border-primary/40 hover:shadow-glow transition-all">
             <s.icon className="h-5 w-5 text-primary mb-3" />
@@ -584,4 +586,73 @@ function ProfileList({ title, subtitle, children }: any) {
 }
 function Empty({ text }: { text: string }) {
   return <div className="border border-dashed rounded-2xl p-12 text-center text-muted-foreground">{text}</div>;
+}
+
+export function Following() {
+  const nav = useNavigate();
+  const [following, setFollowing] = useState(followedCreators);
+  const [unfollowTarget, setUnfollowTarget] = useState<string | null>(null);
+  const handleUnfollow = () => {
+    if (!unfollowTarget) return;
+    setFollowing((prev) => prev.filter((c) => c.name !== unfollowTarget));
+    toast({ title: "팔로우 해제됨", description: `@${unfollowTarget} 팔로우를 해제했습니다.` });
+    setUnfollowTarget(null);
+  };
+  return (
+    <ProfileList title="팔로우 목록" subtitle="내가 팔로우한 크리에이터입니다.">
+      {following.length === 0 ? (
+        <Empty text="아직 팔로우한 크리에이터가 없습니다." />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {following.map((c) => (
+            <div
+              key={c.name}
+              className="group flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-glow transition-all"
+            >
+              <button
+                onClick={() => nav(`/explore?creator=${c.name}`)}
+                className="h-12 w-12 rounded-full bg-gradient-primary grid place-items-center text-2xl shrink-0"
+                aria-label={`${c.name} 프로필 보기`}
+              >
+                {c.avatar}
+              </button>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-semibold truncate">@{c.name}</span>
+                  {c.isNew && <Badge className="text-[9px] h-4 px-1.5 bg-primary/15 text-primary hover:bg-primary/20">NEW</Badge>}
+                </div>
+                <div className="text-[11px] text-muted-foreground truncate">{c.role}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  업로드 {c.uploads} · 팔로워 {c.followers.toLocaleString()}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setUnfollowTarget(c.name)}
+                aria-label="팔로우 해제"
+                title="팔로우 해제"
+              >
+                <UserMinus className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+      <AlertDialog open={!!unfollowTarget} onOpenChange={(o) => !o && setUnfollowTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>팔로우를 해제할까요?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {unfollowTarget ? `@${unfollowTarget} 크리에이터를 팔로우 해제합니다.` : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnfollow}>해제</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </ProfileList>
+  );
 }
