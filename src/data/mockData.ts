@@ -646,3 +646,22 @@ export const currentUser = {
   role: "크리에이터",
   avatar: "🦄",
 };
+
+export type FollowedCreator = {
+  name: string;
+  role: string;
+  avatar: string;
+  uploads: number;
+  followers: number;
+  followedAt: string;
+  isNew?: boolean;
+};
+
+export const followedCreators: FollowedCreator[] = [
+  { name: "haneul", role: "탑 크리에이터", avatar: "🌅", uploads: 24, followers: 12450, followedAt: "2026-04-22", isNew: true },
+  { name: "pinkpuff", role: "캐릭터 아티스트", avatar: "🩷", uploads: 18, followers: 8320, followedAt: "2026-04-10" },
+  { name: "neonlab", role: "탑 크리에이터", avatar: "🌃", uploads: 31, followers: 21030, followedAt: "2026-03-28", isNew: true },
+  { name: "mono", role: "미니멀 스튜디오", avatar: "⬛", uploads: 12, followers: 5410, followedAt: "2026-03-15" },
+  { name: "8bitcat", role: "픽셀 아티스트", avatar: "👾", uploads: 22, followers: 9870, followedAt: "2026-02-20" },
+  { name: "soft", role: "디자이너", avatar: "🌸", uploads: 9, followers: 3210, followedAt: "2026-02-02" },
+];
