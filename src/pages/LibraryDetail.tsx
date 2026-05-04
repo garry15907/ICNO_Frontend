@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Play, Save, MoreHorizontal, Plus, ChevronDown, ChevronUp,
-  Move, MousePointer2, Grid3x3, Info, Image as ImageIcon, Link2,
+  Move, MousePointer2, Info, Image as ImageIcon, Link2,
   History, RotateCcw, Trash2, Download, FileText, Magnet, AlignJustify,
   Package, Store, Upload as UploadIcon, X,
 } from "lucide-react";
