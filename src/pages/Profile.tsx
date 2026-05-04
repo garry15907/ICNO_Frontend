@@ -45,7 +45,7 @@ export function ProfileMain() {
           )}
         </div>
         <div className="flex-1">
-          <h2 className="text-2xl font-bold">{profile.name}</h2>
+          <h2 className="text-2xl font-bold">{profile.nickname}</h2>
           <div className="text-sm text-muted-foreground">{currentUser.username} · {currentUser.role}</div>
           {profile.status && <div className="text-xs text-muted-foreground mt-1 italic">"{profile.status}"</div>}
         </div>
