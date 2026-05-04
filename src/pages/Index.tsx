@@ -45,7 +45,7 @@ const Index = () => {
             <button
               key={q.label}
               onClick={() => nav(q.to)}
-              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left shadow-card hover:border-primary/40 hover:shadow-glow transition-all"
+              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left shadow-card hover:border-primary/40 hover:shadow-glow transform-gpu transition-[transform,box-shadow,border-color] duration-300"
             >
               <div className="h-11 w-11 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground shadow-glow">
                 <q.icon className="h-5 w-5" />
@@ -62,7 +62,7 @@ const Index = () => {
             <button
               key={lp.id}
               onClick={() => nav(`/library/${lp.id}`)}
-              className="group rounded-2xl overflow-hidden border border-border bg-card shadow-card hover:shadow-glow transition-all text-left"
+              className="group rounded-2xl overflow-hidden border border-border bg-card shadow-card hover:shadow-glow transform-gpu will-change-transform transition-[transform,box-shadow,border-color] duration-300 text-left"
             >
               <div className="aspect-[16/10] overflow-hidden">
                 <img src={lp.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
