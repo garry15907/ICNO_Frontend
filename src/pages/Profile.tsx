@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { marketplacePresets, libraryPresets, wishlistIds, downloadedIds, purchasedIds, currentUser } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +14,8 @@ import { toast } from "@/hooks/use-toast";
 export function ProfileMain() {
   const nav = useNavigate();
   const [editOpen, setEditOpen] = useState(false);
+  const [defaultPickerOpen, setDefaultPickerOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     name: currentUser.name,
     nickname: "Yuri",
@@ -20,6 +23,16 @@ export function ProfileMain() {
     bio: "인디/모던록 좋아하는 보컬. 합주 기록 꼼꼼하게 남기는 편.",
     avatar: currentUser.avatar,
   });
+  const defaultAvatars = ["🎤", "🎸", "🥁", "🎹", "🎧", "🎼", "🎺", "🎻", "🪕", "🎷"];
+  const isImageAvatar = (a: string) => a.startsWith("data:") || a.startsWith("http") || a.startsWith("/");
+  const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setForm((f) => ({ ...f, avatar: String(reader.result) }));
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
   const stats = [
     { label: "찜", value: wishlistIds.length, to: "/profile/wishlist", icon: Heart },
     { label: "다운로드", value: downloadedIds.length, to: "/profile/downloads", icon: Download },
@@ -29,7 +42,13 @@ export function ProfileMain() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-5 p-6 rounded-2xl bg-gradient-surface border border-border">
-        <div className="h-20 w-20 rounded-full bg-gradient-primary grid place-items-center text-4xl shadow-glow">{form.avatar}</div>
+        <div className="h-20 w-20 rounded-full bg-gradient-primary grid place-items-center text-4xl shadow-glow overflow-hidden">
+          {isImageAvatar(form.avatar) ? (
+            <img src={form.avatar} alt="프로필 사진" className="h-full w-full object-cover" />
+          ) : (
+            form.avatar
+          )}
+        </div>
         <div className="flex-1">
           <h2 className="text-2xl font-bold">{form.name}</h2>
           <div className="text-sm text-muted-foreground">{currentUser.username} · {currentUser.role}</div>
@@ -73,20 +92,60 @@ export function ProfileMain() {
 
           <div className="flex justify-center py-4">
             <div className="relative">
-              <div className="h-24 w-24 rounded-full bg-gradient-primary grid place-items-center text-5xl shadow-glow">
-                {form.avatar}
+              <div className="h-24 w-24 rounded-full bg-gradient-primary grid place-items-center text-5xl shadow-glow overflow-hidden">
+                {isImageAvatar(form.avatar) ? (
+                  <img src={form.avatar} alt="프로필 사진" className="h-full w-full object-cover" />
+                ) : (
+                  form.avatar
+                )}
               </div>
-              <button
-                onClick={() => {
-                  const next = prompt("이모지를 입력하세요", form.avatar);
-                  if (next) setForm({ ...form, avatar: next });
-                }}
-                className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-card border border-border grid place-items-center hover:border-primary transition"
-              >
-                <Camera className="h-4 w-4" />
-              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFilePick}
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-card border border-border grid place-items-center hover:border-primary transition">
+                    <Camera className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                    파일에서 선택하기
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDefaultPickerOpen(true)}>
+                    기본 이미지로 선택하기
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
+
+          <Dialog open={defaultPickerOpen} onOpenChange={setDefaultPickerOpen}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>기본 이미지 선택</DialogTitle>
+                <DialogDescription>원하는 기본 이미지를 선택하세요.</DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-5 gap-3 pt-2">
+                {defaultAvatars.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => {
+                      setForm({ ...form, avatar: emoji });
+                      setDefaultPickerOpen(false);
+                    }}
+                    className="h-14 w-14 rounded-full bg-gradient-primary grid place-items-center text-3xl hover:ring-2 hover:ring-primary transition"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <div className="space-y-4 rounded-2xl bg-muted/30 p-4">
             <div className="space-y-1.5">
