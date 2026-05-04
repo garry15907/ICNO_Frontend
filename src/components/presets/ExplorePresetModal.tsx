@@ -94,7 +94,6 @@ export function ExplorePresetModal({
             <div className="text-2xl font-bold">
               {preset.price === 0 ? "무료" : `₩${preset.price.toLocaleString()}`}
             </div>
-            <Button className="w-full h-11 bg-gradient-primary text-primary-foreground hover:opacity-90">
             <Button onClick={handlePrimaryClick} className="w-full h-11 bg-gradient-primary text-primary-foreground hover:opacity-90">
               {preset.price === 0 ? <><Download className="h-4 w-4 mr-2" />다운로드</> : <><ShoppingCart className="h-4 w-4 mr-2" />구매하기</>}
             </Button>
