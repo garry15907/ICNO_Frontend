@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Compass, Library as LibIcon, Settings as SettingsIcon, Sparkles, Star, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { libraryPresets, marketplacePresets, marketItems, downloadedIds, wishlistIds } from "@/data/mockData";
+import { libraryPresets, marketplacePresets, marketItems, downloadedIds } from "@/data/mockData";
 import { MarketItemCard } from "@/components/presets/PresetCard";
 import { useToast } from "@/hooks/use-toast";
+import { useWishlist } from "@/lib/wishlist";
 
 const quickActions = [
   { icon: Plus, label: "새 프리셋 만들기", to: "/library", tone: "primary" },
@@ -16,13 +16,10 @@ const quickActions = [
 const Index = () => {
   const nav = useNavigate();
   const { toast } = useToast();
-  const [wishlist, setWishlist] = useState<string[]>(wishlistIds);
+  const { isWishlisted, toggle } = useWishlist();
   const toggleWish = (id: string) => {
-    setWishlist((prev) => {
-      const has = prev.includes(id);
-      toast({ title: has ? "찜 해제" : "찜 추가", description: has ? "찜 목록에서 제거했어요." : "찜 목록에 추가했어요." });
-      return has ? prev.filter((x) => x !== id) : [...prev, id];
-    });
+    const added = toggle(id);
+    toast({ title: added ? "찜 추가" : "찜 해제", description: added ? "찜 목록에 추가했어요." : "찜 목록에서 제거했어요." });
   };
   const current = libraryPresets.find((p) => p.status === "현재 적용 중")!;
   const recent = libraryPresets.slice(0, 3);
@@ -94,7 +91,7 @@ const Index = () => {
             <MarketItemCard
               key={p.id}
               item={p}
-              wishlisted={wishlist.includes(p.id)}
+              wishlisted={isWishlisted(p.id)}
               onWishlist={() => toggleWish(p.id)}
               onClick={() => nav(`/explore?item=${p.id}`)}
             />
@@ -108,7 +105,7 @@ const Index = () => {
             <MarketItemCard
               key={p.id}
               item={p}
-              wishlisted={wishlist.includes(p.id)}
+              wishlisted={isWishlisted(p.id)}
               onWishlist={() => toggleWish(p.id)}
               onClick={() => nav(`/explore?item=${p.id}`)}
             />
