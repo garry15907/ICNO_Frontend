@@ -37,7 +37,34 @@ export type MarketplacePreset = {
   icons: IconAsset[];
   hoverIcons: { id: string; fileName: string; label: string; emoji: string }[];
   license: string;
+  default_resolution?: string;
+  resolution_variants?: ResolutionVariant[];
 };
+
+export type ResolutionVariant = {
+  variant_id: string;
+  label: string; // FHD / QHD / UHD / Ultrawide / Laptop / Custom
+  width: number;
+  height: number;
+  is_default?: boolean;
+  is_recommended?: boolean;
+};
+
+export const currentDisplayResolution = {
+  width: 2560,
+  height: 1440,
+  label: "QHD",
+};
+
+/** 해상도 라벨 헬퍼 */
+export function resolutionLabelFor(w: number, h: number): string {
+  if (w === 1920 && h === 1080) return "FHD";
+  if (w === 2560 && h === 1440) return "QHD";
+  if (w === 3840 && h === 2160) return "UHD";
+  if (w === 3440 && h === 1440) return "Ultrawide";
+  if (w === 2560 && h === 1600) return "노트북";
+  return "Custom";
+}
 
 const ic = (
   id: string,
