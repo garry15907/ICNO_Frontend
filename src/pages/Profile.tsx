@@ -155,7 +155,7 @@ export function ProfileMain() {
                 className="group flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:shadow-glow transition-all"
               >
                 <button
-                  onClick={() => nav(`/explore?creator=${c.name}`)}
+                  onClick={() => nav(`/creator/${c.name}`)}
                   className="h-11 w-11 rounded-full bg-gradient-primary grid place-items-center text-2xl shrink-0"
                   aria-label={`${c.name} 프로필 보기`}
                 >
@@ -610,7 +610,7 @@ export function Following() {
               className="group flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-glow transition-all"
             >
               <button
-                onClick={() => nav(`/explore?creator=${c.name}`)}
+                onClick={() => nav(`/creator/${c.name}`)}
                 className="h-12 w-12 rounded-full bg-gradient-primary grid place-items-center text-2xl shrink-0"
                 aria-label={`${c.name} 프로필 보기`}
               >
