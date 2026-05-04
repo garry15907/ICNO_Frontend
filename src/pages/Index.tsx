@@ -56,7 +56,7 @@ const Index = () => {
         </div>
       </section>
 
-      <Section title="최근 사용한 프리셋" subtitle="보관함에서 최근에 열어본 프리셋">
+      <Section title="최근 사용한 프리셋">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
           {recent.map((lp) => (
             <button
