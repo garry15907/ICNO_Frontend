@@ -66,6 +66,8 @@ export default function Library() {
                 </span>
               )}
               <button
+                type="button"
+                onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); togglePin(p.id); }}
                 className={cn(
                   "absolute top-3 right-3 h-7 w-7 grid place-items-center rounded-md shadow-card transition-all",
