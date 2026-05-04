@@ -4,6 +4,7 @@ import { Home, Compass, Library, Bell, Settings, Sparkles, ChevronUp, User, Hear
 import { cn } from "@/lib/utils";
 import { currentUser } from "@/data/mockData";
 import { useSidebarMode } from "@/lib/sidebar-mode";
+import { useProfile, isImageAvatar } from "@/lib/profile";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const navItems = [
@@ -19,6 +20,7 @@ export function AppSidebar() {
   const nav = useNavigate();
   const { mode } = useSidebarMode();
   const [hovered, setHovered] = useState(false);
+  const { profile } = useProfile();
 
   const expanded =
     mode === "expanded" || (mode === "hover" && hovered);
@@ -106,12 +108,16 @@ export function AppSidebar() {
             collapsed && "justify-center"
           )}>
             <div className="h-9 w-9 rounded-full bg-gradient-primary grid place-items-center text-base">
-              {currentUser.avatar}
+              {isImageAvatar(profile.avatar) ? (
+                <img src={profile.avatar} alt="프로필 사진" className="h-full w-full rounded-full object-cover" />
+              ) : (
+                profile.avatar
+              )}
             </div>
             {!collapsed && (
               <>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-sidebar-foreground truncate">{currentUser.name}</div>
+                  <div className="text-sm font-semibold text-sidebar-foreground truncate">{profile.name}</div>
                   <div className="text-[11px] text-muted-foreground truncate">{currentUser.role}</div>
                 </div>
                 <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
