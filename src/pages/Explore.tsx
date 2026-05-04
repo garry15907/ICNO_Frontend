@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, SlidersHorizontal, Sparkles, Image as ImageIcon, Package, Layers, Monitor } from "lucide-react";
 import { MarketItemCard } from "@/components/presets/PresetCard";
-import { marketItems, wishlistIds, currentDisplayResolution } from "@/data/mockData";
+import { marketItems, currentDisplayResolution } from "@/data/mockData";
+import { useWishlist } from "@/lib/wishlist";
 import { MarketItemModal } from "@/components/presets/MarketItemModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -48,7 +49,7 @@ export default function Explore() {
   const [category, setCategory] = useState("전체");
   const [sort, setSort] = useState("인기순");
   const [typeFilter, setTypeFilter] = useState<"all" | "preset" | "icon" | "iconpack">("all");
-  const [wishlist, setWishlist] = useState<string[]>(wishlistIds);
+  const { wishlist, isWishlisted, toggle } = useWishlist();
   const [filterOpen, setFilterOpen] = useState(false);
   const [categoryQuery, setCategoryQuery] = useState("");
   const [resolutionIds, setResolutionIds] = useState<string[]>([]);
@@ -97,8 +98,7 @@ export default function Explore() {
     return list;
   }, [typeFilter, price, category, query, sort, resolutionIds, customW, customH]);
 
-  const toggleWish = (id: string) =>
-    setWishlist((w) => (w.includes(id) ? w.filter((x) => x !== id) : [...w, id]));
+  const toggleWish = (id: string) => { toggle(id); };
 
   return (
     <div className="space-y-6">
