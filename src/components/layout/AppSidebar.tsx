@@ -54,7 +54,7 @@ export function AppSidebar() {
         <div
           className={cn(
             "overflow-hidden transition-opacity duration-150 whitespace-nowrap",
-            collapsed ? "opacity-0 w-0" : "opacity-100"
+            collapsed ? "opacity-0 w-0" : "opacity-100 delay-200"
           )}
         >
           <div className="text-lg font-bold tracking-tight text-sidebar-foreground">ICNO</div>
@@ -90,7 +90,7 @@ export function AppSidebar() {
               <span
                 className={cn(
                   "flex-1 truncate transition-opacity duration-150",
-                  collapsed ? "opacity-0 w-0 hidden" : "opacity-100"
+                  collapsed ? "opacity-0 w-0 hidden" : "opacity-100 delay-200"
                 )}
               >
                 {item.label}
@@ -115,13 +115,13 @@ export function AppSidebar() {
               )}
             </div>
             {!collapsed && (
-              <>
+              <div className="flex items-center gap-3 flex-1 min-w-0 animate-fade-in">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-sidebar-foreground truncate">{profile.nickname}</div>
                   <div className="text-[11px] text-muted-foreground truncate">{currentUser.role}</div>
                 </div>
                 <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
-              </>
+              </div>
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="top" className="w-56">
