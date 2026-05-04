@@ -66,9 +66,11 @@ export default function Library() {
                 </span>
               )}
               <button
+                type="button"
+                onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); togglePin(p.id); }}
                 className={cn(
-                  "absolute top-3 right-3 h-7 w-7 grid place-items-center rounded-md shadow-card transition-all",
+                  "absolute top-3 right-3 z-20 h-7 w-7 grid place-items-center rounded-md shadow-card transition-all",
                   pinned.includes(p.id)
                     ? "bg-primary text-primary-foreground opacity-100"
                     : "bg-background/80 backdrop-blur text-foreground opacity-0 group-hover:opacity-100 hover:bg-background",
