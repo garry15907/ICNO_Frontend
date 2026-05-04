@@ -16,6 +16,7 @@ import Upload from "./pages/Upload";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import { ProfileMain, Wishlist, Downloads, Purchases, Sales, Following } from "./pages/Profile";
+import CreatorProfile from "./pages/CreatorProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/profile/purchases" element={<Purchases />} />
               <Route path="/profile/sales" element={<Sales />} />
               <Route path="/profile/following" element={<Following />} />
+              <Route path="/creator/:name" element={<CreatorProfile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
