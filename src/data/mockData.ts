@@ -37,7 +37,34 @@ export type MarketplacePreset = {
   icons: IconAsset[];
   hoverIcons: { id: string; fileName: string; label: string; emoji: string }[];
   license: string;
+  default_resolution?: string;
+  resolution_variants?: ResolutionVariant[];
 };
+
+export type ResolutionVariant = {
+  variant_id: string;
+  label: string; // FHD / QHD / UHD / Ultrawide / Laptop / Custom
+  width: number;
+  height: number;
+  is_default?: boolean;
+  is_recommended?: boolean;
+};
+
+export const currentDisplayResolution = {
+  width: 2560,
+  height: 1440,
+  label: "QHD",
+};
+
+/** 해상도 라벨 헬퍼 */
+export function resolutionLabelFor(w: number, h: number): string {
+  if (w === 1920 && h === 1080) return "FHD";
+  if (w === 2560 && h === 1440) return "QHD";
+  if (w === 3840 && h === 2160) return "UHD";
+  if (w === 3440 && h === 1440) return "Ultrawide";
+  if (w === 2560 && h === 1600) return "노트북";
+  return "Custom";
+}
 
 const ic = (
   id: string,
@@ -441,10 +468,74 @@ export const marketIconPacks: MarketIconPack[] = [
 
 /** 통합된 마켓 아이템 목록 (탐색에서 사용) */
 export const marketItems: MarketItem[] = [
-  ...marketplacePresets.map((p) => ({ ...p, type: "preset" as const })),
+  ...marketplacePresets.map((p) => ({
+    ...p,
+    type: "preset" as const,
+    default_resolution: p.default_resolution ?? p.resolution.replace(/\s/g, ""),
+    resolution_variants: p.resolution_variants ?? defaultVariantsFor(p.id),
+  })),
   ...marketIcons,
   ...marketIconPacks,
 ];
+
+/** 프리셋 id별 해상도 변형 mock 매핑 */
+function defaultVariantsFor(id: string): ResolutionVariant[] {
+  const sets: Record<string, ResolutionVariant[]> = {
+    "mp-001": [
+      { variant_id: "mp-001-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
+      { variant_id: "mp-001-qhd", label: "QHD", width: 2560, height: 1440 },
+      { variant_id: "mp-001-uhd", label: "UHD", width: 3840, height: 2160 },
+    ],
+    "mp-002": [
+      { variant_id: "mp-002-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
+      { variant_id: "mp-002-qhd", label: "QHD", width: 2560, height: 1440 },
+    ],
+    "mp-003": [
+      { variant_id: "mp-003-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
+    ],
+    "mp-004": [
+      { variant_id: "mp-004-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
+      { variant_id: "mp-004-qhd", label: "QHD", width: 2560, height: 1440 },
+      { variant_id: "mp-004-uhd", label: "UHD", width: 3840, height: 2160 },
+      { variant_id: "mp-004-uw", label: "Ultrawide", width: 3440, height: 1440 },
+    ],
+    "mp-005": [
+      { variant_id: "mp-005-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
+      { variant_id: "mp-005-qhd", label: "QHD", width: 2560, height: 1440 },
+    ],
+    "mp-006": [
+      { variant_id: "mp-006-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
+      { variant_id: "mp-006-lap", label: "노트북", width: 2560, height: 1600 },
+    ],
+    "mp-007": [
+      { variant_id: "mp-007-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
+      { variant_id: "mp-007-qhd", label: "QHD", width: 2560, height: 1440 },
+      { variant_id: "mp-007-uhd", label: "UHD", width: 3840, height: 2160 },
+    ],
+    "mp-008": [
+      { variant_id: "mp-008-qhd", label: "QHD", width: 2560, height: 1440, is_default: true },
+      { variant_id: "mp-008-uhd", label: "UHD", width: 3840, height: 2160 },
+      { variant_id: "mp-008-uw", label: "Ultrawide", width: 3440, height: 1440 },
+    ],
+  };
+  return sets[id] ?? [{ variant_id: `${id}-fhd`, label: "FHD", width: 1920, height: 1080, is_default: true }];
+}
+
+/** 추천 변형 계산: 정확 일치 우선, 없으면 면적 가까운 순 */
+export function pickRecommendedVariant(
+  variants: ResolutionVariant[],
+  display: { width: number; height: number },
+): { variant: ResolutionVariant; exact: boolean } | null {
+  if (!variants?.length) return null;
+  const exact = variants.find((v) => v.width === display.width && v.height === display.height);
+  if (exact) return { variant: exact, exact: true };
+  const sorted = [...variants].sort((a, b) => {
+    const da = Math.abs(a.width * a.height - display.width * display.height);
+    const db = Math.abs(b.width * b.height - display.width * display.height);
+    return da - db;
+  });
+  return { variant: sorted[0], exact: false };
+}
 
 // =====================================================
 // 사용자 아이콘 보관함

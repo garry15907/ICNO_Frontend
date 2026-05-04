@@ -1,6 +1,6 @@
-import { Heart, Star, Download, Package, Image as ImageIcon } from "lucide-react";
+import { Heart, Star, Download, Package, Image as ImageIcon, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MarketplacePreset, MarketItem } from "@/data/mockData";
+import { MarketplacePreset, MarketItem, currentDisplayResolution, pickRecommendedVariant } from "@/data/mockData";
 
 export function PresetCard({
   preset,
@@ -133,12 +133,35 @@ export function MarketItemCard({
             {(item as any).icons.length}+ 아이콘
           </span>
         )}
+        {item.type === "preset" && (() => {
+          const variants = (item as any).resolution_variants ?? [];
+          const rec = pickRecommendedVariant(variants, currentDisplayResolution);
+          if (!rec) return null;
+          return (
+            <span className={cn(
+              "absolute bottom-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-md backdrop-blur border",
+              rec.exact
+                ? "bg-primary/90 text-primary-foreground border-primary"
+                : "bg-warning/90 text-white border-warning",
+            )}>
+              {rec.exact ? `해상도 일치 · ${rec.variant.label}` : "자동 보정"}
+            </span>
+          );
+        })()}
       </div>
       <div className="p-4 space-y-2">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold truncate">{item.name}</h3>
           <p className="text-xs text-muted-foreground truncate">@{(item as any).creator.name}</p>
         </div>
+        {item.type === "preset" && (item as any).resolution_variants?.length > 0 && (
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <Monitor className="h-3 w-3" />
+            <span className="truncate">
+              지원: {(item as any).resolution_variants.map((v: any) => v.label).join(" · ")}
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Star className="h-3.5 w-3.5 fill-warning text-warning" />
