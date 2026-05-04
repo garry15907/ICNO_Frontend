@@ -370,8 +370,6 @@ export default function LibraryDetail() {
 
           <div className="grid sm:grid-cols-2 gap-2">
             {icons.map((ic) => {
-              const mapped = !!ic.mappedTo;
-              const px = toPx(ic.position.x, ic.position.y);
               const isMoved = ic.position.x !== ic.originPos.x || ic.position.y !== ic.originPos.y;
               return (
                 <div
