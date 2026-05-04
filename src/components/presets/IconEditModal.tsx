@@ -8,9 +8,85 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { IconAsset } from "@/data/mockData";
-import { Bold, Italic, FolderOpen, FileIcon, AppWindow, X, ImageIcon, RotateCcw } from "lucide-react";
+import { Bold, Italic, FolderOpen, FileIcon, AppWindow, X, ImageIcon, RotateCcw, ChevronRight, Home, HardDrive, ArrowLeft, Search, Check } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 const presets = [32, 48, 64, 128, 256, 512];
+
+type FsNode = {
+  name: string;
+  kind: "folder" | "exe" | "file";
+  children?: FsNode[];
+};
+
+const fileSystem: FsNode = {
+  name: "내 PC",
+  kind: "folder",
+  children: [
+    {
+      name: "C:",
+      kind: "folder",
+      children: [
+        {
+          name: "Program Files",
+          kind: "folder",
+          children: [
+            { name: "Adobe", kind: "folder", children: [
+              { name: "Photoshop.exe", kind: "exe" },
+              { name: "Illustrator.exe", kind: "exe" },
+              { name: "Premiere Pro.exe", kind: "exe" },
+            ]},
+            { name: "Figma", kind: "folder", children: [{ name: "Figma.exe", kind: "exe" }] },
+            { name: "Microsoft", kind: "folder", children: [
+              { name: "Word.exe", kind: "exe" },
+              { name: "Excel.exe", kind: "exe" },
+              { name: "PowerPoint.exe", kind: "exe" },
+            ]},
+            { name: "Spotify", kind: "folder", children: [{ name: "Spotify.exe", kind: "exe" }] },
+            { name: "Discord", kind: "folder", children: [{ name: "Discord.exe", kind: "exe" }] },
+          ],
+        },
+        {
+          name: "Users",
+          kind: "folder",
+          children: [
+            {
+              name: "Me",
+              kind: "folder",
+              children: [
+                { name: "Desktop", kind: "folder", children: [
+                  { name: "포트폴리오.pdf", kind: "file" },
+                  { name: "메모.txt", kind: "file" },
+                ]},
+                { name: "Documents", kind: "folder", children: [
+                  { name: "이력서.docx", kind: "file" },
+                  { name: "계약서.pdf", kind: "file" },
+                ]},
+                { name: "Downloads", kind: "folder", children: [
+                  { name: "setup.exe", kind: "exe" },
+                ]},
+                { name: "Pictures", kind: "folder", children: [
+                  { name: "wallpaper.png", kind: "file" },
+                ]},
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+function findNode(path: string[]): FsNode | null {
+  let cur: FsNode | undefined = fileSystem;
+  for (const seg of path) {
+    if (!cur?.children) return null;
+    cur = cur.children.find((c) => c.name === seg);
+    if (!cur) return null;
+  }
+  return cur ?? null;
+}
 
 export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?: string }; onClose: () => void }) {
   const [w, setW] = useState(icon.size.w);
@@ -19,6 +95,24 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
   const [label, setLabel] = useState(icon.label);
   const [showLabel, setShowLabel] = useState(true);
   const [mapping, setMapping] = useState(icon.mappedTo);
+  const [path, setPath] = useState<string[]>(["내 PC"]);
+  const [search, setSearch] = useState("");
+  const currentNode = findNode(path.slice(1));
+  const entries = (currentNode?.children ?? []).filter((e) =>
+    search ? e.name.toLowerCase().includes(search.toLowerCase()) : true,
+  );
+  const sortedEntries = [...entries].sort((a, b) => {
+    if (a.kind === "folder" && b.kind !== "folder") return -1;
+    if (a.kind !== "folder" && b.kind === "folder") return 1;
+    return a.name.localeCompare(b.name);
+  });
+  const goInto = (node: FsNode) => {
+    if (node.kind === "folder") setPath((p) => [...p, node.name]);
+  };
+  const selectTarget = (node: FsNode) => {
+    const full = [...path.slice(1), node.name].join("\\") || node.name;
+    setMapping(full);
+  };
 
   const setBoth = (v: number) => { setW(v); if (lock) setH(v); };
 
@@ -139,18 +233,117 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
             </div>
           </TabsContent>
 
-          <TabsContent value="mapping" className="space-y-4 pt-4">
-            <p className="text-xs text-muted-foreground">아이콘을 내 PC의 프로그램, 파일, 폴더, 단축아이콘에 연결합니다. 매핑 정보는 로컬에만 저장되며 마켓에 업로드되지 않습니다.</p>
-            <div className="grid grid-cols-3 gap-2">
-              <Button variant="outline" className="h-20 flex-col gap-1"><AppWindow className="h-5 w-5" /><span className="text-xs">프로그램</span></Button>
-              <Button variant="outline" className="h-20 flex-col gap-1"><FileIcon className="h-5 w-5" /><span className="text-xs">파일</span></Button>
-              <Button variant="outline" className="h-20 flex-col gap-1"><FolderOpen className="h-5 w-5" /><span className="text-xs">폴더</span></Button>
+          <TabsContent value="mapping" className="space-y-3 pt-4">
+            <p className="text-xs text-muted-foreground">
+              파일 탐색기에서 연결할 프로그램·파일·폴더를 직접 찾아 선택하세요. 매핑 정보는 로컬에만 저장되며 마켓에 업로드되지 않습니다.
+            </p>
+
+            <div className="rounded-xl border border-border overflow-hidden bg-card">
+              {/* Toolbar */}
+              <div className="flex items-center gap-2 p-2 border-b border-border bg-muted/40">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  disabled={path.length <= 1}
+                  onClick={() => setPath((p) => p.slice(0, -1))}
+                  aria-label="뒤로"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setPath(["내 PC"])}
+                  aria-label="홈"
+                >
+                  <Home className="h-4 w-4" />
+                </Button>
+                {/* Breadcrumb */}
+                <div className="flex-1 min-w-0 flex items-center gap-1 text-xs overflow-x-auto scrollbar-thin">
+                  {path.map((seg, i) => (
+                    <div key={i} className="flex items-center gap-1 shrink-0">
+                      {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                      <button
+                        className={cn(
+                          "px-1.5 py-0.5 rounded hover:bg-muted",
+                          i === path.length - 1 ? "font-semibold text-foreground" : "text-muted-foreground",
+                        )}
+                        onClick={() => setPath(path.slice(0, i + 1))}
+                      >
+                        {seg}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="검색"
+                    className="h-8 w-40 pl-7 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* List */}
+              <ScrollArea className="h-64">
+                <div className="p-1">
+                  {sortedEntries.length === 0 ? (
+                    <div className="text-xs text-muted-foreground text-center py-10">항목이 없습니다.</div>
+                  ) : (
+                    sortedEntries.map((node) => {
+                      const Icon = node.kind === "folder" ? FolderOpen : node.kind === "exe" ? AppWindow : FileIcon;
+                      const fullPath = [...path.slice(1), node.name].join("\\");
+                      const isMapped = mapping === fullPath;
+                      return (
+                        <div
+                          key={node.name}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors",
+                            isMapped && "bg-primary/10 hover:bg-primary/15",
+                          )}
+                          onClick={() => (node.kind === "folder" ? goInto(node) : selectTarget(node))}
+                          onDoubleClick={() => node.kind === "folder" && goInto(node)}
+                        >
+                          <Icon className={cn(
+                            "h-4 w-4 shrink-0",
+                            node.kind === "folder" ? "text-primary" : node.kind === "exe" ? "text-accent-foreground" : "text-muted-foreground",
+                          )} />
+                          <span className="flex-1 truncate text-sm">{node.name}</span>
+                          {node.kind === "folder" ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-[11px]"
+                              onClick={(e) => { e.stopPropagation(); selectTarget(node); }}
+                            >
+                              이 폴더 선택
+                            </Button>
+                          ) : isMapped ? (
+                            <Check className="h-4 w-4 text-primary" />
+                          ) : null}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </ScrollArea>
             </div>
+
             <div className="rounded-xl border border-border bg-muted/40 p-3">
               <div className="text-xs text-muted-foreground mb-1">현재 연결된 대상</div>
               <div className="flex items-center gap-2">
-                <code className="text-xs bg-background px-2 py-1 rounded border border-border flex-1 truncate">{mapping ?? "연결되지 않음"}</code>
-                {mapping && <Button variant="ghost" size="sm" onClick={() => setMapping(undefined)}><X className="h-3.5 w-3.5" /></Button>}
+                <code className="text-xs bg-background px-2 py-1 rounded border border-border flex-1 truncate">
+                  {mapping ?? "연결되지 않음"}
+                </code>
+                {mapping && (
+                  <Button variant="ghost" size="sm" onClick={() => setMapping(undefined)} aria-label="매핑 해제">
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             </div>
           </TabsContent>
