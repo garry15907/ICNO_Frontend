@@ -344,13 +344,14 @@ export function Purchases() {
 export function Sales() {
   const my = marketplacePresets.slice(0, 3);
   return (
-    <ProfileList title="판매 / 업로드 관리" subtitle="내가 게시한 상품을 관리합니다.">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <ProfileList title="내 상품" subtitle="내가 업로드한 프리셋을 관리합니다.">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
         {[
+          { l: "내 상품 수", v: my.length.toString() },
           { l: "총 다운로드", v: "12,480" },
-          { l: "이번 달 매출", v: "₩142,000" },
           { l: "평균 평점", v: "4.85" },
-          { l: "신고", v: "0" },
+          { l: "이번 달 판매", v: "32" },
+          { l: "예상 수익", v: "준비 중" },
         ].map(s => (
           <div key={s.l} className="rounded-xl border border-border bg-card p-4">
             <div className="text-xs text-muted-foreground">{s.l}</div>
@@ -362,14 +363,118 @@ export function Sales() {
         <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
           <img src={p.thumbnail} className="h-16 w-24 object-cover rounded-md" alt="" />
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-sm">{p.name}</div>
-            <div className="text-xs text-muted-foreground">{p.price === 0 ? "무료" : `₩${p.price.toLocaleString()}`} · {p.downloads.toLocaleString()} 다운로드 · ★{p.rating} ({p.reviews})</div>
+            <div className="flex items-center gap-2">
+              <div className="font-semibold text-sm truncate">{p.name}</div>
+              <Badge variant="outline" className="text-[10px]">{p.price === 0 ? "무료" : "유료"}</Badge>
+              <Badge variant="secondary" className="text-[10px]">공개</Badge>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {p.price === 0 ? "무료" : `₩${p.price.toLocaleString()}`} · {p.downloads.toLocaleString()} 다운로드 · 판매 {Math.floor(p.downloads / 10)} · ★{p.rating} ({p.reviews}) · 댓글 {p.reviews} · 신고 0
+            </div>
           </div>
-          <Button size="sm" variant="outline">수정</Button>
-          <Button size="sm" variant="outline">업데이트</Button>
-          <Button size="sm" variant="ghost" className="text-destructive">숨김/삭제</Button>
+          <Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5 mr-1" />마켓</Button>
+          <Button size="sm" variant="outline"><Pencil className="h-3.5 w-3.5 mr-1" />수정</Button>
+          <Button size="sm" variant="ghost"><EyeOff className="h-3.5 w-3.5" /></Button>
+          <Button size="sm" variant="ghost" className="text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
       ))}
+    </ProfileList>
+  );
+}
+
+export function Reviews() {
+  const myReviews = mockReviews.slice(0, 2);
+  const receivedReviews = mockReviews;
+  const myComments = [
+    { id: "c1", preset: "노을", text: "이 색감 정말 좋네요!", date: "2026-04-22" },
+    { id: "c2", preset: "픽셀 게임룸", text: "아이콘 위치 어떻게 잡으셨어요?", date: "2026-04-18" },
+  ];
+  return (
+    <div className="space-y-6">
+      <Section title="내가 작성한 리뷰">
+        {myReviews.map((r) => (
+          <ReviewRow key={r.id} preset="노을" rating={r.rating} text={r.text} date={r.date} likes={r.likes} />
+        ))}
+      </Section>
+      <Section title="내 상품에 달린 리뷰">
+        {receivedReviews.map((r) => (
+          <ReviewRow key={r.id} preset="픽셀 게임룸" rating={r.rating} text={r.text} date={r.date} likes={r.likes} reply />
+        ))}
+      </Section>
+      <Section title="내 댓글">
+        {myComments.map((c) => (
+          <div key={c.id} className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card">
+            <MessageSquare className="h-4 w-4 text-primary mt-0.5" />
+            <div className="flex-1">
+              <div className="text-sm"><span className="font-semibold">{c.preset}</span> · <span className="text-muted-foreground text-xs">{c.date}</span></div>
+              <div className="text-sm text-foreground/80 mt-1">{c.text}</div>
+            </div>
+          </div>
+        ))}
+      </Section>
+    </div>
+  );
+}
+
+function ReviewRow({ preset, rating, text, date, likes, reply }: { preset: string; rating: number; text: string; date: string; likes: number; reply?: boolean }) {
+  return (
+    <div className="p-4 rounded-xl border border-border bg-card">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-sm">{preset}</span>
+          <span className="text-xs text-amber-500">{"★".repeat(rating)}{"☆".repeat(5 - rating)}</span>
+        </div>
+        <span className="text-xs text-muted-foreground">{date}</span>
+      </div>
+      <p className="text-sm text-foreground/80 mt-2">{text}</p>
+      <div className="flex items-center justify-between mt-3">
+        <div className="text-xs text-muted-foreground inline-flex items-center gap-3">
+          <span>👍 {likes}</span>
+          <span className="inline-flex items-center gap-1"><Flag className="h-3 w-3" /> 신고 0</span>
+        </div>
+        {reply && <Button size="sm" variant="outline">답글</Button>}
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h3 className="text-sm font-semibold mb-3 text-muted-foreground">{title}</h3>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+export function ActivityFeed() {
+  const items = [
+    { icon: Download, text: "노을 프리셋을 다운로드했습니다.", preset: "노을", time: "10분 전" },
+    { icon: Heart, text: "커비 프리셋을 찜했습니다.", preset: "커비", time: "2시간 전" },
+    { icon: Star, text: "심해 프리셋에 리뷰를 남겼습니다.", preset: "심해", time: "어제" },
+    { icon: Upload, text: "미니멀 블랙 프리셋을 업로드했습니다.", preset: "미니멀 블랙", time: "2일 전" },
+    { icon: FolderOpen, text: "노을 프리셋을 보관함에 추가했습니다.", preset: "노을", time: "3일 전" },
+    { icon: Receipt, text: "픽셀 게임룸 프리셋을 구매했습니다.", preset: "픽셀 게임룸", time: "5일 전" },
+    { icon: CheckCircle2, text: "커스텀 아이콘 위치를 저장했습니다.", preset: "노을", time: "1주 전" },
+  ];
+  return (
+    <ProfileList title="활동 기록" subtitle="최근 활동 내역입니다.">
+      <div className="relative pl-6 space-y-4 before:content-[''] before:absolute before:left-2 before:top-1 before:bottom-1 before:w-px before:bg-border">
+        {items.map((it, i) => (
+          <div key={i} className="relative">
+            <div className="absolute -left-[18px] top-1 h-4 w-4 rounded-full bg-primary/15 border border-primary/40 grid place-items-center">
+              <it.icon className="h-2.5 w-2.5 text-primary" />
+            </div>
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-card">
+              <div className="min-w-0">
+                <div className="text-sm">{it.text}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{it.preset} · {it.time}</div>
+              </div>
+              <Button size="sm" variant="ghost"><ExternalLink className="h-3.5 w-3.5" /></Button>
+            </div>
+          </div>
+        ))}
+      </div>
     </ProfileList>
   );
 }
