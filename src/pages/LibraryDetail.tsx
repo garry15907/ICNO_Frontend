@@ -397,26 +397,10 @@ export default function LibraryDetail() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => { setSelected(ic.id); setEditMode(true); }}>
-                        위치 수정
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleSaveSingle(ic.id)}>
-                        현재 위치 저장
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleRestoreOriginIcon(ic.id)}>
-                        원본 위치로 복원
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setSelected(ic.id); handleSnapSelected(); }}>
-                        그리드에 맞추기
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setEditing(ic.id)}>아이콘 수정</DropdownMenuItem>
-                      <DropdownMenuItem>이미지 변경</DropdownMenuItem>
-                      <DropdownMenuItem>이름 변경</DropdownMenuItem>
-                      <DropdownMenuItem>스타일 수정</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>대상 프로그램 매핑</DropdownMenuItem>
-                      <DropdownMenuItem>연결 해제</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setEditing(ic.id)}>이미지 변경</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setEditing(ic.id)}>이름 변경</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setEditing(ic.id)}>스타일 수정</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setEditing(ic.id)}>대상 프로그램 매핑</DropdownMenuItem>
                       <DropdownMenuItem>복제</DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="text-destructive focus:text-destructive">삭제</DropdownMenuItem>
