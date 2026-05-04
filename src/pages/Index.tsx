@@ -50,10 +50,7 @@ const Index = () => {
               <div className="h-11 w-11 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground shadow-glow">
                 <q.icon className="h-5 w-5" />
               </div>
-              <div>
-                <div className="text-sm font-semibold">{q.label}</div>
-                <div className="text-xs text-muted-foreground">바로 이동</div>
-              </div>
+              <div className="text-sm font-semibold">{q.label}</div>
             </button>
           ))}
         </div>
