@@ -140,7 +140,12 @@ export default function Library() {
                         const nextName = !hasPlain
                           ? `${baseName} 복사본`
                           : `${baseName} 복사본(${Math.max(maxN, 1) + 1})`;
-                        const copy = { ...prev[idx], id: `${p.id}-copy-${Date.now()}`, name: nextName };
+                        const copy = {
+                          ...prev[idx],
+                          id: `${p.id}-copy-${Date.now()}`,
+                          name: nextName,
+                          status: "로컬 수정됨" as LibraryStatus,
+                        };
                         const next = [...prev];
                         next.splice(idx + 1, 0, copy);
                         return next;
