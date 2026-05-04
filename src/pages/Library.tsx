@@ -31,11 +31,12 @@ export default function Library() {
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [presets, setPresets] = useState(libraryPresets);
 
   const togglePin = (id: string) =>
     setPinned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
-  const sortedPresets = [...libraryPresets].sort(
+  const sortedPresets = [...presets].sort(
     (a, b) => (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0),
   );
 
@@ -47,7 +48,7 @@ export default function Library() {
           <p className="text-muted-foreground mt-1">내 프리셋과 아이콘 자산을 관리하고 적용하세요.</p>
         </div>
         <div className="text-sm text-muted-foreground">
-          프리셋 {libraryPresets.length} · 아이콘 {libraryIcons.length + libraryIconPacks.length}
+          프리셋 {presets.length} · 아이콘 {libraryIcons.length + libraryIconPacks.length}
         </div>
       </div>
 
@@ -119,7 +120,17 @@ export default function Library() {
                     <DropdownMenuItem onClick={() => { setRenameTarget({ id: p.id, name: p.name }); setRenameValue(p.name); }}>
                       <Edit className="h-3.5 w-3.5 mr-2" /> 이름 변경
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast({ title: "복제 완료", description: `${p.name} 복사본이 보관함에 추가되었습니다.` })}>
+                    <DropdownMenuItem onClick={() => {
+                      setPresets((prev) => {
+                        const idx = prev.findIndex((x) => x.id === p.id);
+                        if (idx === -1) return prev;
+                        const copy = { ...prev[idx], id: `${p.id}-copy-${Date.now()}`, name: `${p.name} 복사본` };
+                        const next = [...prev];
+                        next.splice(idx + 1, 0, copy);
+                        return next;
+                      });
+                      toast({ title: "복제 완료", description: `${p.name} 복사본이 보관함에 추가되었습니다.` });
+                    }}>
                       <Copy className="h-3.5 w-3.5 mr-2" /> 복제
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -211,7 +222,13 @@ export default function Library() {
           <Input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} autoFocus />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameTarget(null)}>취소</Button>
-            <Button onClick={() => { toast({ title: "이름이 변경되었습니다", description: renameValue }); setRenameTarget(null); }}>저장</Button>
+            <Button onClick={() => {
+              if (renameTarget) {
+                setPresets((prev) => prev.map((x) => x.id === renameTarget.id ? { ...x, name: renameValue } : x));
+                toast({ title: "이름이 변경되었습니다", description: renameValue });
+              }
+              setRenameTarget(null);
+            }}>저장</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -230,7 +247,13 @@ export default function Library() {
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>취소</Button>
             <Button
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { toast({ title: "삭제되었습니다", description: deleteTarget?.name }); setDeleteTarget(null); }}
+              onClick={() => {
+                if (deleteTarget) {
+                  setPresets((prev) => prev.filter((x) => x.id !== deleteTarget.id));
+                  toast({ title: "삭제되었습니다", description: deleteTarget.name });
+                }
+                setDeleteTarget(null);
+              }}
             >
               삭제
             </Button>
