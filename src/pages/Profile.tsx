@@ -35,6 +35,7 @@ export function ProfileMain() {
     { label: "다운로드", value: downloadedIds.length, to: "/profile/downloads", icon: Download },
     { label: "구매", value: purchasedIds.length, to: "/profile/purchases", icon: Receipt },
     { label: "내 상품", value: 3, to: "/profile/sales", icon: Store },
+    { label: "팔로잉", value: followedCreators.length, to: "/profile/following", icon: Users },
   ];
   const [following, setFollowing] = useState(followedCreators);
   const [unfollowTarget, setUnfollowTarget] = useState<string | null>(null);
@@ -49,6 +50,7 @@ export function ProfileMain() {
     { title: "다운로드 목록", desc: "원본 재다운로드 및 초기 복원", icon: Download, to: "/profile/downloads" },
     { title: "구매 내역", desc: "구매한 유료 프리셋 확인", icon: Receipt, to: "/profile/purchases" },
     { title: "내 상품 관리", desc: "업로드한 프리셋 관리", icon: Store, to: "/profile/sales" },
+    { title: "팔로우 목록", desc: "팔로우한 크리에이터 모아보기", icon: Users, to: "/profile/following" },
   ];
   const recent = [
     { icon: Download, text: "노을 프리셋을 다운로드했습니다.", preset: "노을", time: "10분 전" },
