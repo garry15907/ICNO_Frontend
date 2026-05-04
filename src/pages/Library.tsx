@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MoreHorizontal, Play, Edit, Eye, Sparkles, FolderOpen, Monitor, Store, Pin } from "lucide-react";
-import { libraryPresets, LibraryStatus } from "@/data/mockData";
+import { Plus, MoreHorizontal, Play, Edit, Eye, Sparkles, FolderOpen, Monitor, Store, Pin, Image as ImageIcon, Package, FolderPlus, Trash2, ExternalLink } from "lucide-react";
+import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus } from "@/data/mockData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 const statusStyles: Record<LibraryStatus, string> = {
@@ -22,6 +23,8 @@ export default function Library() {
   const nav = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
   const [pinned, setPinned] = useState<string[]>([]);
+  const [tab, setTab] = useState<"presets" | "icons">("presets");
+  const [iconFilter, setIconFilter] = useState<"all" | "icon" | "iconpack" | "downloaded" | "purchased" | "mine">("all");
 
   const togglePin = (id: string) =>
     setPinned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -35,12 +38,21 @@ export default function Library() {
       <div className="flex items-end justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">보관함</h2>
-          <p className="text-muted-foreground mt-1">내 PC에 저장된 프리셋을 관리하고 적용하세요.</p>
+          <p className="text-muted-foreground mt-1">내 프리셋과 아이콘 자산을 관리하고 적용하세요.</p>
         </div>
-        <div className="text-sm text-muted-foreground">총 {libraryPresets.length}개</div>
+        <div className="text-sm text-muted-foreground">
+          프리셋 {libraryPresets.length} · 아이콘 {libraryIcons.length + libraryIconPacks.length}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="presets" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />프리셋</TabsTrigger>
+          <TabsTrigger value="icons" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" />아이콘</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="presets" className="mt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {/* Create card */}
         <button
           onClick={() => setCreateOpen(true)}
@@ -116,7 +128,13 @@ export default function Library() {
             </div>
           </div>
         ))}
-      </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="icons" className="mt-0 space-y-5">
+          <IconLibrary filter={iconFilter} setFilter={setIconFilter} />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-2xl">
