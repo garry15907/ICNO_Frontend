@@ -16,7 +16,7 @@ export function PresetCard({
   return (
     <div
       onClick={onClick}
-      className="group cursor-pointer rounded-2xl bg-card border border-border overflow-hidden shadow-card hover:shadow-glow hover:-translate-y-0.5 transition-all duration-300"
+      className="group cursor-pointer rounded-2xl bg-card border border-border overflow-hidden shadow-card hover:shadow-glow hover:-translate-y-0.5 transform-gpu will-change-transform transition-[transform,box-shadow,border-color] duration-300"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-muted">
         <img
@@ -94,7 +94,7 @@ export function MarketItemCard({
   return (
     <div
       onClick={onClick}
-      className="group cursor-pointer rounded-2xl bg-card border border-border overflow-hidden shadow-card hover:shadow-glow hover:-translate-y-0.5 transition-all duration-300"
+      className="group cursor-pointer rounded-2xl bg-card border border-border overflow-hidden shadow-card hover:shadow-glow hover:-translate-y-0.5 transform-gpu will-change-transform transition-[transform,box-shadow,border-color] duration-300"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-muted">
         {item.type === "preset" && (
