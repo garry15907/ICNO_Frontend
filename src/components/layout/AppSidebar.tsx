@@ -41,20 +41,20 @@ export function AppSidebar() {
         mode === "hover" && hovered && "z-40 shadow-card",
       )}
     >
-      {/* 내부 wrapper: collapsed일 때는 72px, expanded일 때는 240px. 텍스트는 opacity로 페이드 처리 → 아이콘 위치만 자연스럽게 이동 */}
+      {/* 내부 wrapper: 항상 EXPANDED_WIDTH로 고정 → 아이콘/텍스트 위치가 절대 흔들리지 않음. 외부 aside의 width만 변하며 overflow-hidden으로 잘림 */}
       <div
-        className="flex flex-col h-full self-start shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width]"
-        style={{ width: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH }}
+        className="flex flex-col h-full self-start shrink-0"
+        style={{ width: EXPANDED_WIDTH }}
       >
       {/* Logo */}
-      <div className={cn("pt-6 pb-5 flex items-center gap-3 transition-[padding] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]", collapsed ? "px-3 justify-center" : "px-5")}>
+      <div className="pt-6 pb-5 flex items-center gap-3 px-5">
         <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
           <Sparkles className="h-5 w-5 text-primary-foreground" />
         </div>
         <div
           className={cn(
             "overflow-hidden whitespace-nowrap transition-opacity",
-            collapsed ? "opacity-0 w-0 duration-100" : "opacity-100 duration-200 delay-[220ms]"
+            collapsed ? "opacity-0 duration-100" : "opacity-100 duration-200 delay-[220ms]"
           )}
         >
           <div className="text-lg font-bold tracking-tight text-sidebar-foreground">ICNO</div>
@@ -72,8 +72,7 @@ export function AppSidebar() {
               to={item.to}
               title={collapsed ? item.label : undefined}
               className={cn(
-                "group relative flex items-center gap-3 rounded-xl py-2.5 text-sm font-medium transition-all min-w-0",
-                collapsed ? "px-2 justify-center" : "px-3",
+                "group relative flex items-center gap-3 rounded-xl py-2.5 px-3 text-sm font-medium transition-all min-w-0",
                 active
                   ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-card"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
@@ -90,7 +89,7 @@ export function AppSidebar() {
               <span
                 className={cn(
                   "flex-1 truncate transition-opacity",
-                  collapsed ? "opacity-0 w-0 hidden duration-100" : "opacity-100 duration-200 delay-[220ms]"
+                  collapsed ? "opacity-0 duration-100" : "opacity-100 duration-200 delay-[220ms]"
                 )}
               >
                 {item.label}
@@ -104,8 +103,7 @@ export function AppSidebar() {
       <div className="p-3 border-t border-sidebar-border">
         <DropdownMenu>
           <DropdownMenuTrigger className={cn(
-            "w-full flex items-center gap-3 rounded-xl p-2.5 hover:bg-sidebar-accent transition-colors text-left",
-            collapsed && "justify-center"
+            "w-full flex items-center gap-3 rounded-xl p-2.5 hover:bg-sidebar-accent transition-colors text-left"
           )}>
             <div className="h-9 w-9 rounded-full bg-gradient-primary grid place-items-center text-base">
               {isImageAvatar(profile.avatar) ? (
