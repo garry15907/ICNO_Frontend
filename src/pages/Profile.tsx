@@ -217,14 +217,6 @@ export function ProfileMain() {
               <Input value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">상태 메시지</Label>
-              <Input
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value })}
-                placeholder="지금 떠오르는 한마디"
-              />
-            </div>
-            <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">자기소개</Label>
               <Textarea
                 rows={4}
