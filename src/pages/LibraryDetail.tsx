@@ -1,23 +1,40 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Play, Link2, Save, Copy, RotateCcw, Download, Trash2,
-  MoreHorizontal, Image as ImageIcon, CheckCircle2, AlertCircle,
-  Move, Grid3x3, Magnet, History, MousePointer2, Info,
+  ArrowLeft, Play, Save, MoreHorizontal, Plus, ChevronDown, ChevronUp,
+  Move, MousePointer2, Grid3x3, Info, Image as ImageIcon, Link2,
+  History, RotateCcw, Trash2, Download, FileText, Magnet, AlignJustify,
+  Package, Store, Upload as UploadIcon, X,
 } from "lucide-react";
 import { libraryPresets, IconAsset } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IconEditModal } from "@/components/presets/IconEditModal";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type EditableIcon = IconAsset & { mappedTo?: string; originPos: { x: number; y: number } };
+type SaveState = "saved" | "dirty" | "saving";
+
+const RES_W = 1920;
+const RES_H = 1080;
 
 export default function LibraryDetail() {
   const { id } = useParams();
@@ -31,19 +48,17 @@ export default function LibraryDetail() {
   const [selected, setSelected] = useState<string | undefined>();
   const [editing, setEditing] = useState<string | null>(null);
 
-  // Edit canvas state
   const [editMode, setEditMode] = useState(true);
   const [layoutMode, setLayoutMode] = useState<"free" | "grid">("free");
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [lastSavedAt, setLastSavedAt] = useState<string>(preset.lastModified + " 14:32");
+  const [saveState, setSaveState] = useState<SaveState>("saved");
+  const [iconListOpen, setIconListOpen] = useState(false);
+  const [presetInfoOpen, setPresetInfoOpen] = useState(false);
+  const [addIconOpen, setAddIconOpen] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
-
-  // Resolution reference (for px display)
-  const RES_W = 1920;
-  const RES_H = 1080;
 
   const dirty = useMemo(
     () => icons.some((i, idx) => {
@@ -53,19 +68,17 @@ export default function LibraryDetail() {
     [icons, savedIcons],
   );
 
-  const modifiedFromOrigin = useMemo(
-    () => icons.some((i) => i.position.x !== i.originPos.x || i.position.y !== i.originPos.y),
-    [icons],
-  );
+  useEffect(() => {
+    if (saveState === "saving") return;
+    setSaveState(dirty ? "dirty" : "saved");
+  }, [dirty]); // eslint-disable-line
 
   const selectedIcon = icons.find((i) => i.id === selected);
 
-  // pct -> px
   const toPx = (pctX: number, pctY: number) => ({
     x: Math.round((pctX / 100) * RES_W),
     y: Math.round((pctY / 100) * RES_H),
   });
-
   const snap = (v: number, step = 6) => Math.round(v / step) * step;
 
   const onPointerDown = (e: React.PointerEvent, ic: EditableIcon) => {
@@ -112,405 +125,511 @@ export default function LibraryDetail() {
   };
 
   const handleSavePositions = () => {
-    setSavedIcons(icons);
-    const now = new Date();
-    setLastSavedAt(
-      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
-    );
-    toast.success("위치가 저장되었습니다", {
-      description: "내 보관함 프리셋에만 적용되며, 마켓 원본은 그대로입니다.",
-    });
+    setSaveState("saving");
+    setTimeout(() => {
+      setSavedIcons(icons);
+      setSaveState("saved");
+      toast.success("위치가 저장되었습니다.");
+    }, 350);
   };
 
   const handleResetPositions = () => {
-    setIcons((prev) => prev.map((i) => ({ ...i, position: { ...savedIcons.find((s) => s.id === i.id)?.position ?? i.originPos } })));
-    toast("저장된 위치로 되돌렸습니다");
+    setIcons((prev) => prev.map((i) => {
+      const s = savedIcons.find((x) => x.id === i.id);
+      return { ...i, position: { ...(s?.position ?? i.originPos) } };
+    }));
+    toast("저장된 위치로 되돌렸습니다.");
   };
 
   const handleRestoreOrigin = () => {
     setIcons((prev) => prev.map((i) => ({ ...i, position: { ...i.originPos } })));
-    toast("마켓 원본 위치로 복원했습니다");
+    toast("마켓 원본 위치로 복원했습니다.");
   };
 
-  const handleGridAlign = () => {
+  const handleAutoAlign = () => {
     setLayoutMode("grid");
     setIcons((prev) =>
       prev.map((i, idx) => ({
         ...i,
-        position: {
-          x: 6 + (idx % 4) * 12,
-          y: 8 + Math.floor(idx / 4) * 18,
-        },
+        position: { x: 6 + (idx % 4) * 12, y: 8 + Math.floor(idx / 4) * 18 },
       })),
     );
-    toast("그리드 정렬을 적용했습니다");
+    toast("전체 아이콘을 자동 정렬했습니다.");
   };
 
-  const handleSnapSelected = () => {
-    if (!selectedIcon) return;
-    setIcons((prev) =>
-      prev.map((i) =>
-        i.id === selectedIcon.id
-          ? { ...i, position: { x: snap(i.position.x, 6), y: snap(i.position.y, 9) } }
-          : i,
-      ),
-    );
-  };
-
-  const handleRestoreOriginIcon = (iconId: string) => {
-    setIcons((prev) =>
-      prev.map((i) => (i.id === iconId ? { ...i, position: { ...i.originPos } } : i)),
-    );
-  };
-
-  const handleSaveSingle = (iconId: string) => {
-    setSavedIcons((prev) => {
-      const cur = icons.find((i) => i.id === iconId);
-      if (!cur) return prev;
-      return prev.map((s) => (s.id === iconId ? { ...s, position: { ...cur.position } } : s));
-    });
-    toast.success("현재 위치가 저장되었습니다");
-  };
-
-  // Warn user about unsaved changes
-  useEffect(() => {
-    const beforeUnload = (e: BeforeUnloadEvent) => {
-      if (dirty) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", beforeUnload);
-    return () => window.removeEventListener("beforeunload", beforeUnload);
-  }, [dirty]);
+  const statusLabel =
+    saveState === "saving" ? "저장 중..." :
+    saveState === "dirty" ? "변경사항 있음" : "저장됨";
+  const statusClass =
+    saveState === "saving" ? "text-muted-foreground" :
+    saveState === "dirty" ? "text-warning" : "text-success";
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={() => nav("/library")}>
-          <ArrowLeft className="h-4 w-4 mr-1" />보관함
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold tracking-tight">{preset.name}</h2>
-            {dirty && (
-              <Badge variant="outline" className="border-warning/50 text-warning bg-warning/10">
-                저장되지 않은 위치 변경
-              </Badge>
-            )}
-            {!dirty && modifiedFromOrigin && (
-              <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10">
-                로컬 수정됨
-              </Badge>
-            )}
+    <TooltipProvider delayDuration={200}>
+      <div className="space-y-5">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" onClick={() => nav("/library")}>
+            <ArrowLeft className="h-4 w-4 mr-1" />보관함
+          </Button>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-bold tracking-tight truncate">{preset.name}</h2>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+              <span>로컬 프리셋 · 매핑 {preset.mappedCount}/{preset.iconCount} ·</span>
+              <span className={cn("font-semibold", statusClass)}>{statusLabel}</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-muted-foreground hover:text-foreground transition">
+                    <Info className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-xs">
+                  아이콘 위치 변경은 내 보관함에만 저장되며, 마켓 원본에는 영향을 주지 않습니다.
+                </TooltipContent>
+              </Tooltip>
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            로컬 프리셋 · 마지막 위치 저장 {lastSavedAt}
-          </p>
+          <Button size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow">
+            <Play className="h-4 w-4 mr-2" />바탕화면 적용
+          </Button>
         </div>
-        <Button className="bg-gradient-primary text-primary-foreground"><Play className="h-4 w-4 mr-2" />바탕화면 적용</Button>
-      </div>
 
-      <div className="grid lg:grid-cols-[1fr_360px] gap-6">
-        <div className="space-y-4">
-          {/* Position editor toolbar */}
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2.5">
-            <div className="flex items-center gap-2 px-2">
-              <Move className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold">위치 편집 모드</span>
-              <Switch checked={editMode} onCheckedChange={setEditMode} />
-            </div>
-            <div className="h-6 w-px bg-border" />
-            <div className="flex items-center rounded-md border border-border overflow-hidden">
-              <button
-                onClick={() => setLayoutMode("free")}
-                className={cn(
-                  "px-3 h-8 text-xs font-medium flex items-center gap-1.5",
-                  layoutMode === "free" ? "bg-primary text-primary-foreground" : "hover:bg-muted",
-                )}
+        <div className="grid lg:grid-cols-[1fr_320px] gap-5">
+          {/* Center: canvas */}
+          <div className="space-y-3">
+            {/* Mini toolbar */}
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-2.5 py-2">
+              <Button
+                size="sm"
+                variant={editMode ? "default" : "outline"}
+                onClick={() => setEditMode((v) => !v)}
+                className={cn("h-8", editMode && "bg-primary text-primary-foreground")}
               >
-                <MousePointer2 className="h-3.5 w-3.5" />자유 배치
-              </button>
-              <button
-                onClick={handleGridAlign}
-                className={cn(
-                  "px-3 h-8 text-xs font-medium flex items-center gap-1.5 border-l border-border",
-                  layoutMode === "grid" ? "bg-primary text-primary-foreground" : "hover:bg-muted",
-                )}
+                <Move className="h-3.5 w-3.5 mr-1.5" />
+                위치 편집 {editMode ? "ON" : "OFF"}
+              </Button>
+
+              <Select value={layoutMode} onValueChange={(v: "free" | "grid") => setLayoutMode(v)}>
+                <SelectTrigger className="h-8 w-[130px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="free">
+                    <span className="flex items-center gap-2"><MousePointer2 className="h-3.5 w-3.5" />자유 배치</span>
+                  </SelectItem>
+                  <SelectItem value="grid">
+                    <span className="flex items-center gap-2"><Grid3x3 className="h-3.5 w-3.5" />그리드</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                size="sm"
+                onClick={handleSavePositions}
+                disabled={!dirty || saveState === "saving"}
+                className="h-8 bg-gradient-primary text-primary-foreground"
               >
-                <Grid3x3 className="h-3.5 w-3.5" />그리드 정렬
-              </button>
+                <Save className="h-3.5 w-3.5 mr-1.5" />위치 저장
+              </Button>
+
+              <div className="flex-1" />
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setAddIconOpen(true)}
+                className="h-8"
+              >
+                <Plus className="h-3.5 w-3.5 mr-1.5" />아이콘 추가
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="outline" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="text-xs">정렬 / 위치</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setSnapToGrid((v) => !v)}>
+                    <Magnet className="h-4 w-4 mr-2" />
+                    그리드에 맞추기 {snapToGrid && "✓"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleAutoAlign}>
+                    <AlignJustify className="h-4 w-4 mr-2" />전체 자동 정렬
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleResetPositions} disabled={!dirty}>
+                    <RotateCcw className="h-4 w-4 mr-2" />위치만 초기화
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleRestoreOrigin}>
+                    <History className="h-4 w-4 mr-2" />원본 위치로 복원
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs">프리셋</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setPresetInfoOpen(true)}>
+                    <FileText className="h-4 w-4 mr-2" />프리셋 정보 보기
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <ImageIcon className="h-4 w-4 mr-2" />배경화면 변경
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Download className="h-4 w-4 mr-2" />다시 다운로드
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive focus:text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />삭제
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <Button
-              variant={snapToGrid ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSnapToGrid((v) => !v)}
-              className="h-8"
+
+            {/* Canvas */}
+            <div
+              ref={canvasRef}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerLeave={onPointerUp}
+              onClick={(e) => { if (e.target === e.currentTarget) setSelected(undefined); }}
+              className={cn(
+                "relative w-full aspect-[16/10] rounded-2xl overflow-hidden border shadow-card bg-muted select-none",
+                editMode ? "border-primary/50 cursor-crosshair" : "border-border",
+              )}
+              style={{
+                backgroundImage: `url(${preset.thumbnail})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
             >
-              <Magnet className="h-3.5 w-3.5 mr-1" />그리드에 맞추기
-            </Button>
-            <div className="flex-1" />
-            <Button variant="outline" size="sm" onClick={handleResetPositions} className="h-8" disabled={!dirty}>
-              <RotateCcw className="h-3.5 w-3.5 mr-1" />위치만 초기화
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleRestoreOrigin} className="h-8">
-              <History className="h-3.5 w-3.5 mr-1" />원본 위치로 복원
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSavePositions}
-              disabled={!dirty}
-              className="h-8 bg-gradient-primary text-primary-foreground"
-            >
-              <Save className="h-3.5 w-3.5 mr-1" />위치 저장
-            </Button>
-          </div>
-
-          {/* Interactive canvas */}
-          <div
-            ref={canvasRef}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerLeave={onPointerUp}
-            onClick={(e) => { if (e.target === e.currentTarget) setSelected(undefined); }}
-            className={cn(
-              "relative w-full aspect-[16/10] rounded-xl overflow-hidden border-2 shadow-card bg-muted select-none",
-              editMode ? "border-primary/50 cursor-crosshair" : "border-border",
-            )}
-            style={
-              editMode
-                ? {
-                    backgroundImage: `url(${preset.thumbnail})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }
-                : { backgroundImage: `url(${preset.thumbnail})`, backgroundSize: "cover", backgroundPosition: "center" }
-            }
-          >
-            {/* Grid overlay when in grid mode or snap on */}
-            {editMode && (snapToGrid || layoutMode === "grid") && (
-              <div
-                className="absolute inset-0 pointer-events-none opacity-30"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(to right, hsl(var(--primary) / 0.4) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--primary) / 0.4) 1px, transparent 1px)",
-                  backgroundSize: "6% 9%",
-                }}
-              />
-            )}
-
-            {/* Editor mode banner */}
-            {editMode && (
-              <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 rounded-full bg-primary/90 backdrop-blur px-3 py-1 text-[11px] font-semibold text-primary-foreground shadow-lg">
-                <Move className="h-3 w-3" />
-                드래그해서 아이콘을 자유롭게 이동하세요
-              </div>
-            )}
-
-            {/* Selected coords pill */}
-            {selectedIcon && (
-              <div className="absolute top-3 right-3 z-10 rounded-md bg-background/90 backdrop-blur px-3 py-1.5 text-[11px] font-mono shadow-lg border border-border">
-                <span className="text-muted-foreground">{selectedIcon.label}</span>
-                <span className="mx-2 text-border">|</span>
-                <span className="text-primary font-semibold">
-                  X {toPx(selectedIcon.position.x, selectedIcon.position.y).x}, Y {toPx(selectedIcon.position.x, selectedIcon.position.y).y}
-                </span>
-              </div>
-            )}
-
-            {/* Icons */}
-            {icons.map((ic) => {
-              const isDragging = draggingId === ic.id;
-              const isSelected = selected === ic.id;
-              const isMoved = ic.position.x !== ic.originPos.x || ic.position.y !== ic.originPos.y;
-              return (
+              {editMode && (snapToGrid || layoutMode === "grid") && (
                 <div
-                  key={ic.id}
-                  onPointerDown={(e) => onPointerDown(e, ic)}
+                  className="absolute inset-0 pointer-events-none opacity-25"
                   style={{
-                    left: `${ic.position.x}%`,
-                    top: `${ic.position.y}%`,
-                    touchAction: "none",
+                    backgroundImage:
+                      "linear-gradient(to right, hsl(var(--primary) / 0.5) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--primary) / 0.5) 1px, transparent 1px)",
+                    backgroundSize: "6% 9%",
                   }}
-                  className={cn(
-                    "absolute flex flex-col items-center gap-1 group/icon transition-shadow",
-                    editMode ? "cursor-grab" : "cursor-pointer",
-                    isDragging && "cursor-grabbing opacity-70 scale-110 z-20 drop-shadow-2xl",
-                  )}
-                >
+                />
+              )}
+
+              {editMode && (
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 rounded-full bg-background/85 backdrop-blur px-3 py-1 text-[11px] font-medium text-foreground shadow-card border border-border">
+                  <Move className="h-3 w-3 text-primary" />
+                  아이콘을 드래그해 위치를 조정하세요
+                </div>
+              )}
+
+              {icons.map((ic) => {
+                const isDragging = draggingId === ic.id;
+                const isSelected = selected === ic.id;
+                return (
                   <div
+                    key={ic.id}
+                    onPointerDown={(e) => onPointerDown(e, ic)}
+                    style={{ left: `${ic.position.x}%`, top: `${ic.position.y}%`, touchAction: "none" }}
                     className={cn(
-                      "h-12 w-12 rounded-xl bg-background/80 backdrop-blur grid place-items-center text-2xl shadow-card transition-all relative",
-                      isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-transparent",
-                      isDragging && "ring-2 ring-primary shadow-glow",
+                      "absolute flex flex-col items-center gap-1 transition-transform",
+                      editMode ? "cursor-grab" : "cursor-pointer",
+                      isDragging && "cursor-grabbing opacity-80 scale-110 z-20 drop-shadow-2xl",
                     )}
                   >
-                    {ic.emoji}
-                    {isMoved && (
-                      <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-warning ring-2 ring-background" />
-                    )}
-                  </div>
-                  <span className="text-[10px] font-medium text-white drop-shadow-lg px-1 leading-tight pointer-events-none">
-                    {ic.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-            <Info className="h-3 w-3" />
-            아이콘 위치 변경은 내 보관함에만 저장되며, 마켓 원본에는 영향을 주지 않습니다.
-          </p>
-
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold">포함된 아이콘 ({icons.length})</h3>
-            <div className="text-xs text-muted-foreground">매핑 {preset.mappedCount} / {preset.iconCount}</div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-2">
-            {icons.map((ic) => {
-              const isMoved = ic.position.x !== ic.originPos.x || ic.position.y !== ic.originPos.y;
-              return (
-                <div
-                  key={ic.id}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-xl border border-border bg-card p-3 hover:border-primary/40 transition cursor-pointer",
-                    selected === ic.id && "border-primary",
-                  )}
-                  onClick={() => setSelected(ic.id)}
-                >
-                  <div className="h-10 w-10 rounded-lg bg-muted grid place-items-center text-xl shrink-0">{ic.emoji}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate flex items-center gap-1.5">
-                      {ic.label}
-                      {isMoved && <span className="h-1.5 w-1.5 rounded-full bg-warning" />}
+                    <div
+                      className={cn(
+                        "h-12 w-12 rounded-xl bg-background/80 backdrop-blur grid place-items-center text-2xl shadow-card transition-all",
+                        isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-transparent",
+                        isDragging && "ring-2 ring-primary shadow-glow",
+                      )}
+                    >
+                      {ic.emoji}
                     </div>
+                    <span className="text-[10px] font-medium text-white drop-shadow-lg px-1 leading-tight pointer-events-none">
+                      {ic.label}
+                    </span>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        onClick={(e) => e.stopPropagation()}
-                        className="h-7 w-7 grid place-items-center rounded-md opacity-0 group-hover:opacity-100 hover:bg-muted"
+                );
+              })}
+            </div>
+
+            {/* Collapsible icon list */}
+            <Collapsible open={iconListOpen} onOpenChange={setIconListOpen}>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5">
+                <CollapsibleTrigger className="flex items-center gap-2 text-sm font-semibold hover:text-primary transition flex-1 text-left">
+                  포함된 아이콘 ({icons.length})
+                  {iconListOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </CollapsibleTrigger>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAddIconOpen(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />아이콘 추가
+                </Button>
+              </div>
+              <CollapsibleContent>
+                <div className="mt-2 rounded-xl border border-border bg-card divide-y divide-border">
+                  {icons.map((ic) => {
+                    const px = toPx(ic.position.x, ic.position.y);
+                    const isMoved = ic.position.x !== ic.originPos.x || ic.position.y !== ic.originPos.y;
+                    return (
+                      <div
+                        key={ic.id}
+                        onClick={() => setSelected(ic.id)}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer transition",
+                          selected === ic.id && "bg-primary/5",
+                        )}
                       >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => setEditing(ic.id)}>이미지 변경</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEditing(ic.id)}>이름 변경</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEditing(ic.id)}>스타일 수정</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEditing(ic.id)}>대상 프로그램 매핑</DropdownMenuItem>
-                      <DropdownMenuItem>복제</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive focus:text-destructive">삭제</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <div className="h-8 w-8 rounded-md bg-muted grid place-items-center text-lg shrink-0">{ic.emoji}</div>
+                        <div className="flex-1 min-w-0 text-xs">
+                          <div className="font-medium truncate flex items-center gap-1.5">
+                            {ic.label}
+                            {isMoved && <span className="h-1.5 w-1.5 rounded-full bg-warning" />}
+                          </div>
+                          <div className="text-muted-foreground font-mono text-[11px]">
+                            연결됨 · {ic.size.w}×{ic.size.h} · X {px.x}, Y {px.y}
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button onClick={(e) => e.stopPropagation()} className="h-7 w-7 grid place-items-center rounded hover:bg-muted">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditing(ic.id)}>이미지 변경</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditing(ic.id)}>이름 변경</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditing(ic.id)}>매핑 변경</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive focus:text-destructive">삭제</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </CollapsibleContent>
+            </Collapsible>
           </div>
+
+          {/* Right: contextual panel */}
+          <aside>
+            {selectedIcon ? (
+              <SelectedIconPanel
+                icon={selectedIcon}
+                onClose={() => setSelected(undefined)}
+                onEdit={() => setEditing(selectedIcon.id)}
+                onRestore={() =>
+                  setIcons((prev) => prev.map((i) =>
+                    i.id === selectedIcon.id ? { ...i, position: { ...i.originPos } } : i,
+                  ))
+                }
+                onDelete={() => {
+                  setIcons((prev) => prev.filter((i) => i.id !== selectedIcon.id));
+                  setSelected(undefined);
+                  toast("아이콘을 삭제했습니다.");
+                }}
+              />
+            ) : (
+              <EmptyPanel
+                count={icons.length}
+                mapped={preset.mappedCount}
+                total={preset.iconCount}
+                layoutMode={layoutMode}
+                statusLabel={statusLabel}
+                statusClass={statusClass}
+              />
+            )}
+          </aside>
         </div>
 
-        {/* Right panel */}
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">프리셋 정보</div>
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">프리셋 이름</div>
-              <div className="text-sm font-semibold">{preset.name}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">설명</div>
-              <div className="text-sm">{preset.description}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">태그</div>
-              <div className="flex flex-wrap gap-1">
-                {preset.tags.map((t) => (
-                  <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-muted">#{t}</span>
-                ))}
-              </div>
-            </div>
-            <div className="border-t border-border pt-3 space-y-2">
-              <div className="text-xs text-muted-foreground">배경화면</div>
-              <div className="flex items-center gap-3">
-                <img src={preset.thumbnail} className="h-12 w-20 object-cover rounded-md" alt="" />
-                <Button variant="outline" size="sm"><ImageIcon className="h-3.5 w-3.5 mr-1" />변경</Button>
-              </div>
-            </div>
-            <div className="text-xs text-muted-foreground border-t border-border pt-3">
-              매핑 진행률 <span className="text-foreground font-semibold">{preset.mappedCount}/{preset.iconCount}</span>
-              <div className="mt-1.5 h-1.5 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-primary" style={{ width: `${(preset.mappedCount / preset.iconCount) * 100}%` }} />
-              </div>
-            </div>
-          </div>
+        {editing && (
+          <IconEditModal
+            icon={icons.find((i) => i.id === editing)!}
+            onClose={() => setEditing(null)}
+          />
+        )}
 
-          {/* Position state panel */}
-          <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">위치 상태</div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">배치 모드</span>
-              <span className="font-semibold">{layoutMode === "free" ? "자유 배치" : "그리드"}</span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">위치 수정 상태</span>
-              {dirty ? (
-                <Badge variant="outline" className="border-warning/50 text-warning bg-warning/10 text-[10px]">
-                  저장되지 않음
-                </Badge>
-              ) : modifiedFromOrigin ? (
-                <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 text-[10px]">
-                  로컬 수정됨
-                </Badge>
-              ) : (
-                <span className="font-semibold">원본</span>
-              )}
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">마지막 위치 저장</span>
-              <span className="font-mono">{lastSavedAt}</span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">해상도 기준</span>
-              <span className="font-mono">{RES_W} × {RES_H}</span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">저장 방식</span>
-              <span className="font-semibold">픽셀 + 비율 보정</span>
-            </div>
-            {preset.sourceMarketId && (
-              <div className="text-[11px] text-muted-foreground border-t border-border pt-3">
-                마켓 출처: <span className="text-primary">{preset.sourceMarketId}</span>
-                <div className="mt-1">원본 위치는 그대로 보존됩니다.</div>
-              </div>
-            )}
-          </div>
+        <PresetInfoDialog
+          open={presetInfoOpen}
+          onOpenChange={setPresetInfoOpen}
+          preset={preset}
+        />
+        <AddIconDialog
+          open={addIconOpen}
+          onOpenChange={setAddIconOpen}
+        />
+      </div>
+    </TooltipProvider>
+  );
+}
 
-          <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
-            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">주요 작업</div>
-            <Button className="w-full bg-gradient-primary text-primary-foreground"><Play className="h-4 w-4 mr-2" />바탕화면 적용</Button>
-            <Button variant="outline" className="w-full" onClick={handleSavePositions} disabled={!dirty}>
-              <Save className="h-4 w-4 mr-2" />위치 저장
-            </Button>
-            <Button variant="outline" className="w-full"><Link2 className="h-4 w-4 mr-2" />매핑 설정</Button>
-            <Button variant="outline" className="w-full"><Copy className="h-4 w-4 mr-2" />새 프리셋으로 복제</Button>
-            <Button variant="outline" className="w-full" onClick={handleRestoreOrigin}>
-              <RotateCcw className="h-4 w-4 mr-2" />원본 위치로 복원
-            </Button>
-            <Button variant="outline" className="w-full"><Download className="h-4 w-4 mr-2" />다시 다운로드</Button>
-            <Button variant="outline" className="w-full text-destructive hover:text-destructive"><Trash2 className="h-4 w-4 mr-2" />삭제</Button>
-          </div>
-        </aside>
+function EmptyPanel({
+  count, mapped, total, layoutMode, statusLabel, statusClass,
+}: {
+  count: number; mapped: number; total: number;
+  layoutMode: "free" | "grid"; statusLabel: string; statusClass: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+      <div className="space-y-1.5">
+        <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center mb-2">
+          <MousePointer2 className="h-5 w-5 text-primary" />
+        </div>
+        <h3 className="text-base font-bold">아이콘을 선택하세요</h3>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          캔버스에서 아이콘을 선택하면 위치, 크기, 이미지, 매핑을 수정할 수 있습니다.
+        </p>
+      </div>
+      <div className="border-t border-border pt-4 space-y-2.5 text-xs">
+        <Row label="아이콘" value={`${count}개`} />
+        <Row label="매핑" value={`${mapped}/${total}`} />
+        <Row label="배치 모드" value={layoutMode === "free" ? "자유 배치" : "그리드"} />
+        <Row label="상태" value={<span className={cn("font-semibold", statusClass)}>{statusLabel}</span>} />
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
+  );
+}
+
+function SelectedIconPanel({
+  icon, onClose, onEdit, onRestore, onDelete,
+}: {
+  icon: EditableIcon;
+  onClose: () => void;
+  onEdit: () => void;
+  onRestore: () => void;
+  onDelete: () => void;
+}) {
+  const px = {
+    x: Math.round((icon.position.x / 100) * RES_W),
+    y: Math.round((icon.position.y / 100) * RES_H),
+  };
+  const isMoved = icon.position.x !== icon.originPos.x || icon.position.y !== icon.originPos.y;
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+      <div className="flex items-start gap-3">
+        <div className="h-14 w-14 rounded-xl bg-muted grid place-items-center text-3xl shrink-0">
+          {icon.emoji}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs text-muted-foreground">선택한 아이콘</div>
+          <div className="font-bold truncate">{icon.label}</div>
+          <Badge variant="outline" className="mt-1 text-[10px] border-success/40 text-success bg-success/10">
+            연결됨
+          </Badge>
+        </div>
+        <button onClick={onClose} className="h-7 w-7 grid place-items-center rounded hover:bg-muted">
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
-      {editing && (
-        <IconEditModal
-          icon={icons.find((i) => i.id === editing)!}
-          onClose={() => setEditing(null)}
+      <div className="border-t border-border pt-3 space-y-2 text-xs">
+        <Row label="크기" value={<span className="font-mono">{icon.size.w} × {icon.size.h}</span>} />
+        <Row label="위치" value={<span className="font-mono">X {px.x}, Y {px.y}</span>} />
+        <Row label="출처" value="프리셋 기본 아이콘" />
+        <Row
+          label="상태"
+          value={
+            isMoved ? (
+              <Badge variant="outline" className="text-[10px] border-primary/40 text-primary bg-primary/10">로컬 수정됨</Badge>
+            ) : (
+              <span className="text-muted-foreground">원본 위치</span>
+            )
+          }
         />
-      )}
+      </div>
+
+      <div className="border-t border-border pt-3 space-y-2">
+        <Button onClick={onEdit} className="w-full bg-gradient-primary text-primary-foreground" size="sm">
+          <Link2 className="h-3.5 w-3.5 mr-1.5" />매핑 변경
+        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button onClick={onEdit} variant="outline" size="sm">
+            <ImageIcon className="h-3.5 w-3.5 mr-1.5" />이미지
+          </Button>
+          <Button onClick={onEdit} variant="outline" size="sm">크기/스타일</Button>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-full text-xs">
+              <MoreHorizontal className="h-3.5 w-3.5 mr-1.5" />더보기
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={onEdit}>이름 변경</DropdownMenuItem>
+            <DropdownMenuItem onClick={onRestore} disabled={!isMoved}>원본 위치로 복원</DropdownMenuItem>
+            <DropdownMenuItem>연결 해제</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>삭제</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
+  );
+}
+
+function PresetInfoDialog({
+  open, onOpenChange, preset,
+}: { open: boolean; onOpenChange: (v: boolean) => void; preset: typeof libraryPresets[number] }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{preset.name}</DialogTitle>
+          <DialogDescription>{preset.description}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <img src={preset.thumbnail} alt="" className="w-full aspect-[16/10] rounded-lg object-cover border border-border" />
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <Row label="아이콘 수" value={`${preset.iconCount}`} />
+            <Row label="매핑" value={`${preset.mappedCount}/${preset.iconCount}`} />
+            <Row label="다운로드 날짜" value={preset.lastModified} />
+            <Row label="원본 버전" value="v1.0" />
+            {preset.sourceMarketId && <Row label="마켓 출처" value={<span className="text-primary">{preset.sourceMarketId}</span>} />}
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground mb-1.5">태그</div>
+            <div className="flex flex-wrap gap-1">
+              {preset.tags.map((t) => (
+                <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-muted">#{t}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddIconDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>아이콘 추가</DialogTitle>
+          <DialogDescription>이 프리셋에 추가할 아이콘을 선택하세요.</DialogDescription>
+        </DialogHeader>
+        <Tabs defaultValue="library">
+          <TabsList className="grid grid-cols-3 w-full">
+            <TabsTrigger value="library"><Package className="h-3.5 w-3.5 mr-1.5" />내 보관함</TabsTrigger>
+            <TabsTrigger value="market"><Store className="h-3.5 w-3.5 mr-1.5" />마켓</TabsTrigger>
+            <TabsTrigger value="upload"><UploadIcon className="h-3.5 w-3.5 mr-1.5" />업로드</TabsTrigger>
+          </TabsList>
+          <TabsContent value="library" className="text-sm text-muted-foreground py-8 text-center">
+            보관함의 개별 아이콘과 아이콘 팩이 여기에 표시됩니다.
+          </TabsContent>
+          <TabsContent value="market" className="text-sm text-muted-foreground py-8 text-center">
+            마켓에서 아이콘을 검색해 추가할 수 있습니다.
+          </TabsContent>
+          <TabsContent value="upload" className="text-sm text-muted-foreground py-8 text-center">
+            내 PC에서 PNG, SVG, ICO 파일을 업로드하세요.
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 }
