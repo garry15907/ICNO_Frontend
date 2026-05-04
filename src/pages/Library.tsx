@@ -117,9 +117,6 @@ export default function Library() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-primary" style={{ width: `${(p.mappedCount / p.iconCount) * 100}%` }} />
-              </div>
             </div>
           </div>
         ))}
