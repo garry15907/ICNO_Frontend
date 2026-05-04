@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MoreHorizontal, Play, Edit, Eye, Sparkles, FolderOpen, Monitor, Store } from "lucide-react";
+import { Plus, MoreHorizontal, Play, Edit, Eye, Sparkles, FolderOpen, Monitor, Store, Pin, PinOff } from "lucide-react";
 import { libraryPresets, LibraryStatus } from "@/data/mockData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,14 @@ const visibleStatuses: LibraryStatus[] = ["현재 적용 중", "매핑 필요"];
 export default function Library() {
   const nav = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
+  const [pinned, setPinned] = useState<string[]>([]);
+
+  const togglePin = (id: string) =>
+    setPinned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+
+  const sortedPresets = [...libraryPresets].sort(
+    (a, b) => (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0),
+  );
 
   return (
     <div className="space-y-6">
@@ -45,7 +53,7 @@ export default function Library() {
           <div className="text-xs text-muted-foreground">빈 프리셋 · 마켓 · 로컬 가져오기</div>
         </button>
 
-        {libraryPresets.map((p) => (
+        {sortedPresets.map((p) => (
           <div
             key={p.id}
             className="group relative rounded-2xl overflow-hidden bg-card border border-border shadow-card hover:shadow-glow transition-all"
@@ -55,6 +63,11 @@ export default function Library() {
               {visibleStatuses.includes(p.status) && (
                 <span className={cn("absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md border shadow-card", statusStyles[p.status])}>
                   {p.status}
+                </span>
+              )}
+              {pinned.includes(p.id) && (
+                <span className="absolute top-3 right-3 h-6 w-6 grid place-items-center rounded-md bg-primary text-primary-foreground shadow-card">
+                  <Pin className="h-3 w-3" />
                 </span>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4 gap-2">
@@ -79,6 +92,13 @@ export default function Library() {
                     <DropdownMenuItem onClick={() => nav(`/library/${p.id}`)}>프리셋 수정</DropdownMenuItem>
                     <DropdownMenuItem>바로 적용</DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => togglePin(p.id)}>
+                      {pinned.includes(p.id) ? (
+                        <><PinOff className="h-4 w-4 mr-2" />상단 고정 해제</>
+                      ) : (
+                        <><Pin className="h-4 w-4 mr-2" />상단 고정</>
+                      )}
+                    </DropdownMenuItem>
                     <DropdownMenuItem>초기 상태로 복원</DropdownMenuItem>
                     <DropdownMenuItem>다시 다운로드</DropdownMenuItem>
                     <DropdownMenuItem>복제</DropdownMenuItem>
