@@ -124,7 +124,23 @@ export default function Library() {
                       setPresets((prev) => {
                         const idx = prev.findIndex((x) => x.id === p.id);
                         if (idx === -1) return prev;
-                        const copy = { ...prev[idx], id: `${p.id}-copy-${Date.now()}`, name: `${p.name} 복사본` };
+                        // 기본 이름(복사본 접미사 제거)
+                        const baseName = p.name.replace(/\s*복사본(?:\(\d+\))?$/, "");
+                        // 기존 복사본들 중 가장 큰 번호 찾기
+                        const escaped = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                        const re = new RegExp(`^${escaped}\\s*복사본(?:\\((\\d+)\\))?$`);
+                        let maxN = 0;
+                        let hasPlain = false;
+                        prev.forEach((x) => {
+                          const m = x.name.match(re);
+                          if (!m) return;
+                          if (m[1]) maxN = Math.max(maxN, parseInt(m[1], 10));
+                          else hasPlain = true;
+                        });
+                        const nextName = !hasPlain
+                          ? `${baseName} 복사본`
+                          : `${baseName} 복사본(${Math.max(maxN, 1) + 1})`;
+                        const copy = { ...prev[idx], id: `${p.id}-copy-${Date.now()}`, name: nextName };
                         const next = [...prev];
                         next.splice(idx + 1, 0, copy);
                         return next;
