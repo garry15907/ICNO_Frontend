@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Compass, Library as LibIcon, Settings as SettingsIcon, Sparkles, Star, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { libraryPresets, marketplacePresets, marketItems, downloadedIds } from "@/data/mockData";
+import { libraryPresets, marketplacePresets, marketItems, downloadedIds, wishlistIds } from "@/data/mockData";
 import { MarketItemCard } from "@/components/presets/PresetCard";
+import { useToast } from "@/hooks/use-toast";
 
 const quickActions = [
   { icon: Plus, label: "새 프리셋 만들기", to: "/library", tone: "primary" },
@@ -13,6 +15,15 @@ const quickActions = [
 
 const Index = () => {
   const nav = useNavigate();
+  const { toast } = useToast();
+  const [wishlist, setWishlist] = useState<string[]>(wishlistIds);
+  const toggleWish = (id: string) => {
+    setWishlist((prev) => {
+      const has = prev.includes(id);
+      toast({ title: has ? "찜 해제" : "찜 추가", description: has ? "찜 목록에서 제거했어요." : "찜 목록에 추가했어요." });
+      return has ? prev.filter((x) => x !== id) : [...prev, id];
+    });
+  };
   const current = libraryPresets.find((p) => p.status === "현재 적용 중")!;
   const recent = libraryPresets.slice(0, 3);
   const presetItems = marketItems.filter((i) => i.type === "preset");
@@ -80,7 +91,13 @@ const Index = () => {
       <Section title="최근 다운로드한 프리셋" right={<Button variant="ghost" size="sm" onClick={() => nav("/profile/downloads")}>전체 보기</Button>}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           {recentDownloads.map((p) => (
-            <MarketItemCard key={p.id} item={p} onClick={() => nav(`/explore?preset=${p.id}`)} />
+            <MarketItemCard
+              key={p.id}
+              item={p}
+              wishlisted={wishlist.includes(p.id)}
+              onWishlist={() => toggleWish(p.id)}
+              onClick={() => nav(`/explore?item=${p.id}`)}
+            />
           ))}
         </div>
       </Section>
@@ -88,7 +105,13 @@ const Index = () => {
       <Section title="인기 프리셋" right={<Button variant="ghost" size="sm" onClick={() => nav("/explore")}>마켓 둘러보기</Button>}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           {popular.map((p) => (
-            <MarketItemCard key={p.id} item={p} onClick={() => nav(`/explore?preset=${p.id}`)} />
+            <MarketItemCard
+              key={p.id}
+              item={p}
+              wishlisted={wishlist.includes(p.id)}
+              onWishlist={() => toggleWish(p.id)}
+              onClick={() => nav(`/explore?item=${p.id}`)}
+            />
           ))}
         </div>
       </Section>
