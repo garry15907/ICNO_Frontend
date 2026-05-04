@@ -37,24 +37,24 @@ export function AppSidebar() {
         width: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH,
       }}
       className={cn(
-        "flex shrink-0 flex-col bg-sidebar border-r border-sidebar-border sticky top-0 h-screen overflow-hidden transition-[width] duration-200",
+        "flex shrink-0 flex-col bg-sidebar border-r border-sidebar-border sticky top-0 h-screen overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width]",
         mode === "hover" && hovered && "z-40 shadow-card",
       )}
     >
       {/* 내부 wrapper: collapsed일 때는 72px, expanded일 때는 240px. 텍스트는 opacity로 페이드 처리 → 아이콘 위치만 자연스럽게 이동 */}
       <div
-        className="flex flex-col h-full self-start shrink-0 transition-[width] duration-200"
+        className="flex flex-col h-full self-start shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width]"
         style={{ width: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH }}
       >
       {/* Logo */}
-      <div className={cn("pt-6 pb-5 flex items-center gap-3 transition-[padding] duration-200", collapsed ? "px-3 justify-center" : "px-5")}>
+      <div className={cn("pt-6 pb-5 flex items-center gap-3 transition-[padding] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]", collapsed ? "px-3 justify-center" : "px-5")}>
         <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
           <Sparkles className="h-5 w-5 text-primary-foreground" />
         </div>
         <div
           className={cn(
-            "overflow-hidden transition-opacity duration-150 whitespace-nowrap",
-            collapsed ? "opacity-0 w-0" : "opacity-100 delay-200"
+            "overflow-hidden whitespace-nowrap transition-opacity",
+            collapsed ? "opacity-0 w-0 duration-100" : "opacity-100 duration-200 delay-[220ms]"
           )}
         >
           <div className="text-lg font-bold tracking-tight text-sidebar-foreground">ICNO</div>
@@ -89,8 +89,8 @@ export function AppSidebar() {
               </span>
               <span
                 className={cn(
-                  "flex-1 truncate transition-opacity duration-150",
-                  collapsed ? "opacity-0 w-0 hidden" : "opacity-100 delay-200"
+                  "flex-1 truncate transition-opacity",
+                  collapsed ? "opacity-0 w-0 hidden duration-100" : "opacity-100 duration-200 delay-[220ms]"
                 )}
               >
                 {item.label}
@@ -115,7 +115,7 @@ export function AppSidebar() {
               )}
             </div>
             {!collapsed && (
-              <div className="flex items-center gap-3 flex-1 min-w-0 animate-fade-in">
+              <div className="flex items-center gap-3 flex-1 min-w-0 opacity-0 animate-[fade-in_0.25s_ease-out_220ms_forwards]">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-sidebar-foreground truncate">{profile.nickname}</div>
                   <div className="text-[11px] text-muted-foreground truncate">{currentUser.role}</div>
