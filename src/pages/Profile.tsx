@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { marketplacePresets, libraryPresets, wishlistIds, downloadedIds, purchasedIds, currentUser, reviews as mockReviews } from "@/data/mockData";
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { Button } from "@/components/ui/button";
-import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft, TrendingUp, MessageSquare, Activity, Calendar, Shield, Upload, Eye, EyeOff, Pencil, Trash2, Flag, CheckCircle2, Info } from "lucide-react";
+import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft, TrendingUp, MessageSquare, Activity, Calendar, Shield, Upload, Eye, EyeOff, Pencil, Trash2, Flag, CheckCircle2, Info, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -31,19 +31,28 @@ export function ProfileMain() {
     e.target.value = "";
   };
   const stats = [
-    { label: "찜", value: wishlistIds.length, tab: "wishlist", icon: Heart },
-    { label: "다운로드", value: downloadedIds.length, tab: "downloads", icon: Download },
-    { label: "구매", value: purchasedIds.length, tab: "purchases", icon: Receipt },
-    { label: "내 상품", value: 3, tab: "sales", icon: Store },
-    { label: "총 받은 다운로드", value: "1.2k", tab: "sales", icon: TrendingUp },
-    { label: "평균 평점", value: "4.8", tab: "reviews", icon: Star },
+    { label: "찜", value: wishlistIds.length, to: "/profile/wishlist", icon: Heart },
+    { label: "다운로드", value: downloadedIds.length, to: "/profile/downloads", icon: Download },
+    { label: "구매", value: purchasedIds.length, to: "/profile/purchases", icon: Receipt },
+    { label: "내 상품", value: 3, to: "/profile/sales", icon: Store },
   ];
-  const [tab, setTab] = useState("wishlist");
+  const quickMenus = [
+    { title: "찜한 프리셋", desc: "관심 있는 프리셋 모아보기", icon: Heart, to: "/profile/wishlist" },
+    { title: "다운로드 목록", desc: "원본 재다운로드 및 초기 복원", icon: Download, to: "/profile/downloads" },
+    { title: "구매 내역", desc: "구매한 유료 프리셋 확인", icon: Receipt, to: "/profile/purchases" },
+    { title: "내 상품 관리", desc: "업로드한 프리셋 관리", icon: Store, to: "/profile/sales" },
+  ];
+  const recent = [
+    { icon: Download, text: "노을 프리셋을 다운로드했습니다.", preset: "노을", time: "10분 전" },
+    { icon: Heart, text: "커비 프리셋을 찜했습니다.", preset: "커비", time: "2시간 전" },
+    { icon: Receipt, text: "픽셀 게임룸 프리셋을 구매했습니다.", preset: "픽셀 게임룸", time: "어제" },
+    { icon: CheckCircle2, text: "노을 프리셋 위치를 저장했습니다.", preset: "노을", time: "2일 전" },
+  ];
   return (
-    <div className="space-y-6">
-      <div className="p-6 rounded-2xl bg-gradient-surface border border-border">
-        <div className="flex items-start gap-5">
-          <div className="h-20 w-20 rounded-full bg-gradient-primary grid place-items-center text-4xl shadow-glow overflow-hidden shrink-0">
+    <div className="space-y-8 max-w-5xl mx-auto">
+      <div className="p-8 rounded-2xl bg-gradient-surface border border-border">
+        <div className="flex items-start gap-6">
+          <div className="h-24 w-24 rounded-full bg-gradient-primary grid place-items-center text-5xl shadow-glow overflow-hidden shrink-0">
             {isImageAvatar(profile.avatar) ? (
               <img src={profile.avatar} alt="프로필 사진" className="h-full w-full object-cover" />
             ) : (
@@ -52,59 +61,68 @@ export function ProfileMain() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-2xl font-bold">{profile.nickname}</h2>
+              <h2 className="text-3xl font-bold">{profile.nickname}</h2>
               <Badge variant="secondary" className="text-[10px]">{currentUser.role}</Badge>
             </div>
-            <div className="text-sm text-muted-foreground">{currentUser.username}</div>
-            {profile.bio && <p className="text-sm text-foreground/80 mt-2 line-clamp-2">{profile.bio}</p>}
-            <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground flex-wrap">
+            <div className="text-sm text-muted-foreground mt-1">{currentUser.username}</div>
+            {profile.bio && <p className="text-sm text-foreground/80 mt-3 line-clamp-1">{profile.bio}</p>}
+            <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground flex-wrap">
               <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> 가입 2025-08-12</span>
-              <span className="inline-flex items-center gap-1"><Shield className="h-3.5 w-3.5" /> Steam 연동: <span className="text-muted-foreground/80">미연동</span></span>
+              <span className="inline-flex items-center gap-1"><Shield className="h-3.5 w-3.5" /> Steam: <span className="text-muted-foreground/80">미연동</span></span>
             </div>
           </div>
           <Button variant="outline" onClick={() => { setForm(profile); setEditOpen(true); }}>프로필 편집</Button>
         </div>
-        <div className="mt-4 flex items-start gap-2 text-xs text-muted-foreground rounded-lg bg-muted/40 px-3 py-2">
-          <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-          <span>로컬 매핑 정보는 이 PC에만 저장됩니다.</span>
-        </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((s) => (
-          <button key={s.label} onClick={() => setTab(s.tab)} className="rounded-2xl border border-border bg-card p-5 text-left hover:border-primary/40 hover:shadow-glow transition-all">
-            <s.icon className="h-5 w-5 text-primary mb-2" />
+          <button key={s.label} onClick={() => nav(s.to)} className="rounded-2xl border border-border bg-card p-5 text-left hover:border-primary/40 hover:shadow-glow transition-all">
+            <s.icon className="h-5 w-5 text-primary mb-3" />
             <div className="text-2xl font-bold">{s.value}</div>
-            <div className="text-xs text-muted-foreground">{s.label}</div>
+            <div className="text-xs text-muted-foreground mt-1">{s.label}</div>
           </button>
         ))}
       </div>
 
-      <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto">
-          <TabsTrigger value="wishlist">찜한 프리셋</TabsTrigger>
-          <TabsTrigger value="downloads">다운로드</TabsTrigger>
-          <TabsTrigger value="purchases">구매 내역</TabsTrigger>
-          <TabsTrigger value="sales">내 상품</TabsTrigger>
-          <TabsTrigger value="reviews">리뷰/댓글</TabsTrigger>
-          <TabsTrigger value="activity">활동 기록</TabsTrigger>
-        </TabsList>
-        <div className="mt-6">
-          <TabsContent value="wishlist"><Wishlist /></TabsContent>
-          <TabsContent value="downloads"><Downloads /></TabsContent>
-          <TabsContent value="purchases"><Purchases /></TabsContent>
-          <TabsContent value="sales"><Sales /></TabsContent>
-          <TabsContent value="reviews"><Reviews /></TabsContent>
-          <TabsContent value="activity"><ActivityFeed /></TabsContent>
-        </div>
-      </Tabs>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {quickMenus.map((m) => (
+          <button
+            key={m.title}
+            onClick={() => nav(m.to)}
+            className="group flex items-center gap-4 p-6 rounded-2xl border border-border bg-card hover:border-primary/50 hover:shadow-glow transition-all text-left"
+          >
+            <div className="h-12 w-12 rounded-xl bg-primary/10 grid place-items-center shrink-0">
+              <m.icon className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold">{m.title}</div>
+              <div className="text-xs text-muted-foreground mt-1">{m.desc}</div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition" />
+          </button>
+        ))}
+      </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-center gap-2 font-semibold text-sm">
-          <Shield className="h-4 w-4 text-primary" /> 로컬 매핑 안내
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">최근 활동</h3>
+          <Activity className="h-4 w-4 text-muted-foreground" />
         </div>
-        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-          프리셋의 배경화면과 아이콘 이미지는 마켓에서 다운로드할 수 있지만, 프로그램/파일 경로 같은 매핑 정보는 사용자의 PC에만 저장됩니다.
-        </p>
+        <ul className="divide-y divide-border">
+          {recent.map((it, i) => (
+            <li key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+              <div className="h-8 w-8 rounded-full bg-primary/10 grid place-items-center shrink-0">
+                <it.icon className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm truncate">{it.text}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{it.preset}</div>
+              </div>
+              <span className="text-xs text-muted-foreground shrink-0">{it.time}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
