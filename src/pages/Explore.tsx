@@ -2,17 +2,25 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, SlidersHorizontal } from "lucide-react";
-import { PresetCard } from "@/components/presets/PresetCard";
-import { marketplacePresets, wishlistIds } from "@/data/mockData";
-import { ExplorePresetModal } from "@/components/presets/ExplorePresetModal";
+import { Search, SlidersHorizontal, Sparkles, Image as ImageIcon, Package, Layers } from "lucide-react";
+import { MarketItemCard } from "@/components/presets/PresetCard";
+import { marketItems, wishlistIds } from "@/data/mockData";
+import { MarketItemModal } from "@/components/presets/MarketItemModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 const priceFilters = ["전체", "무료", "유료"] as const;
 const categories = ["전체", "자연", "캐릭터", "다크", "미니멀", "게임", "파스텔", "사이버펑크"];
 const sortOptions = ["인기순", "최신순", "다운로드순", "평점순", "가격 높은 순", "가격 낮은 순"];
+
+const typeFilters = [
+  { id: "all", label: "전체", icon: Layers },
+  { id: "preset", label: "프리셋", icon: Sparkles },
+  { id: "icon", label: "아이콘", icon: ImageIcon },
+  { id: "iconpack", label: "아이콘 팩", icon: Package },
+] as const;
 
 export default function Explore() {
   const [params, setParams] = useSearchParams();
@@ -20,6 +28,7 @@ export default function Explore() {
   const [price, setPrice] = useState<(typeof priceFilters)[number]>("전체");
   const [category, setCategory] = useState("전체");
   const [sort, setSort] = useState("인기순");
+  const [typeFilter, setTypeFilter] = useState<"all" | "preset" | "icon" | "iconpack">("all");
   const [wishlist, setWishlist] = useState<string[]>(wishlistIds);
   const [filterOpen, setFilterOpen] = useState(false);
   const [categoryQuery, setCategoryQuery] = useState("");
@@ -29,22 +38,23 @@ export default function Explore() {
     [categoryQuery],
   );
 
-  const openId = params.get("preset");
-  const openPreset = marketplacePresets.find((p) => p.id === openId);
+  const openId = params.get("item") ?? params.get("preset");
+  const openItem = marketItems.find((p) => p.id === openId);
 
-  const presets = useMemo(() => {
-    let list = [...marketplacePresets];
+  const items = useMemo(() => {
+    let list = [...marketItems];
+    if (typeFilter !== "all") list = list.filter((p) => p.type === typeFilter);
     if (price === "무료") list = list.filter((p) => p.price === 0);
     if (price === "유료") list = list.filter((p) => p.price > 0);
-    if (category !== "전체") list = list.filter((p) => p.category === category);
-    if (query) list = list.filter((p) => (p.name + p.creator.name + p.tags.join(" ")).includes(query));
-    if (sort === "다운로드순") list.sort((a, b) => b.downloads - a.downloads);
-    if (sort === "평점순") list.sort((a, b) => b.rating - a.rating);
+    if (category !== "전체") list = list.filter((p: any) => p.category === category);
+    if (query) list = list.filter((p: any) => (p.name + p.creator.name + p.tags.join(" ")).includes(query));
+    if (sort === "다운로드순") list.sort((a: any, b: any) => b.downloads - a.downloads);
+    if (sort === "평점순") list.sort((a: any, b: any) => b.rating - a.rating);
     if (sort === "최신순") list.reverse();
     if (sort === "가격 높은 순") list.sort((a, b) => b.price - a.price);
     if (sort === "가격 낮은 순") list.sort((a, b) => a.price - b.price);
     return list;
-  }, [price, category, query, sort]);
+  }, [typeFilter, price, category, query, sort]);
 
   const toggleWish = (id: string) =>
     setWishlist((w) => (w.includes(id) ? w.filter((x) => x !== id) : [...w, id]));
@@ -54,7 +64,26 @@ export default function Explore() {
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold tracking-tight">마켓플레이스</h2>
-        <p className="text-muted-foreground mt-1">전 세계 크리에이터의 데스크톱 프리셋을 둘러보세요.</p>
+        <p className="text-muted-foreground mt-1">데스크톱 프리셋, 아이콘 단품, 아이콘 팩을 둘러보세요.</p>
+      </div>
+
+      {/* Product type tabs */}
+      <div className="flex flex-wrap gap-2 border-b border-border pb-1">
+        {typeFilters.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTypeFilter(t.id)}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition",
+              typeFilter === t.id
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <t.icon className="h-3.5 w-3.5" />
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* Search bar */}
@@ -142,29 +171,29 @@ export default function Explore() {
       </div>
 
       {/* Grid */}
-      {presets.length === 0 ? (
+      {items.length === 0 ? (
         <div className="border border-dashed rounded-2xl p-16 text-center text-muted-foreground">
-          조건에 맞는 프리셋이 없습니다.
+          조건에 맞는 상품이 없습니다.
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {presets.map((p) => (
-            <PresetCard
+          {items.map((p) => (
+            <MarketItemCard
               key={p.id}
-              preset={p}
+              item={p}
               wishlisted={wishlist.includes(p.id)}
               onWishlist={() => toggleWish(p.id)}
-              onClick={() => setParams({ preset: p.id })}
+              onClick={() => setParams({ item: p.id })}
             />
           ))}
         </div>
       )}
 
-      {openPreset && (
-        <ExplorePresetModal
-          preset={openPreset}
-          wishlisted={wishlist.includes(openPreset.id)}
-          onWishlist={() => toggleWish(openPreset.id)}
+      {openItem && (
+        <MarketItemModal
+          item={openItem}
+          wishlisted={wishlist.includes(openItem.id)}
+          onWishlist={() => toggleWish(openItem.id)}
           onClose={() => setParams({})}
         />
       )}
