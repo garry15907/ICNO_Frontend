@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MoreHorizontal, Play, Edit, Eye, Sparkles, FolderOpen, Monitor, Store, Pin, PinOff } from "lucide-react";
+import { Plus, MoreHorizontal, Play, Edit, Eye, Sparkles, FolderOpen, Monitor, Store, Pin } from "lucide-react";
 import { libraryPresets, LibraryStatus } from "@/data/mockData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
