@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Plus, Compass, Library as LibIcon, Settings as SettingsIcon, Sparkles, Star, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { libraryPresets, marketplacePresets, downloadedIds } from "@/data/mockData";
-import { PresetCard } from "@/components/presets/PresetCard";
+import { libraryPresets, marketplacePresets, marketItems, downloadedIds } from "@/data/mockData";
+import { MarketItemCard } from "@/components/presets/PresetCard";
 
 const quickActions = [
   { icon: Plus, label: "새 프리셋 만들기", to: "/library", tone: "primary" },
@@ -15,8 +15,9 @@ const Index = () => {
   const nav = useNavigate();
   const current = libraryPresets.find((p) => p.status === "현재 적용 중")!;
   const recent = libraryPresets.slice(0, 3);
-  const recentDownloads = marketplacePresets.filter((p) => downloadedIds.includes(p.id)).slice(0, 4);
-  const popular = [...marketplacePresets].sort((a, b) => b.downloads - a.downloads).slice(0, 4);
+  const presetItems = marketItems.filter((i) => i.type === "preset");
+  const recentDownloads = presetItems.filter((p) => downloadedIds.includes(p.id)).slice(0, 4);
+  const popular = [...presetItems].sort((a: any, b: any) => b.downloads - a.downloads).slice(0, 4);
 
   return (
     <div className="space-y-10">
@@ -79,7 +80,7 @@ const Index = () => {
       <Section title="최근 다운로드한 프리셋" right={<Button variant="ghost" size="sm" onClick={() => nav("/profile/downloads")}>전체 보기</Button>}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           {recentDownloads.map((p) => (
-            <PresetCard key={p.id} preset={p} onClick={() => nav(`/explore?preset=${p.id}`)} />
+            <MarketItemCard key={p.id} item={p} onClick={() => nav(`/explore?preset=${p.id}`)} />
           ))}
         </div>
       </Section>
@@ -87,7 +88,7 @@ const Index = () => {
       <Section title="인기 프리셋" right={<Button variant="ghost" size="sm" onClick={() => nav("/explore")}>마켓 둘러보기</Button>}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           {popular.map((p) => (
-            <PresetCard key={p.id} preset={p} onClick={() => nav(`/explore?preset=${p.id}`)} />
+            <MarketItemCard key={p.id} item={p} onClick={() => nav(`/explore?preset=${p.id}`)} />
           ))}
         </div>
       </Section>
