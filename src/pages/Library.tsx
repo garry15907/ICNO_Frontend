@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MoreHorizontal, Play, Edit, Eye, Sparkles, FolderOpen, Monitor, Store, Pin, Image as ImageIcon, Package, FolderPlus, Trash2, ExternalLink } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown } from "lucide-react";
 import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus } from "@/data/mockData";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -25,6 +27,10 @@ export default function Library() {
   const [pinned, setPinned] = useState<string[]>([]);
   const [tab, setTab] = useState<"presets" | "icons">("presets");
   const [iconFilter, setIconFilter] = useState<"all" | "icon" | "iconpack" | "downloaded" | "purchased" | "mine">("all");
+  const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const togglePin = (id: string) =>
     setPinned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -103,17 +109,26 @@ export default function Library() {
                       <MoreHorizontal className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => nav(`/library/${p.id}`)}>프리셋 상세 보기</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => nav(`/library/${p.id}`)}>프리셋 수정</DropdownMenuItem>
-                    <DropdownMenuItem>바로 적용</DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem onClick={() => nav(`/library/${p.id}`)}>
+                      <Pencil className="h-3.5 w-3.5 mr-2" /> 수정
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShareTarget({ id: p.id, name: p.name })}>
+                      <Share2 className="h-3.5 w-3.5 mr-2" /> 공유
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setRenameTarget({ id: p.id, name: p.name }); setRenameValue(p.name); }}>
+                      <Edit className="h-3.5 w-3.5 mr-2" /> 이름 변경
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast({ title: "복제 완료", description: `${p.name} 복사본이 보관함에 추가되었습니다.` })}>
+                      <Copy className="h-3.5 w-3.5 mr-2" /> 복제
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>초기 상태로 복원</DropdownMenuItem>
-                    <DropdownMenuItem>다시 다운로드</DropdownMenuItem>
-                    <DropdownMenuItem>복제</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => nav("/upload")}>마켓에 업로드</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive">삭제</DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-2" /> 삭제
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -138,6 +153,88 @@ export default function Library() {
             <CreateOption icon={Sparkles} title="빈 프리셋 만들기" desc="배경화면과 아이콘을 직접 업로드해서 새로 만들기" />
             <CreateOption icon={Store} title="마켓에서 불러오기" desc="마켓플레이스에서 프리셋을 다운로드" onClick={() => { setCreateOpen(false); nav("/explore"); }} />
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 공유 모달 */}
+      <Dialog open={!!shareTarget} onOpenChange={(o) => !o && setShareTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>프리셋 공유</DialogTitle>
+            <DialogDescription>{shareTarget?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 pt-1">
+            <button
+              onClick={() => { navigator.clipboard?.writeText(`https://icno.app/preset/${shareTarget?.id}`); toast({ title: "링크가 복사되었습니다" }); }}
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition text-left"
+            >
+              <LinkIcon className="h-4 w-4 text-primary" />
+              <div>
+                <div className="text-sm font-medium">링크 복사</div>
+                <div className="text-xs text-muted-foreground">공유 가능한 링크를 클립보드에 복사</div>
+              </div>
+            </button>
+            <button
+              onClick={() => { setShareTarget(null); nav("/upload"); }}
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition text-left"
+            >
+              <Upload className="h-4 w-4 text-primary" />
+              <div>
+                <div className="text-sm font-medium">마켓에 업로드</div>
+                <div className="text-xs text-muted-foreground">마켓플레이스에 프리셋을 게시</div>
+              </div>
+            </button>
+            <button
+              onClick={() => toast({ title: "프리셋 파일을 내보내는 중입니다" })}
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition text-left"
+            >
+              <FileDown className="h-4 w-4 text-primary" />
+              <div>
+                <div className="text-sm font-medium">프리셋 파일로 내보내기</div>
+                <div className="text-xs text-muted-foreground">.icno 파일로 저장</div>
+              </div>
+            </button>
+            <p className="text-[11px] text-muted-foreground pt-2">
+              공유 시 프로그램/파일 경로 같은 로컬 매핑 정보는 제외됩니다.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 이름 변경 모달 */}
+      <Dialog open={!!renameTarget} onOpenChange={(o) => !o && setRenameTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>이름 변경</DialogTitle>
+            <DialogDescription>새로운 프리셋 이름을 입력하세요.</DialogDescription>
+          </DialogHeader>
+          <Input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} autoFocus />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameTarget(null)}>취소</Button>
+            <Button onClick={() => { toast({ title: "이름이 변경되었습니다", description: renameValue }); setRenameTarget(null); }}>저장</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 삭제 확인 모달 */}
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>프리셋 삭제</DialogTitle>
+            <DialogDescription>이 프리셋을 보관함에서 삭제할까요?</DialogDescription>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{deleteTarget?.name}</span> 은(는) 영구적으로 삭제됩니다.
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>취소</Button>
+            <Button
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { toast({ title: "삭제되었습니다", description: deleteTarget?.name }); setDeleteTarget(null); }}
+            >
+              삭제
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
