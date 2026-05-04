@@ -49,7 +49,6 @@ export default function LibraryDetail() {
   const [editing, setEditing] = useState<string | null>(null);
 
   const [editMode, setEditMode] = useState(true);
-  const [layoutMode, setLayoutMode] = useState<"free" | "grid">("free");
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("saved");
@@ -107,7 +106,7 @@ export default function LibraryDetail() {
     let yPct = ((e.clientY - rect.top - dragState.current.offsetY) / rect.height) * 100;
     xPct = Math.max(0, Math.min(95, xPct));
     yPct = Math.max(0, Math.min(92, yPct));
-    if (snapToGrid || layoutMode === "grid") {
+    if (snapToGrid) {
       xPct = snap(xPct, 6);
       yPct = snap(yPct, 9);
     }
@@ -209,20 +208,6 @@ export default function LibraryDetail() {
                 위치 편집 {editMode ? "ON" : "OFF"}
               </Button>
 
-              <Select value={layoutMode} onValueChange={(v: "free" | "grid") => setLayoutMode(v)}>
-                <SelectTrigger className="h-8 w-[130px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="free">
-                    <span className="flex items-center gap-2"><MousePointer2 className="h-3.5 w-3.5" />자유 배치</span>
-                  </SelectItem>
-                  <SelectItem value="grid">
-                    <span className="flex items-center gap-2"><Grid3x3 className="h-3.5 w-3.5" />그리드</span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
               <Button
                 size="sm"
                 onClick={handleSavePositions}
@@ -300,7 +285,7 @@ export default function LibraryDetail() {
                 backgroundPosition: "center",
               }}
             >
-              {editMode && (snapToGrid || layoutMode === "grid") && (
+              {editMode && snapToGrid && (
                 <div
                   className="absolute inset-0 pointer-events-none opacity-25"
                   style={{
@@ -429,7 +414,6 @@ export default function LibraryDetail() {
                 count={icons.length}
                 mapped={preset.mappedCount}
                 total={preset.iconCount}
-                layoutMode={layoutMode}
                 statusLabel={statusLabel}
                 statusClass={statusClass}
               />
@@ -459,10 +443,10 @@ export default function LibraryDetail() {
 }
 
 function EmptyPanel({
-  count, mapped, total, layoutMode, statusLabel, statusClass,
+  count, mapped, total, statusLabel, statusClass,
 }: {
   count: number; mapped: number; total: number;
-  layoutMode: "free" | "grid"; statusLabel: string; statusClass: string;
+  statusLabel: string; statusClass: string;
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
@@ -478,7 +462,6 @@ function EmptyPanel({
       <div className="border-t border-border pt-4 space-y-2.5 text-xs">
         <Row label="아이콘" value={`${count}개`} />
         <Row label="매핑" value={`${mapped}/${total}`} />
-        <Row label="배치 모드" value={layoutMode === "free" ? "자유 배치" : "그리드"} />
         <Row label="상태" value={<span className={cn("font-semibold", statusClass)}>{statusLabel}</span>} />
       </div>
     </div>
