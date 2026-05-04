@@ -146,7 +146,6 @@ export default function LibraryDetail() {
   };
 
   const handleAutoAlign = () => {
-    setLayoutMode("grid");
     setIcons((prev) =>
       prev.map((i, idx) => ({
         ...i,
