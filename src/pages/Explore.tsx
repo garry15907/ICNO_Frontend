@@ -68,19 +68,9 @@ export default function Explore() {
             className="pl-9 h-11 bg-card"
           />
         </div>
-        <Select value={sort} onValueChange={setSort}>
-          <SelectTrigger className="w-40 h-11"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {sortOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
         <Popover open={filterOpen} onOpenChange={setFilterOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9 gap-2">
+            <Button variant="outline" className="h-11 gap-2">
               <SlidersHorizontal className="h-4 w-4" />
               필터
               {(price !== "전체" || category !== "전체") && (
@@ -133,6 +123,16 @@ export default function Explore() {
             </div>
           </PopoverContent>
         </Popover>
+        <Select value={sort} onValueChange={setSort}>
+          <SelectTrigger className="w-40 h-11"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {sortOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Active filter chips */}
+      <div className="flex flex-wrap items-center gap-2 min-h-0">
         {price !== "전체" && (
           <Chip active onClick={() => setPrice("전체")}>{price} ✕</Chip>
         )}
