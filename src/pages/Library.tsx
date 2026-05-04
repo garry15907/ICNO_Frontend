@@ -67,7 +67,6 @@ export default function Library() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="text-sm font-semibold truncate">{p.name}</h3>
-                  <p className="text-xs text-muted-foreground truncate">아이콘 {p.iconCount}개 · 매핑 {p.mappedCount}/{p.iconCount}</p>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
