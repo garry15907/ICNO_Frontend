@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { marketplacePresets, libraryPresets, wishlistIds, downloadedIds, purchasedIds, currentUser, reviews as mockReviews, followedCreators } from "@/data/mockData";
+import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, currentUser, reviews as mockReviews, followedCreators } from "@/data/mockData";
 import { useProfile, isImageAvatar } from "@/lib/profile";
+import { useWishlist } from "@/lib/wishlist";
 import { Button } from "@/components/ui/button";
 import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft, TrendingUp, MessageSquare, Activity, Calendar, Shield, Upload, Eye, EyeOff, Pencil, Trash2, Flag, CheckCircle2, Info, ChevronRight, Users, UserMinus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -17,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
 export function ProfileMain() {
   const nav = useNavigate();
   const { profile, setProfile } = useProfile();
+  const { wishlist } = useWishlist();
   const [editOpen, setEditOpen] = useState(false);
   const [defaultPickerOpen, setDefaultPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,7 +33,7 @@ export function ProfileMain() {
     e.target.value = "";
   };
   const stats = [
-    { label: "찜", value: wishlistIds.length, to: "/profile/wishlist", icon: Heart },
+    { label: "찜", value: wishlist.length, to: "/profile/wishlist", icon: Heart },
     { label: "다운로드", value: downloadedIds.length, to: "/profile/downloads", icon: Download },
     { label: "구매", value: purchasedIds.length, to: "/profile/purchases", icon: Receipt },
     { label: "내 상품", value: 3, to: "/profile/sales", icon: Store },
@@ -311,14 +313,12 @@ export function ProfileMain() {
 
 export function Wishlist() {
   const nav = useNavigate();
-  const [removed, setRemoved] = useState<string[]>([]);
+  const { wishlist, toggle } = useWishlist();
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string } | null>(null);
-  const items = marketplacePresets.filter(
-    (p) => wishlistIds.includes(p.id) && !removed.includes(p.id),
-  );
+  const items = marketplacePresets.filter((p) => wishlist.includes(p.id));
   const handleUnlike = () => {
     if (!confirmTarget) return;
-    setRemoved((prev) => [...prev, confirmTarget.id]);
+    toggle(confirmTarget.id);
     toast({ title: "찜 해제됨", description: `${confirmTarget.name}을(를) 찜 목록에서 제거했습니다.` });
     setConfirmTarget(null);
   };
