@@ -15,7 +15,7 @@ import IconMaker from "./pages/IconMaker";
 import Upload from "./pages/Upload";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
-import { ProfileMain, Wishlist, Downloads, Purchases, Sales } from "./pages/Profile";
+import { ProfileMain, Wishlist, Downloads, Purchases, Sales, Following } from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +44,7 @@ const App = () => (
               <Route path="/profile/downloads" element={<Downloads />} />
               <Route path="/profile/purchases" element={<Purchases />} />
               <Route path="/profile/sales" element={<Sales />} />
+              <Route path="/profile/following" element={<Following />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
