@@ -42,7 +42,13 @@ export function ProfileMain() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-5 p-6 rounded-2xl bg-gradient-surface border border-border">
-        <div className="h-20 w-20 rounded-full bg-gradient-primary grid place-items-center text-4xl shadow-glow">{form.avatar}</div>
+        <div className="h-20 w-20 rounded-full bg-gradient-primary grid place-items-center text-4xl shadow-glow overflow-hidden">
+          {isImageAvatar(form.avatar) ? (
+            <img src={form.avatar} alt="프로필 사진" className="h-full w-full object-cover" />
+          ) : (
+            form.avatar
+          )}
+        </div>
         <div className="flex-1">
           <h2 className="text-2xl font-bold">{form.name}</h2>
           <div className="text-sm text-muted-foreground">{currentUser.username} · {currentUser.role}</div>
