@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme";
 import { SidebarModeProvider } from "@/lib/sidebar-mode";
+import { ProfileProvider } from "@/lib/profile";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Explore from "./pages/Explore";
@@ -23,6 +24,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <SidebarModeProvider>
+      <ProfileProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -47,6 +49,7 @@ const App = () => (
           </AppLayout>
         </BrowserRouter>
       </TooltipProvider>
+      </ProfileProvider>
       </SidebarModeProvider>
     </ThemeProvider>
   </QueryClientProvider>
