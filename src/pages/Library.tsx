@@ -140,7 +140,6 @@ export default function Library() {
           <div className="grid grid-cols-2 gap-3 pt-2">
             <CreateOption icon={Sparkles} title="빈 프리셋 만들기" desc="배경화면과 아이콘을 직접 업로드해서 새로 만들기" />
             <CreateOption icon={Store} title="마켓에서 불러오기" desc="마켓플레이스에서 프리셋을 다운로드" onClick={() => { setCreateOpen(false); nav("/explore"); }} />
-            <CreateOption icon={Monitor} title="현재 바탕화면으로 만들기" desc="현재 데스크톱 상태를 캡처해 프리셋으로 저장" />
           </div>
         </DialogContent>
       </Dialog>
