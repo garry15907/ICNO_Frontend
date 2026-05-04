@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { marketplacePresets, libraryPresets, wishlistIds, downloadedIds, purchasedIds, currentUser } from "@/data/mockData";
+import { useProfile, isImageAvatar } from "@/lib/profile";
 import { Button } from "@/components/ui/button";
 import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -13,18 +14,12 @@ import { toast } from "@/hooks/use-toast";
 
 export function ProfileMain() {
   const nav = useNavigate();
+  const { profile, setProfile } = useProfile();
   const [editOpen, setEditOpen] = useState(false);
   const [defaultPickerOpen, setDefaultPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [form, setForm] = useState({
-    name: currentUser.name,
-    nickname: "Yuri",
-    status: "오늘도 새벽합주 준비해볼까요?",
-    bio: "인디/모던록 좋아하는 보컬. 합주 기록 꼼꼼하게 남기는 편.",
-    avatar: currentUser.avatar,
-  });
+  const [form, setForm] = useState(profile);
   const defaultAvatars = ["🎤", "🎸", "🥁", "🎹", "🎧", "🎼", "🎺", "🎻", "🪕", "🎷"];
-  const isImageAvatar = (a: string) => a.startsWith("data:") || a.startsWith("http") || a.startsWith("/");
   const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -43,18 +38,18 @@ export function ProfileMain() {
     <div className="space-y-6">
       <div className="flex items-center gap-5 p-6 rounded-2xl bg-gradient-surface border border-border">
         <div className="h-20 w-20 rounded-full bg-gradient-primary grid place-items-center text-4xl shadow-glow overflow-hidden">
-          {isImageAvatar(form.avatar) ? (
-            <img src={form.avatar} alt="프로필 사진" className="h-full w-full object-cover" />
+          {isImageAvatar(profile.avatar) ? (
+            <img src={profile.avatar} alt="프로필 사진" className="h-full w-full object-cover" />
           ) : (
-            form.avatar
+            profile.avatar
           )}
         </div>
         <div className="flex-1">
-          <h2 className="text-2xl font-bold">{form.name}</h2>
+          <h2 className="text-2xl font-bold">{profile.name}</h2>
           <div className="text-sm text-muted-foreground">{currentUser.username} · {currentUser.role}</div>
-          {form.status && <div className="text-xs text-muted-foreground mt-1 italic">"{form.status}"</div>}
+          {profile.status && <div className="text-xs text-muted-foreground mt-1 italic">"{profile.status}"</div>}
         </div>
-        <Button variant="outline" onClick={() => setEditOpen(true)}>프로필 편집</Button>
+        <Button variant="outline" onClick={() => { setForm(profile); setEditOpen(true); }}>프로필 편집</Button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((s) => (
@@ -80,6 +75,7 @@ export function ProfileMain() {
                 size="sm"
                 className="bg-primary/20 text-primary hover:bg-primary/30 rounded-full"
                 onClick={() => {
+                  setProfile(form);
                   setEditOpen(false);
                   toast({ title: "프로필이 저장되었습니다" });
                 }}
