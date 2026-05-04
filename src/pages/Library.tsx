@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MoreHorizontal, Play, Edit, Eye, Sparkles, FolderOpen, Monitor, Store, Pin, PinOff } from "lucide-react";
+import { Plus, MoreHorizontal, Play, Edit, Eye, Sparkles, FolderOpen, Monitor, Store, Pin } from "lucide-react";
 import { libraryPresets, LibraryStatus } from "@/data/mockData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -65,11 +65,18 @@ export default function Library() {
                   {p.status}
                 </span>
               )}
-              {pinned.includes(p.id) && (
-                <span className="absolute top-3 right-3 h-6 w-6 grid place-items-center rounded-md bg-primary text-primary-foreground shadow-card">
-                  <Pin className="h-3 w-3" />
-                </span>
-              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); togglePin(p.id); }}
+                className={cn(
+                  "absolute top-3 right-3 h-7 w-7 grid place-items-center rounded-md shadow-card transition-all",
+                  pinned.includes(p.id)
+                    ? "bg-primary text-primary-foreground opacity-100"
+                    : "bg-background/80 backdrop-blur text-foreground opacity-0 group-hover:opacity-100 hover:bg-background",
+                )}
+                aria-label={pinned.includes(p.id) ? "상단 고정 해제" : "상단 고정"}
+              >
+                <Pin className={cn("h-3.5 w-3.5", pinned.includes(p.id) && "fill-current")} />
+              </button>
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4 gap-2">
                 <Button size="sm" className="h-8 bg-gradient-primary text-primary-foreground"><Play className="h-3 w-3 mr-1" />적용</Button>
                 <Button size="sm" variant="secondary" className="h-8" onClick={(e) => { e.stopPropagation(); nav(`/library/${p.id}`); }}><Edit className="h-3 w-3 mr-1" />수정</Button>
@@ -92,13 +99,6 @@ export default function Library() {
                     <DropdownMenuItem onClick={() => nav(`/library/${p.id}`)}>프리셋 수정</DropdownMenuItem>
                     <DropdownMenuItem>바로 적용</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => togglePin(p.id)}>
-                      {pinned.includes(p.id) ? (
-                        <><PinOff className="h-4 w-4 mr-2" />상단 고정 해제</>
-                      ) : (
-                        <><Pin className="h-4 w-4 mr-2" />상단 고정</>
-                      )}
-                    </DropdownMenuItem>
                     <DropdownMenuItem>초기 상태로 복원</DropdownMenuItem>
                     <DropdownMenuItem>다시 다운로드</DropdownMenuItem>
                     <DropdownMenuItem>복제</DropdownMenuItem>
