@@ -434,6 +434,12 @@ export default function LibraryDetail() {
                   toast("아이콘을 삭제했습니다.");
                 }}
               />
+            ) : isEmptyPreset ? (
+              <EmptyPresetPanel
+                onAddIcon={() => setAddIconOpen(true)}
+                onUploadWallpaper={() => toast("배경화면 업로드는 곧 지원됩니다.")}
+                hasWallpaper={hasWallpaper}
+              />
             ) : (
               <EmptyPanel
                 count={icons.length}
