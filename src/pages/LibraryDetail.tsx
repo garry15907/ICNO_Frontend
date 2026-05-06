@@ -280,6 +280,51 @@ export default function LibraryDetail() {
                 <Plus className="h-3.5 w-3.5 mr-1.5" />아이콘 추가
               </Button>
 
+              {hasWallpaper && (
+                <Popover open={wpAdjustOpen} onOpenChange={setWpAdjustOpen}>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-8">
+                      <Maximize2 className="h-3.5 w-3.5 mr-1.5" />배경 조정
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 space-y-4">
+                    <div className="space-y-1.5">
+                      <div className="text-xs font-semibold">배경화면 조정</div>
+                      <p className="text-[11px] text-muted-foreground">
+                        조정 모드에서는 캔버스를 드래그해 위치를 옮길 수 있어요.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">크기</span>
+                        <span className="font-mono">{wpScale}%</span>
+                      </div>
+                      <Slider value={[wpScale]} min={50} max={300} step={1} onValueChange={(v) => setWpScale(v[0])} />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">가로 위치</span>
+                        <span className="font-mono">{Math.round(wpPosX)}%</span>
+                      </div>
+                      <Slider value={[wpPosX]} min={0} max={100} step={1} onValueChange={(v) => setWpPosX(v[0])} />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">세로 위치</span>
+                        <span className="font-mono">{Math.round(wpPosY)}%</span>
+                      </div>
+                      <Slider value={[wpPosY]} min={0} max={100} step={1} onValueChange={(v) => setWpPosY(v[0])} />
+                    </div>
+                    <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
+                      <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={resetWallpaperTransform}>
+                        <RotateCcw className="h-3.5 w-3.5 mr-1" />초기화
+                      </Button>
+                      <Button size="sm" className="h-8 text-xs" onClick={() => setWpAdjustOpen(false)}>완료</Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="icon" variant="outline" className="h-8 w-8">
@@ -323,19 +368,22 @@ export default function LibraryDetail() {
             {/* Canvas */}
             <div
               ref={canvasRef}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerLeave={onPointerUp}
+              onPointerDown={onWallpaperPointerDown}
+              onPointerMove={(e) => { onPointerMove(e); onWallpaperPointerMove(e); }}
+              onPointerUp={(e) => { onPointerUp(); onWallpaperPointerUp(); }}
+              onPointerLeave={(e) => { onPointerUp(); onWallpaperPointerUp(); }}
               onClick={(e) => { if (e.target === e.currentTarget) setSelected(undefined); }}
               className={cn(
                 "relative w-full aspect-[16/10] rounded-2xl overflow-hidden border shadow-card bg-muted select-none",
                 editMode ? "border-primary/50 cursor-crosshair" : "border-border",
                 !hasWallpaper && "bg-gradient-to-br from-muted to-muted/40",
+                wpAdjustOpen && hasWallpaper && "cursor-move ring-2 ring-primary/60",
               )}
               style={hasWallpaper ? {
                 backgroundImage: `url(${wallpaper})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
+                backgroundSize: `${wpScale}% auto`,
+                backgroundPosition: `${wpPosX}% ${wpPosY}%`,
+                backgroundRepeat: "no-repeat",
               } : undefined}
             >
               <input
