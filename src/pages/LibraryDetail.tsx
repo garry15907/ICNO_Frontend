@@ -4,7 +4,7 @@ import {
   ArrowLeft, Play, Save, MoreHorizontal, Plus, ChevronDown, ChevronUp,
   Move, MousePointer2, Info, Image as ImageIcon, Link2,
   History, RotateCcw, Trash2, Download, FileText, Magnet, AlignJustify,
-  Package, Store, Upload as UploadIcon, X,
+  Package, Store, Upload as UploadIcon, X, Sparkles,
 } from "lucide-react";
 import { libraryPresets, IconAsset } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,9 @@ export default function LibraryDetail() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
+
+  const isEmptyPreset = icons.length === 0;
+  const hasWallpaper = !!preset.thumbnail && preset.thumbnail !== "/placeholder.svg";
 
   const dirty = useMemo(
     () => icons.some((i, idx) => {
@@ -277,13 +280,31 @@ export default function LibraryDetail() {
               className={cn(
                 "relative w-full aspect-[16/10] rounded-2xl overflow-hidden border shadow-card bg-muted select-none",
                 editMode ? "border-primary/50 cursor-crosshair" : "border-border",
+                !hasWallpaper && "bg-gradient-to-br from-muted to-muted/40",
               )}
-              style={{
+              style={hasWallpaper ? {
                 backgroundImage: `url(${preset.thumbnail})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-              }}
+              } : undefined}
             >
+              {!hasWallpaper && (
+                <button
+                  type="button"
+                  onClick={() => toast("배경화면 업로드는 곧 지원됩니다.")}
+                  className="absolute inset-6 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <ImageIcon className="h-10 w-10" />
+                  <div className="text-sm font-semibold">배경화면 업로드</div>
+                  <div className="text-xs">PNG, JPG · 권장 1920×1080</div>
+                </button>
+              )}
+              {hasWallpaper && isEmptyPreset && editMode && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 rounded-full bg-background/85 backdrop-blur px-3 py-1 text-[11px] font-medium text-foreground shadow-card border border-border">
+                  <Plus className="h-3 w-3 text-primary" />
+                  우측 상단 "아이콘 추가"로 시작하세요
+                </div>
+              )}
               {editMode && snapToGrid && (
                 <div
                   className="absolute inset-0 pointer-events-none opacity-25"
@@ -346,6 +367,11 @@ export default function LibraryDetail() {
               </div>
               <CollapsibleContent>
                 <div className="mt-2 rounded-xl border border-border bg-card divide-y divide-border">
+                  {isEmptyPreset && (
+                    <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+                      아직 아이콘이 없습니다. 상단의 "아이콘 추가" 버튼으로 추가해 보세요.
+                    </div>
+                  )}
                   {icons.map((ic) => {
                     const px = toPx(ic.position.x, ic.position.y);
                     const isMoved = ic.position.x !== ic.originPos.x || ic.position.y !== ic.originPos.y;
@@ -408,6 +434,12 @@ export default function LibraryDetail() {
                   toast("아이콘을 삭제했습니다.");
                 }}
               />
+            ) : isEmptyPreset ? (
+              <EmptyPresetPanel
+                onAddIcon={() => setAddIconOpen(true)}
+                onUploadWallpaper={() => toast("배경화면 업로드는 곧 지원됩니다.")}
+                hasWallpaper={hasWallpaper}
+              />
             ) : (
               <EmptyPanel
                 count={icons.length}
@@ -462,6 +494,43 @@ function EmptyPanel({
         <Row label="아이콘" value={`${count}개`} />
         <Row label="매핑" value={`${mapped}/${total}`} />
         <Row label="상태" value={<span className={cn("font-semibold", statusClass)}>{statusLabel}</span>} />
+      </div>
+    </div>
+  );
+}
+
+function EmptyPresetPanel({
+  onAddIcon, onUploadWallpaper, hasWallpaper,
+}: {
+  onAddIcon: () => void;
+  onUploadWallpaper: () => void;
+  hasWallpaper: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+      <div className="space-y-1.5">
+        <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center mb-2">
+          <Sparkles className="h-5 w-5 text-primary" />
+        </div>
+        <h3 className="text-base font-bold">새 프리셋을 시작하세요</h3>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          배경화면을 업로드하고 아이콘을 추가해 나만의 프리셋을 만들 수 있습니다.
+        </p>
+      </div>
+      <div className="border-t border-border pt-4 space-y-2">
+        {!hasWallpaper && (
+          <Button onClick={onUploadWallpaper} className="w-full bg-gradient-primary text-primary-foreground" size="sm">
+            <ImageIcon className="h-3.5 w-3.5 mr-1.5" />배경화면 업로드
+          </Button>
+        )}
+        <Button onClick={onAddIcon} variant={hasWallpaper ? "default" : "outline"} className="w-full" size="sm">
+          <Plus className="h-3.5 w-3.5 mr-1.5" />아이콘 추가
+        </Button>
+      </div>
+      <div className="border-t border-border pt-4 space-y-2.5 text-xs">
+        <Row label="아이콘" value="0개" />
+        <Row label="매핑" value="0/0" />
+        <Row label="상태" value={<span className="text-muted-foreground">비어 있음</span>} />
       </div>
     </div>
   );
