@@ -638,16 +638,11 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {groupIcons.map((i) => i.kind === "icon" && (
-              <div key={i.id} className="relative rounded-xl bg-card border border-border p-3 hover:shadow-glow hover:border-primary/40 transition-all group">
-                {i.uploadedId && (
-                  <button
-                    onClick={() => removeUploaded(i.uploadedId!)}
-                    className="absolute top-2 right-2 z-10 h-6 w-6 grid place-items-center rounded-md bg-background/80 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition"
-                    aria-label="삭제"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                )}
+              <button
+                key={i.id}
+                onClick={() => setOpenIconId(i.id)}
+                className="text-left relative rounded-xl bg-card border border-border p-3 hover:shadow-glow hover:border-primary/40 transition-all group"
+              >
                 <div className="aspect-square rounded-lg bg-muted/50 grid place-items-center overflow-hidden text-5xl mb-2 group-hover:scale-105 transition-transform">
                   {i.dataUrl
                     ? <img src={i.dataUrl} alt={i.name} className="max-w-full max-h-full object-contain" />
@@ -658,7 +653,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                 <span className={cn("inline-block mt-2 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border", iconStatusStyles[i.status])}>
                   {i.status}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </section>
@@ -672,7 +667,11 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {groupPacks.map((p) => p.kind === "iconpack" && (
-              <div key={p.id} className="rounded-xl bg-card border border-border p-4 hover:shadow-glow hover:border-primary/40 transition-all">
+              <button
+                key={p.id}
+                onClick={() => setOpenPackId(p.id)}
+                className="text-left rounded-xl bg-card border border-border p-4 hover:shadow-glow hover:border-primary/40 transition-all"
+              >
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {p.thumbnailEmojis.slice(0, 6).map((e, idx) => (
                     <div key={idx} className="aspect-square rounded-md bg-muted/50 grid place-items-center text-2xl">{e}</div>
@@ -687,7 +686,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                     {p.status}
                   </span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </section>
