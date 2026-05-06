@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft } from "lucide-react";
 import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus } from "@/data/mockData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -380,6 +380,41 @@ type UploadedIcon = {
 };
 
 const UPLOADED_ICONS_KEY = "library-uploaded-icons";
+const ICON_OVERRIDES_KEY = "library-icon-overrides";
+const PACK_OVERRIDES_KEY = "library-pack-overrides";
+const DELETED_KEY = "library-icon-deleted";
+
+type IconOverride = { name?: string; dataUrl?: string; resolution?: string; fileType?: string };
+type PackIconState = { id: string; label: string; emoji?: string; dataUrl?: string; fileName: string; fileType: string; resolution: string };
+type PackOverride = { name?: string; icons?: PackIconState[]; thumbnailIds?: string[] };
+
+function loadJSON<T>(key: string, fallback: T): T {
+  try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; }
+}
+function saveJSON(key: string, val: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+async function fileToDataUrl(file: File): Promise<{ dataUrl: string; resolution: string; fileType: "PNG" | "SVG" | "ICO" }> {
+  const ext = file.name.split(".").pop()?.toUpperCase();
+  const fileType: "PNG" | "SVG" | "ICO" = ext === "SVG" ? "SVG" : ext === "ICO" ? "ICO" : "PNG";
+  const dataUrl: string = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  let resolution = "—";
+  if (fileType !== "SVG") {
+    resolution = await new Promise<string>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(`${img.naturalWidth} × ${img.naturalHeight}`);
+      img.onerror = () => resolve("—");
+      img.src = dataUrl;
+    });
+  }
+  return { dataUrl, resolution, fileType };
+}
 
 function loadUploadedIcons(): UploadedIcon[] {
   try {
@@ -388,6 +423,16 @@ function loadUploadedIcons(): UploadedIcon[] {
   } catch {
     return [];
   }
+}
+
+function getPackIconStates(packId: string, overrides: Record<string, PackOverride>): PackIconState[] {
+  const ov = overrides[packId];
+  if (ov?.icons) return ov.icons;
+  const pack = libraryIconPacks.find((p) => p.id === packId);
+  if (!pack) return [];
+  return pack.icons.map((c) => ({
+    id: c.id, label: c.label, emoji: c.emoji, fileName: c.fileName, fileType: c.fileType, resolution: c.resolution,
+  }));
 }
 
 function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f: IconFilter) => void }) {
@@ -409,6 +454,34 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
 
   const [uploaded, setUploaded] = useState<UploadedIcon[]>(() => loadUploadedIcons());
   const fileRef = useRef<HTMLInputElement>(null);
+  const [iconOverrides, setIconOverrides] = useState<Record<string, IconOverride>>(() => loadJSON(ICON_OVERRIDES_KEY, {}));
+  const [packOverrides, setPackOverrides] = useState<Record<string, PackOverride>>(() => loadJSON(PACK_OVERRIDES_KEY, {}));
+  const [deletedIds, setDeletedIds] = useState<string[]>(() => loadJSON(DELETED_KEY, []));
+  const [openIconId, setOpenIconId] = useState<string | null>(null);
+  const [openPackId, setOpenPackId] = useState<string | null>(null);
+  const [openPackChildId, setOpenPackChildId] = useState<string | null>(null);
+
+  const updateIconOverride = (id: string, patch: IconOverride) => {
+    setIconOverrides((prev) => {
+      const next = { ...prev, [id]: { ...prev[id], ...patch } };
+      saveJSON(ICON_OVERRIDES_KEY, next);
+      return next;
+    });
+  };
+  const updatePackOverride = (id: string, patch: PackOverride) => {
+    setPackOverrides((prev) => {
+      const next = { ...prev, [id]: { ...prev[id], ...patch } };
+      saveJSON(PACK_OVERRIDES_KEY, next);
+      return next;
+    });
+  };
+  const deleteItem = (id: string) => {
+    setDeletedIds((prev) => {
+      const next = [...prev, id];
+      saveJSON(DELETED_KEY, next);
+      return next;
+    });
+  };
 
   const persist = (next: UploadedIcon[]) => {
     setUploaded(next);
@@ -420,27 +493,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
     const arr = Array.from(files);
     const results: UploadedIcon[] = [];
     for (const file of arr) {
-      const ext = file.name.split(".").pop()?.toUpperCase();
-      const fileType: UploadedIcon["fileType"] =
-        ext === "SVG" ? "SVG" : ext === "ICO" ? "ICO" : "PNG";
-      const dataUrl: string = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      // 해상도 측정
-      let resolution = "—";
-      if (fileType !== "SVG") {
-        try {
-          resolution = await new Promise<string>((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve(`${img.naturalWidth} × ${img.naturalHeight}`);
-            img.onerror = () => resolve("—");
-            img.src = dataUrl;
-          });
-        } catch {}
-      }
+      const { dataUrl, resolution, fileType } = await fileToDataUrl(file);
       results.push({
         id: `ui-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         name: file.name.replace(/\.[^.]+$/, ""),
@@ -500,6 +553,35 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
 
   let merged: UnifiedItem[] = [...uploadedAsItems, ...iconItems, ...packItems];
 
+  // 삭제 + 오버라이드 적용
+  merged = merged
+    .filter((it) => !deletedIds.includes(it.id))
+    .map((it) => {
+      if (it.kind === "icon") {
+        const ov = iconOverrides[it.id];
+        if (!ov) return it;
+        return {
+          ...it,
+          name: ov.name ?? it.name,
+          dataUrl: ov.dataUrl ?? it.dataUrl,
+          resolution: ov.resolution ?? it.resolution,
+          fileType: (ov.fileType as any) ?? it.fileType,
+        };
+      }
+      const ov = packOverrides[it.id];
+      if (!ov) return it;
+      const baseIcons = getPackIconStates(it.id, packOverrides);
+      const thumbs = (ov.thumbnailIds && ov.thumbnailIds.length > 0
+        ? ov.thumbnailIds.map((tid) => baseIcons.find((b) => b.id === tid)).filter(Boolean) as PackIconState[]
+        : baseIcons.slice(0, 6));
+      return {
+        ...it,
+        name: ov.name ?? it.name,
+        iconCount: baseIcons.length,
+        thumbnailEmojis: thumbs.map((t) => t.emoji ?? "🖼️"),
+      };
+    });
+
   // 필터 적용
   merged = merged.filter((it) => {
     if (filter === "icon") return it.kind === "icon";
@@ -556,16 +638,11 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {groupIcons.map((i) => i.kind === "icon" && (
-              <div key={i.id} className="relative rounded-xl bg-card border border-border p-3 hover:shadow-glow hover:border-primary/40 transition-all group">
-                {i.uploadedId && (
-                  <button
-                    onClick={() => removeUploaded(i.uploadedId!)}
-                    className="absolute top-2 right-2 z-10 h-6 w-6 grid place-items-center rounded-md bg-background/80 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition"
-                    aria-label="삭제"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                )}
+              <button
+                key={i.id}
+                onClick={() => setOpenIconId(i.id)}
+                className="text-left relative rounded-xl bg-card border border-border p-3 hover:shadow-glow hover:border-primary/40 transition-all group"
+              >
                 <div className="aspect-square rounded-lg bg-muted/50 grid place-items-center overflow-hidden text-5xl mb-2 group-hover:scale-105 transition-transform">
                   {i.dataUrl
                     ? <img src={i.dataUrl} alt={i.name} className="max-w-full max-h-full object-contain" />
@@ -576,7 +653,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                 <span className={cn("inline-block mt-2 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border", iconStatusStyles[i.status])}>
                   {i.status}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </section>
@@ -590,7 +667,11 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {groupPacks.map((p) => p.kind === "iconpack" && (
-              <div key={p.id} className="rounded-xl bg-card border border-border p-4 hover:shadow-glow hover:border-primary/40 transition-all">
+              <button
+                key={p.id}
+                onClick={() => setOpenPackId(p.id)}
+                className="text-left rounded-xl bg-card border border-border p-4 hover:shadow-glow hover:border-primary/40 transition-all"
+              >
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {p.thumbnailEmojis.slice(0, 6).map((e, idx) => (
                     <div key={idx} className="aspect-square rounded-md bg-muted/50 grid place-items-center text-2xl">{e}</div>
@@ -605,7 +686,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                     {p.status}
                   </span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </section>
@@ -616,6 +697,323 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           조건에 맞는 아이콘 자산이 없습니다.
         </div>
       )}
+
+      {/* 단품 아이콘 상세 모달 */}
+      <IconDetailModal
+        iconId={openIconId}
+        onClose={() => setOpenIconId(null)}
+        merged={merged}
+        onSave={(id, patch) => {
+          // 업로드한 아이콘은 uploaded에 기록, 기타는 override에 기록
+          const target = merged.find((m) => m.kind === "icon" && m.id === id);
+          if (target && (target as any).uploadedId) {
+            persist(uploaded.map((u) => u.id === id ? {
+              ...u,
+              name: patch.name ?? u.name,
+              dataUrl: patch.dataUrl ?? u.dataUrl,
+              resolution: patch.resolution ?? u.resolution,
+              fileType: (patch.fileType as any) ?? u.fileType,
+            } : u));
+          } else {
+            updateIconOverride(id, patch);
+          }
+          toast({ title: "저장되었습니다" });
+        }}
+        onDelete={(id) => {
+          const target = merged.find((m) => m.kind === "icon" && m.id === id);
+          if (target && (target as any).uploadedId) removeUploaded(id);
+          else deleteItem(id);
+          setOpenIconId(null);
+          toast({ title: "삭제되었습니다" });
+        }}
+      />
+
+      {/* 아이콘 팩 상세 모달 */}
+      <PackDetailModal
+        packId={openPackId}
+        onClose={() => { setOpenPackId(null); setOpenPackChildId(null); }}
+        packOverrides={packOverrides}
+        openChildId={openPackChildId}
+        setOpenChildId={setOpenPackChildId}
+        onSavePack={(id, patch) => { updatePackOverride(id, patch); toast({ title: "그룹이 저장되었습니다" }); }}
+        onDeletePack={(id) => { deleteItem(id); setOpenPackId(null); toast({ title: "그룹이 삭제되었습니다" }); }}
+      />
+
     </div>
+  );
+}
+
+// ============= 상세 모달 =============
+
+function IconDetailModal({
+  iconId, merged, onClose, onSave, onDelete,
+}: {
+  iconId: string | null;
+  merged: any[];
+  onClose: () => void;
+  onSave: (id: string, patch: IconOverride) => void;
+  onDelete: (id: string) => void;
+}) {
+  const item = iconId ? merged.find((m) => m.kind === "icon" && m.id === iconId) : null;
+  const [name, setName] = useState("");
+  const [dataUrl, setDataUrl] = useState<string | undefined>();
+  const [emoji, setEmoji] = useState<string | undefined>();
+  const [resolution, setResolution] = useState("");
+  const [fileType, setFileType] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (item) {
+      setName(item.name);
+      setDataUrl(item.dataUrl);
+      setEmoji(item.emoji);
+      setResolution(item.resolution);
+      setFileType(item.fileType);
+    }
+  }, [iconId]);
+
+  if (!item) return null;
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    const r = await fileToDataUrl(file);
+    setDataUrl(r.dataUrl);
+    setResolution(r.resolution);
+    setFileType(r.fileType);
+    setEmoji(undefined);
+  };
+
+  return (
+    <Dialog open={!!iconId} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>아이콘 정보</DialogTitle>
+          <DialogDescription>아이콘 이미지와 이름을 수정할 수 있습니다.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="aspect-square w-40 mx-auto rounded-xl bg-muted/50 grid place-items-center overflow-hidden text-7xl border border-border">
+            {dataUrl ? <img src={dataUrl} alt={name} className="max-w-full max-h-full object-contain" /> : <span>{emoji}</span>}
+          </div>
+          <div className="flex justify-center">
+            <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} className="gap-1.5">
+              <Replace className="h-3.5 w-3.5" /> 이미지 파일 변경
+            </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/png,image/svg+xml,image/x-icon,.ico,.png,.svg"
+              className="hidden"
+              onChange={(e) => { handleFile(e.target.files?.[0]); if (fileRef.current) fileRef.current.value = ""; }}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">이름</label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+            <div><div className="font-medium text-foreground mb-0.5">해상도</div>{resolution || "—"}</div>
+            <div><div className="font-medium text-foreground mb-0.5">파일 형식</div>{fileType || "—"}</div>
+            <div className="col-span-2"><div className="font-medium text-foreground mb-0.5">상태</div>{item.status}</div>
+          </div>
+        </div>
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => onDelete(item.id)}>
+            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> 삭제
+          </Button>
+          <div className="flex-1" />
+          <Button variant="outline" onClick={onClose}>취소</Button>
+          <Button onClick={() => { onSave(item.id, { name, dataUrl, resolution, fileType }); onClose(); }}>
+            <Check className="h-3.5 w-3.5 mr-1.5" /> 저장
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PackDetailModal({
+  packId, onClose, packOverrides, openChildId, setOpenChildId, onSavePack, onDeletePack,
+}: {
+  packId: string | null;
+  onClose: () => void;
+  packOverrides: Record<string, PackOverride>;
+  openChildId: string | null;
+  setOpenChildId: (id: string | null) => void;
+  onSavePack: (id: string, patch: PackOverride) => void;
+  onDeletePack: (id: string) => void;
+}) {
+  const basePack = packId ? libraryIconPacks.find((p) => p.id === packId) : null;
+  const [name, setName] = useState("");
+  const [icons, setIcons] = useState<PackIconState[]>([]);
+  const [thumbIds, setThumbIds] = useState<string[]>([]);
+  const addRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (basePack && packId) {
+      const ov = packOverrides[packId] ?? {};
+      setName(ov.name ?? basePack.name);
+      setIcons(getPackIconStates(packId, packOverrides));
+      setThumbIds(ov.thumbnailIds ?? getPackIconStates(packId, packOverrides).slice(0, 6).map((i) => i.id));
+      setOpenChildId(null);
+    }
+  }, [packId]);
+
+  if (!basePack || !packId) return null;
+
+  const childIcon = openChildId ? icons.find((i) => i.id === openChildId) : null;
+
+  const toggleThumb = (id: string) => {
+    setThumbIds((prev) => prev.includes(id)
+      ? prev.filter((x) => x !== id)
+      : prev.length >= 6 ? [...prev.slice(1), id] : [...prev, id]);
+  };
+
+  const handleAddIcons = async (files: FileList | null) => {
+    if (!files) return;
+    const next: PackIconState[] = [];
+    for (const f of Array.from(files)) {
+      const r = await fileToDataUrl(f);
+      next.push({
+        id: `pi-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        label: f.name.replace(/\.[^.]+$/, ""),
+        dataUrl: r.dataUrl,
+        fileName: f.name,
+        fileType: r.fileType,
+        resolution: r.resolution,
+      });
+    }
+    setIcons((prev) => [...prev, ...next]);
+  };
+
+  const removeChild = (id: string) => {
+    setIcons((prev) => prev.filter((i) => i.id !== id));
+    setThumbIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const updateChild = (id: string, patch: Partial<PackIconState>) => {
+    setIcons((prev) => prev.map((i) => i.id === id ? { ...i, ...patch } : i));
+  };
+
+  const handleReplaceChild = async (file: File | undefined) => {
+    if (!file || !openChildId) return;
+    const r = await fileToDataUrl(file);
+    updateChild(openChildId, { dataUrl: r.dataUrl, fileType: r.fileType, resolution: r.resolution, emoji: undefined });
+  };
+
+  return (
+    <Dialog open={!!packId} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        {!childIcon ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>아이콘 그룹 편집</DialogTitle>
+              <DialogDescription>그룹의 이름, 아이콘 구성, 그리고 썸네일을 관리할 수 있습니다.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">그룹 이름</label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-medium text-muted-foreground">
+                    아이콘 ({icons.length}) · 썸네일 클릭으로 표시 항목 선택 (최대 6개)
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => addRef.current?.click()} className="gap-1.5">
+                    <Plus className="h-3.5 w-3.5" /> 아이콘 추가
+                  </Button>
+                  <input ref={addRef} type="file" multiple accept="image/png,image/svg+xml,image/x-icon,.ico,.png,.svg" className="hidden"
+                    onChange={(e) => { handleAddIcons(e.target.files); if (addRef.current) addRef.current.value = ""; }} />
+                </div>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-[320px] overflow-auto p-1">
+                  {icons.map((c) => {
+                    const isThumb = thumbIds.includes(c.id);
+                    return (
+                      <div key={c.id} className="relative group">
+                        <button
+                          type="button"
+                          onClick={() => setOpenChildId(c.id)}
+                          className={cn(
+                            "w-full aspect-square rounded-lg bg-muted/50 grid place-items-center overflow-hidden text-3xl border-2 transition-all",
+                            isThumb ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/40",
+                          )}
+                          title={c.label}
+                        >
+                          {c.dataUrl ? <img src={c.dataUrl} alt={c.label} className="max-w-full max-h-full object-contain" /> : <span>{c.emoji}</span>}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); toggleThumb(c.id); }}
+                          className={cn(
+                            "absolute top-1 left-1 h-5 w-5 grid place-items-center rounded text-[10px] font-bold transition",
+                            isThumb ? "bg-primary text-primary-foreground" : "bg-background/80 text-muted-foreground opacity-0 group-hover:opacity-100",
+                          )}
+                          title={isThumb ? "썸네일 해제" : "썸네일로 지정"}
+                        >
+                          {isThumb ? <Check className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                        </button>
+                        <div className="text-[10px] truncate text-center mt-1 text-muted-foreground">{c.label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => onDeletePack(packId)}>
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" /> 그룹 삭제
+              </Button>
+              <div className="flex-1" />
+              <Button variant="outline" onClick={onClose}>취소</Button>
+              <Button onClick={() => { onSavePack(packId, { name, icons, thumbnailIds: thumbIds }); onClose(); }}>
+                <Check className="h-3.5 w-3.5 mr-1.5" /> 저장
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <button onClick={() => setOpenChildId(null)} className="h-7 w-7 grid place-items-center rounded-md hover:bg-muted">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                아이콘 정보
+              </DialogTitle>
+              <DialogDescription>그룹 내 아이콘을 편집합니다.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="aspect-square w-40 mx-auto rounded-xl bg-muted/50 grid place-items-center overflow-hidden text-7xl border border-border">
+                {childIcon.dataUrl
+                  ? <img src={childIcon.dataUrl} alt={childIcon.label} className="max-w-full max-h-full object-contain" />
+                  : <span>{childIcon.emoji}</span>}
+              </div>
+              <div className="flex justify-center">
+                <Button size="sm" variant="outline" onClick={() => replaceRef.current?.click()} className="gap-1.5">
+                  <Replace className="h-3.5 w-3.5" /> 이미지 파일 변경
+                </Button>
+                <input ref={replaceRef} type="file" accept="image/png,image/svg+xml,image/x-icon,.ico,.png,.svg" className="hidden"
+                  onChange={(e) => { handleReplaceChild(e.target.files?.[0]); if (replaceRef.current) replaceRef.current.value = ""; }} />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">이름</label>
+                <Input value={childIcon.label} onChange={(e) => updateChild(childIcon.id, { label: e.target.value })} className="mt-1.5" />
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                <div><div className="font-medium text-foreground mb-0.5">해상도</div>{childIcon.resolution || "—"}</div>
+                <div><div className="font-medium text-foreground mb-0.5">파일 형식</div>{childIcon.fileType || "—"}</div>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => { removeChild(childIcon.id); setOpenChildId(null); }}>
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" /> 삭제
+              </Button>
+              <div className="flex-1" />
+              <Button onClick={() => setOpenChildId(null)}>완료</Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
