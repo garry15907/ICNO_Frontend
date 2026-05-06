@@ -380,6 +380,41 @@ type UploadedIcon = {
 };
 
 const UPLOADED_ICONS_KEY = "library-uploaded-icons";
+const ICON_OVERRIDES_KEY = "library-icon-overrides";
+const PACK_OVERRIDES_KEY = "library-pack-overrides";
+const DELETED_KEY = "library-icon-deleted";
+
+type IconOverride = { name?: string; dataUrl?: string; resolution?: string; fileType?: string };
+type PackIconState = { id: string; label: string; emoji?: string; dataUrl?: string; fileName: string; fileType: string; resolution: string };
+type PackOverride = { name?: string; icons?: PackIconState[]; thumbnailIds?: string[] };
+
+function loadJSON<T>(key: string, fallback: T): T {
+  try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; }
+}
+function saveJSON(key: string, val: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+async function fileToDataUrl(file: File): Promise<{ dataUrl: string; resolution: string; fileType: "PNG" | "SVG" | "ICO" }> {
+  const ext = file.name.split(".").pop()?.toUpperCase();
+  const fileType: "PNG" | "SVG" | "ICO" = ext === "SVG" ? "SVG" : ext === "ICO" ? "ICO" : "PNG";
+  const dataUrl: string = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  let resolution = "—";
+  if (fileType !== "SVG") {
+    resolution = await new Promise<string>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(`${img.naturalWidth} × ${img.naturalHeight}`);
+      img.onerror = () => resolve("—");
+      img.src = dataUrl;
+    });
+  }
+  return { dataUrl, resolution, fileType };
+}
 
 function loadUploadedIcons(): UploadedIcon[] {
   try {
