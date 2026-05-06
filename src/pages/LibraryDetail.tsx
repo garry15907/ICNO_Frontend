@@ -4,7 +4,7 @@ import {
   ArrowLeft, Play, Save, MoreHorizontal, Plus, ChevronDown, ChevronUp,
   Move, MousePointer2, Info, Image as ImageIcon, Link2,
   History, RotateCcw, Trash2, Download, FileText, Magnet, AlignJustify,
-  Package, Store, Upload as UploadIcon, X,
+  Package, Store, Upload as UploadIcon, X, Sparkles,
 } from "lucide-react";
 import { libraryPresets, IconAsset } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
