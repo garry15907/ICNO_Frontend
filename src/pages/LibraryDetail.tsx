@@ -4,7 +4,7 @@ import {
   ArrowLeft, Play, Save, MoreHorizontal, Plus, ChevronDown, ChevronUp,
   Move, MousePointer2, Info, Image as ImageIcon, Link2,
   History, RotateCcw, Trash2, Download, FileText, Magnet, AlignJustify,
-  Package, Store, Upload as UploadIcon, X, Sparkles,
+  Package, Store, Upload as UploadIcon, X, Sparkles, Maximize2,
 } from "lucide-react";
 import { libraryPresets, IconAsset } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { IconEditModal } from "@/components/presets/IconEditModal";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -62,6 +64,30 @@ export default function LibraryDetail() {
   const [wallpaper, setWallpaper] = useState<string | undefined>(
     preset.thumbnail && preset.thumbnail !== "/placeholder.svg" ? preset.thumbnail : undefined,
   );
+  const [wpScale, setWpScale] = useState(100);
+  const [wpPosX, setWpPosX] = useState(50);
+  const [wpPosY, setWpPosY] = useState(50);
+  const [wpAdjustOpen, setWpAdjustOpen] = useState(false);
+  const wpDragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
+  const resetWallpaperTransform = () => { setWpScale(100); setWpPosX(50); setWpPosY(50); };
+  const onWallpaperPointerDown = (e: React.PointerEvent) => {
+    if (!wpAdjustOpen || !hasWallpaper) return;
+    if ((e.target as HTMLElement).closest("[data-icon-node]")) return;
+    e.preventDefault();
+    wpDragRef.current = { startX: e.clientX, startY: e.clientY, baseX: wpPosX, baseY: wpPosY };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onWallpaperPointerMove = (e: React.PointerEvent) => {
+    if (!wpDragRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const dx = ((e.clientX - wpDragRef.current.startX) / rect.width) * 100;
+    const dy = ((e.clientY - wpDragRef.current.startY) / rect.height) * 100;
+    setWpPosX(Math.max(0, Math.min(100, wpDragRef.current.baseX - dx)));
+    setWpPosY(Math.max(0, Math.min(100, wpDragRef.current.baseY - dy)));
+  };
+  const onWallpaperPointerUp = () => { wpDragRef.current = null; };
 
   const isEmptyPreset = icons.length === 0;
   const hasWallpaper = !!wallpaper;
@@ -80,6 +106,7 @@ export default function LibraryDetail() {
     const reader = new FileReader();
     reader.onload = () => {
       setWallpaper(reader.result as string);
+      resetWallpaperTransform();
       toast.success(`배경화면이 변경되었습니다 · ${file.name}`);
     };
     reader.readAsDataURL(file);
