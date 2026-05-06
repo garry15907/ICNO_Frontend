@@ -894,3 +894,21 @@ function AddIconDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
     </Dialog>
   );
 }
+
+function SliderRow({
+  label, unit, value, min, max, step, onChange, compact,
+}: {
+  label: string; unit: string; value: number;
+  min: number; max: number; step: number;
+  onChange: (v: number) => void; compact?: boolean;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-mono text-foreground">{Number.isInteger(step) ? Math.round(value) : value.toFixed(1)}{unit}</span>
+      </div>
+      <Slider value={[value]} min={min} max={max} step={step} onValueChange={(v) => onChange(v[0])} className={compact ? "" : ""} />
+    </div>
+  );
+}
