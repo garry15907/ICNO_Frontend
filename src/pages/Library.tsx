@@ -444,6 +444,34 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
 
   const [uploaded, setUploaded] = useState<UploadedIcon[]>(() => loadUploadedIcons());
   const fileRef = useRef<HTMLInputElement>(null);
+  const [iconOverrides, setIconOverrides] = useState<Record<string, IconOverride>>(() => loadJSON(ICON_OVERRIDES_KEY, {}));
+  const [packOverrides, setPackOverrides] = useState<Record<string, PackOverride>>(() => loadJSON(PACK_OVERRIDES_KEY, {}));
+  const [deletedIds, setDeletedIds] = useState<string[]>(() => loadJSON(DELETED_KEY, []));
+  const [openIconId, setOpenIconId] = useState<string | null>(null);
+  const [openPackId, setOpenPackId] = useState<string | null>(null);
+  const [openPackChildId, setOpenPackChildId] = useState<string | null>(null);
+
+  const updateIconOverride = (id: string, patch: IconOverride) => {
+    setIconOverrides((prev) => {
+      const next = { ...prev, [id]: { ...prev[id], ...patch } };
+      saveJSON(ICON_OVERRIDES_KEY, next);
+      return next;
+    });
+  };
+  const updatePackOverride = (id: string, patch: PackOverride) => {
+    setPackOverrides((prev) => {
+      const next = { ...prev, [id]: { ...prev[id], ...patch } };
+      saveJSON(PACK_OVERRIDES_KEY, next);
+      return next;
+    });
+  };
+  const deleteItem = (id: string) => {
+    setDeletedIds((prev) => {
+      const next = [...prev, id];
+      saveJSON(DELETED_KEY, next);
+      return next;
+    });
+  };
 
   const persist = (next: UploadedIcon[]) => {
     setUploaded(next);
@@ -455,27 +483,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
     const arr = Array.from(files);
     const results: UploadedIcon[] = [];
     for (const file of arr) {
-      const ext = file.name.split(".").pop()?.toUpperCase();
-      const fileType: UploadedIcon["fileType"] =
-        ext === "SVG" ? "SVG" : ext === "ICO" ? "ICO" : "PNG";
-      const dataUrl: string = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      // 해상도 측정
-      let resolution = "—";
-      if (fileType !== "SVG") {
-        try {
-          resolution = await new Promise<string>((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve(`${img.naturalWidth} × ${img.naturalHeight}`);
-            img.onerror = () => resolve("—");
-            img.src = dataUrl;
-          });
-        } catch {}
-      }
+      const { dataUrl, resolution, fileType } = await fileToDataUrl(file);
       results.push({
         id: `ui-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         name: file.name.replace(/\.[^.]+$/, ""),
