@@ -106,17 +106,23 @@ export default function LibraryDetail() {
   };
   const onWallpaperPointerUp = () => { wpDragRef.current = null; };
 
-  const onWallpaperWheel = (e: React.WheelEvent) => {
-    if (!wpAdjustOpen || !hasWallpaper) return;
-    e.preventDefault();
-    const delta = -e.deltaY;
-    if (e.shiftKey) {
-      setWpRotate((r) => Math.max(-180, Math.min(180, r + delta * 0.1)));
-    } else {
-      const factor = delta > 0 ? 1.05 : 1 / 1.05;
-      setWpScale((s) => Math.max(25, Math.min(500, +(s * factor).toFixed(1))));
-    }
-  };
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (!hasWallpaper) return;
+      e.preventDefault();
+      const delta = -e.deltaY;
+      if (e.shiftKey) {
+        setWpRotate((r) => Math.max(-180, Math.min(180, r + delta * 0.1)));
+      } else {
+        const factor = delta > 0 ? 1.05 : 1 / 1.05;
+        setWpScale((s) => Math.max(25, Math.min(500, +(s * factor).toFixed(1))));
+      }
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [wallpaper]);
 
   // Arrow-key nudging while adjust mode is active
   useEffect(() => {
@@ -459,7 +465,6 @@ export default function LibraryDetail() {
               onPointerMove={(e) => { onPointerMove(e); onWallpaperPointerMove(e); }}
               onPointerUp={(e) => { onPointerUp(); onWallpaperPointerUp(); }}
               onPointerLeave={(e) => { onPointerUp(); onWallpaperPointerUp(); }}
-              onWheel={onWallpaperWheel}
               onClick={(e) => { if (e.target === e.currentTarget) setSelected(undefined); }}
               className={cn(
                 "relative w-full aspect-[16/10] rounded-2xl overflow-hidden border shadow-card bg-muted select-none",
