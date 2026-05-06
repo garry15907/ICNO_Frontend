@@ -114,7 +114,9 @@ export default function LibraryDetail() {
   };
 
   const onWallpaperPointerDown = (e: React.PointerEvent) => {
-    if (!wpAdjustOpen || !hasWallpaper) return;
+    if (!hasWallpaper) return;
+    // Allow drag in adjust mode, OR during wallpaper-setup stage (no icons yet)
+    if (!wpAdjustOpen && !isEmptyPreset) return;
     if ((e.target as HTMLElement).closest("[data-icon-node]")) return;
     e.preventDefault();
     wpDragRef.current = { startX: e.clientX, startY: e.clientY, baseX: wpOffsetX, baseY: wpOffsetY };
@@ -256,10 +258,15 @@ export default function LibraryDetail() {
       setLastDraftAt(null);
       setSavedIcons(icons);
       setSaveState("saved");
+      if (wallpaper) preset.thumbnail = wallpaper;
       toast.success("프리셋이 저장되었습니다.");
     } catch {
       toast.error("저장에 실패했습니다.");
     }
+  };
+  const saveDraftNowMutating = () => {
+    saveDraftNow();
+    if (wallpaper) preset.thumbnail = wallpaper;
   };
   const formatTime = (ts: number | null) => {
     if (!ts) return null;

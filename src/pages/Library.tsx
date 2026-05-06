@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown } from "lucide-react";
 import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus } from "@/data/mockData";
@@ -32,6 +32,35 @@ export default function Library() {
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [presets, setPresets] = useState(libraryPresets);
+
+  // Pull saved/draft wallpaper thumbnails from localStorage so newly-edited
+  // presets show their actual background in the library cards.
+  useEffect(() => {
+    const refresh = () => {
+      setPresets((prev) =>
+        prev.map((p) => {
+          try {
+            const raw =
+              localStorage.getItem(`preset-saved:${p.id}`) ??
+              localStorage.getItem(`preset-draft:${p.id}`);
+            if (!raw) return p;
+            const data = JSON.parse(raw);
+            if (data?.wallpaper && data.wallpaper !== p.thumbnail) {
+              return { ...p, thumbnail: data.wallpaper };
+            }
+          } catch {}
+          return p;
+        }),
+      );
+    };
+    refresh();
+    window.addEventListener("focus", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
 
   const togglePin = (id: string) =>
     setPinned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
