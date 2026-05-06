@@ -478,7 +478,7 @@ export default function LibraryDetail() {
                   src={wallpaper}
                   alt="배경화면"
                   draggable={false}
-                  className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                  className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
                   style={{
                     transform: wpTransform,
                     transformOrigin: "center center",
