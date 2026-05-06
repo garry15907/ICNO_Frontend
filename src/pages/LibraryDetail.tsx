@@ -379,13 +379,20 @@ export default function LibraryDetail() {
                 !hasWallpaper && "bg-gradient-to-br from-muted to-muted/40",
                 wpAdjustOpen && hasWallpaper && "cursor-move ring-2 ring-primary/60",
               )}
-              style={hasWallpaper ? {
-                backgroundImage: `url(${wallpaper})`,
-                backgroundSize: `${wpScale}% auto`,
-                backgroundPosition: `${wpPosX}% ${wpPosY}%`,
-                backgroundRepeat: "no-repeat",
-              } : undefined}
             >
+              {hasWallpaper && (
+                <img
+                  src={wallpaper}
+                  alt="배경화면"
+                  draggable={false}
+                  className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                  style={{
+                    transform: `scale(${wpScale / 100})`,
+                    transformOrigin: `${wpPosX}% ${wpPosY}%`,
+                    objectPosition: `${wpPosX}% ${wpPosY}%`,
+                  }}
+                />
+              )}
               <input
                 ref={wallpaperInputRef}
                 type="file"
