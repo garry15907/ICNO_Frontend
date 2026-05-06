@@ -406,6 +406,12 @@ export default function LibraryDetail() {
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
               <span>로컬 프리셋 · 매핑 {preset.mappedCount}/{preset.iconCount} ·</span>
               <span className={cn("font-semibold", statusClass)}>{statusLabel}</span>
+              {lastDraftAt && (
+                <span className="text-muted-foreground">· 임시저장 {formatTime(lastDraftAt)}</span>
+              )}
+              {lastSavedAt && (
+                <span className="text-muted-foreground">· 저장 {formatTime(lastSavedAt)}</span>
+              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button className="text-muted-foreground hover:text-foreground transition">
@@ -418,6 +424,12 @@ export default function LibraryDetail() {
               </Tooltip>
             </p>
           </div>
+          <Button size="lg" variant="outline" onClick={saveDraftNow}>
+            <FileText className="h-4 w-4 mr-2" />임시 저장
+          </Button>
+          <Button size="lg" variant="default" onClick={savePresetNow}>
+            <Save className="h-4 w-4 mr-2" />저장
+          </Button>
           <Button size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow">
             <Play className="h-4 w-4 mr-2" />바탕화면 적용
           </Button>
