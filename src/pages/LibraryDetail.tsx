@@ -499,6 +499,43 @@ function EmptyPanel({
   );
 }
 
+function EmptyPresetPanel({
+  onAddIcon, onUploadWallpaper, hasWallpaper,
+}: {
+  onAddIcon: () => void;
+  onUploadWallpaper: () => void;
+  hasWallpaper: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+      <div className="space-y-1.5">
+        <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center mb-2">
+          <Sparkles className="h-5 w-5 text-primary" />
+        </div>
+        <h3 className="text-base font-bold">새 프리셋을 시작하세요</h3>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          배경화면을 업로드하고 아이콘을 추가해 나만의 프리셋을 만들 수 있습니다.
+        </p>
+      </div>
+      <div className="border-t border-border pt-4 space-y-2">
+        {!hasWallpaper && (
+          <Button onClick={onUploadWallpaper} className="w-full bg-gradient-primary text-primary-foreground" size="sm">
+            <ImageIcon className="h-3.5 w-3.5 mr-1.5" />배경화면 업로드
+          </Button>
+        )}
+        <Button onClick={onAddIcon} variant={hasWallpaper ? "default" : "outline"} className="w-full" size="sm">
+          <Plus className="h-3.5 w-3.5 mr-1.5" />아이콘 추가
+        </Button>
+      </div>
+      <div className="border-t border-border pt-4 space-y-2.5 text-xs">
+        <Row label="아이콘" value="0개" />
+        <Row label="매핑" value="0/0" />
+        <Row label="상태" value={<span className="text-muted-foreground">비어 있음</span>} />
+      </div>
+    </div>
+  );
+}
+
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between">
