@@ -107,7 +107,7 @@ export default function LibraryDetail() {
   const onWallpaperPointerUp = () => { wpDragRef.current = null; };
 
   const onWallpaperWheel = (e: React.WheelEvent) => {
-    if (!wpAdjustOpen || !hasWallpaper) return;
+    if (!hasWallpaper) return;
     e.preventDefault();
     const delta = -e.deltaY;
     if (e.shiftKey) {
