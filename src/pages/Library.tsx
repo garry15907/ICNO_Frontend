@@ -546,49 +546,30 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         />
       </div>
 
-      {showUploaded && uploaded.length > 0 && (
-        <section className="space-y-3">
-          <h3 className="text-sm font-semibold flex items-center gap-1.5">
-            <Upload className="h-3.5 w-3.5 text-primary" /> 내가 업로드한 아이콘
-            <span className="text-muted-foreground font-normal">({uploaded.length})</span>
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {uploaded.map((i) => (
-              <div key={i.id} className="relative rounded-xl bg-card border border-border p-3 hover:shadow-glow hover:border-primary/40 transition-all group">
-                <button
-                  onClick={() => removeUploaded(i.id)}
-                  className="absolute top-2 right-2 z-10 h-6 w-6 grid place-items-center rounded-md bg-background/80 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition"
-                  aria-label="삭제"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-                <div className="aspect-square rounded-lg bg-muted/50 grid place-items-center overflow-hidden mb-2 group-hover:scale-105 transition-transform">
-                  <img src={i.dataUrl} alt={i.name} className="max-w-full max-h-full object-contain" />
-                </div>
-                <div className="text-xs font-semibold truncate">{i.name}</div>
-                <div className="text-[10px] text-muted-foreground truncate mt-0.5">{i.resolution} · {i.fileType}</div>
-                <span className={cn("inline-block mt-2 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border", iconStatusStyles["내가 만든 아이콘"])}>
-                  내가 만든 아이콘
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {showIcons && icons.length > 0 && (
+      {groupIcons.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold flex items-center gap-1.5">
               <ImageIcon className="h-3.5 w-3.5 text-primary" /> 단품 아이콘
-              <span className="text-muted-foreground font-normal">({icons.length})</span>
+              <span className="text-muted-foreground font-normal">({groupIcons.length})</span>
             </h3>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {icons.map((i) => (
-              <div key={i.id} className="rounded-xl bg-card border border-border p-3 hover:shadow-glow hover:border-primary/40 transition-all group">
-                <div className="aspect-square rounded-lg bg-muted/50 grid place-items-center text-5xl mb-2 group-hover:scale-105 transition-transform">
-                  {i.emoji}
+            {groupIcons.map((i) => i.kind === "icon" && (
+              <div key={i.id} className="relative rounded-xl bg-card border border-border p-3 hover:shadow-glow hover:border-primary/40 transition-all group">
+                {i.uploadedId && (
+                  <button
+                    onClick={() => removeUploaded(i.uploadedId!)}
+                    className="absolute top-2 right-2 z-10 h-6 w-6 grid place-items-center rounded-md bg-background/80 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition"
+                    aria-label="삭제"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                )}
+                <div className="aspect-square rounded-lg bg-muted/50 grid place-items-center overflow-hidden text-5xl mb-2 group-hover:scale-105 transition-transform">
+                  {i.dataUrl
+                    ? <img src={i.dataUrl} alt={i.name} className="max-w-full max-h-full object-contain" />
+                    : <span>{i.emoji}</span>}
                 </div>
                 <div className="text-xs font-semibold truncate">{i.name}</div>
                 <div className="text-[10px] text-muted-foreground truncate mt-0.5">{i.resolution} · {i.fileType}</div>
@@ -601,14 +582,14 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         </section>
       )}
 
-      {showPacks && packs.length > 0 && (
+      {groupPacks.length > 0 && (
         <section className="space-y-3">
           <h3 className="text-sm font-semibold flex items-center gap-1.5">
             <Package className="h-3.5 w-3.5 text-primary" /> 아이콘 팩
-            <span className="text-muted-foreground font-normal">({packs.length})</span>
+            <span className="text-muted-foreground font-normal">({groupPacks.length})</span>
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {packs.map((p) => (
+            {groupPacks.map((p) => p.kind === "iconpack" && (
               <div key={p.id} className="rounded-xl bg-card border border-border p-4 hover:shadow-glow hover:border-primary/40 transition-all">
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {p.thumbnailEmojis.slice(0, 6).map((e, idx) => (
@@ -630,13 +611,11 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         </section>
       )}
 
-      {((showIcons && icons.length === 0) || (showIcons && !showPacks && icons.length === 0)) &&
-        ((showPacks && packs.length === 0) || (!showPacks)) &&
-        icons.length === 0 && packs.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
-            조건에 맞는 아이콘 자산이 없습니다.
-          </div>
-        )}
+      {groupIcons.length === 0 && groupPacks.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
+          조건에 맞는 아이콘 자산이 없습니다.
+        </div>
+      )}
     </div>
   );
 }
