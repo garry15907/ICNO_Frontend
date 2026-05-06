@@ -58,9 +58,32 @@ export default function LibraryDetail() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
+  const wallpaperInputRef = useRef<HTMLInputElement>(null);
+  const [wallpaper, setWallpaper] = useState<string | undefined>(
+    preset.thumbnail && preset.thumbnail !== "/placeholder.svg" ? preset.thumbnail : undefined,
+  );
 
   const isEmptyPreset = icons.length === 0;
-  const hasWallpaper = !!preset.thumbnail && preset.thumbnail !== "/placeholder.svg";
+  const hasWallpaper = !!wallpaper;
+
+  const openWallpaperPicker = () => wallpaperInputRef.current?.click();
+  const handleWallpaperFile = (file: File | null | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("이미지 파일만 업로드할 수 있습니다.");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("20MB 이하의 이미지를 선택해주세요.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setWallpaper(reader.result as string);
+      toast.success(`배경화면이 변경되었습니다 · ${file.name}`);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const dirty = useMemo(
     () => icons.some((i, idx) => {
@@ -256,7 +279,7 @@ export default function LibraryDetail() {
                   <DropdownMenuItem onClick={() => setPresetInfoOpen(true)}>
                     <FileText className="h-4 w-4 mr-2" />프리셋 정보 보기
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={openWallpaperPicker}>
                     <ImageIcon className="h-4 w-4 mr-2" />배경화면 변경
                   </DropdownMenuItem>
                   <DropdownMenuItem>
@@ -283,20 +306,35 @@ export default function LibraryDetail() {
                 !hasWallpaper && "bg-gradient-to-br from-muted to-muted/40",
               )}
               style={hasWallpaper ? {
-                backgroundImage: `url(${preset.thumbnail})`,
+                backgroundImage: `url(${wallpaper})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               } : undefined}
             >
+              <input
+                ref={wallpaperInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  handleWallpaperFile(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
               {!hasWallpaper && (
                 <button
                   type="button"
-                  onClick={() => toast("배경화면 업로드는 곧 지원됩니다.")}
+                  onClick={openWallpaperPicker}
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleWallpaperFile(e.dataTransfer.files?.[0]);
+                  }}
                   className="absolute inset-6 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
                 >
                   <ImageIcon className="h-10 w-10" />
                   <div className="text-sm font-semibold">배경화면 업로드</div>
-                  <div className="text-xs">PNG, JPG · 권장 1920×1080</div>
+                  <div className="text-xs">클릭하거나 이미지를 끌어다 놓으세요 · PNG, JPG · 권장 1920×1080</div>
                 </button>
               )}
               {hasWallpaper && isEmptyPreset && editMode && (
@@ -437,7 +475,7 @@ export default function LibraryDetail() {
             ) : isEmptyPreset ? (
               <EmptyPresetPanel
                 onAddIcon={() => setAddIconOpen(true)}
-                onUploadWallpaper={() => toast("배경화면 업로드는 곧 지원됩니다.")}
+                onUploadWallpaper={openWallpaperPicker}
                 hasWallpaper={hasWallpaper}
               />
             ) : (
