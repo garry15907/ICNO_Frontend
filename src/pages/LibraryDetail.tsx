@@ -449,6 +449,7 @@ export default function LibraryDetail() {
                 return (
                   <div
                     key={ic.id}
+                    data-icon-node
                     onPointerDown={(e) => onPointerDown(e, ic)}
                     style={{ left: `${ic.position.x}%`, top: `${ic.position.y}%`, touchAction: "none" }}
                     className={cn(
