@@ -425,6 +425,16 @@ function loadUploadedIcons(): UploadedIcon[] {
   }
 }
 
+function getPackIconStates(packId: string, overrides: Record<string, PackOverride>): PackIconState[] {
+  const ov = overrides[packId];
+  if (ov?.icons) return ov.icons;
+  const pack = libraryIconPacks.find((p) => p.id === packId);
+  if (!pack) return [];
+  return pack.icons.map((c) => ({
+    id: c.id, label: c.label, emoji: c.emoji, fileName: c.fileName, fileType: c.fileType, resolution: c.resolution,
+  }));
+}
+
 function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f: IconFilter) => void }) {
   const filters: { value: IconFilter; label: string }[] = [
     { value: "all", label: "전체" },
