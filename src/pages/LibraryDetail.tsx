@@ -343,37 +343,68 @@ export default function LibraryDetail() {
                       <Maximize2 className="h-3.5 w-3.5 mr-1.5" />배경 조정
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-72 space-y-4">
-                    <div className="space-y-1.5">
-                      <div className="text-xs font-semibold">배경화면 조정</div>
-                      <p className="text-[11px] text-muted-foreground">
-                        조정 모드에서는 캔버스를 드래그해 위치를 옮길 수 있어요.
+                  <PopoverContent align="end" className="w-[360px] p-0 overflow-hidden">
+                    <div className="p-4 border-b border-border space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold">배경화면 자유 조정</div>
+                        <span className="text-[10px] text-muted-foreground font-mono">{Math.round(wpScale)}%</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        캔버스 드래그로 이동 · 휠로 확대/축소 · Shift+휠 회전 · 화살표로 1px 미세 조정 (Shift 10px)
                       </p>
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">크기</span>
-                        <span className="font-mono">{wpScale}%</span>
+                    <Tabs defaultValue="transform" className="w-full">
+                      <TabsList className="grid grid-cols-3 w-full rounded-none h-9">
+                        <TabsTrigger value="transform" className="text-xs">변형</TabsTrigger>
+                        <TabsTrigger value="filter" className="text-xs">필터</TabsTrigger>
+                        <TabsTrigger value="effect" className="text-xs">효과</TabsTrigger>
+                      </TabsList>
+                      <div className="p-4 space-y-4 max-h-[420px] overflow-y-auto scrollbar-thin">
+                        <TabsContent value="transform" className="space-y-4 mt-0">
+                          <SliderRow label="크기" unit="%" value={wpScale} min={25} max={500} step={1} onChange={setWpScale} />
+                          <SliderRow label="회전" unit="°" value={wpRotate} min={-180} max={180} step={1} onChange={setWpRotate} />
+                          <div className="grid grid-cols-2 gap-2">
+                            <SliderRow label="X 이동" unit="px" value={wpOffsetX} min={-1000} max={1000} step={1} onChange={setWpOffsetX} compact />
+                            <SliderRow label="Y 이동" unit="px" value={wpOffsetY} min={-1000} max={1000} step={1} onChange={setWpOffsetY} compact />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button size="sm" variant={wpFlipX ? "default" : "outline"} className="h-8 text-xs" onClick={() => setWpFlipX((v) => !v)}>
+                              가로 반전
+                            </Button>
+                            <Button size="sm" variant={wpFlipY ? "default" : "outline"} className="h-8 text-xs" onClick={() => setWpFlipY((v) => !v)}>
+                              세로 반전
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setWpRotate((r) => r - 90)}>-90°</Button>
+                            <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setWpRotate(0)}>0°</Button>
+                            <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setWpRotate((r) => r + 90)}>+90°</Button>
+                          </div>
+                        </TabsContent>
+                        <TabsContent value="filter" className="space-y-4 mt-0">
+                          <SliderRow label="밝기" unit="%" value={wpBrightness} min={0} max={200} step={1} onChange={setWpBrightness} />
+                          <SliderRow label="대비" unit="%" value={wpContrast} min={0} max={200} step={1} onChange={setWpContrast} />
+                          <SliderRow label="채도" unit="%" value={wpSaturate} min={0} max={200} step={1} onChange={setWpSaturate} />
+                          <SliderRow label="색조" unit="°" value={wpHue} min={0} max={360} step={1} onChange={setWpHue} />
+                          <SliderRow label="흐림" unit="px" value={wpBlur} min={0} max={20} step={0.5} onChange={setWpBlur} />
+                          <SliderRow label="투명도" unit="%" value={wpOpacity} min={0} max={100} step={1} onChange={setWpOpacity} />
+                        </TabsContent>
+                        <TabsContent value="effect" className="space-y-4 mt-0">
+                          <SliderRow label="반전" unit="%" value={wpInvert} min={0} max={100} step={1} onChange={setWpInvert} />
+                          <SliderRow label="흑백" unit="%" value={wpGrayscale} min={0} max={100} step={1} onChange={setWpGrayscale} />
+                          <SliderRow label="세피아" unit="%" value={wpSepia} min={0} max={100} step={1} onChange={setWpSepia} />
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setWpGrayscale(100); setWpSepia(0); setWpInvert(0); }}>흑백</Button>
+                            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setWpSepia(80); setWpGrayscale(0); setWpInvert(0); }}>빈티지</Button>
+                            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setWpInvert(100); setWpGrayscale(0); setWpSepia(0); }}>색 반전</Button>
+                            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setWpInvert(0); setWpGrayscale(0); setWpSepia(0); }}>효과 해제</Button>
+                          </div>
+                        </TabsContent>
                       </div>
-                      <Slider value={[wpScale]} min={50} max={300} step={1} onValueChange={(v) => setWpScale(v[0])} />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">가로 위치</span>
-                        <span className="font-mono">{Math.round(wpPosX)}%</span>
-                      </div>
-                      <Slider value={[wpPosX]} min={0} max={100} step={1} onValueChange={(v) => setWpPosX(v[0])} />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">세로 위치</span>
-                        <span className="font-mono">{Math.round(wpPosY)}%</span>
-                      </div>
-                      <Slider value={[wpPosY]} min={0} max={100} step={1} onValueChange={(v) => setWpPosY(v[0])} />
-                    </div>
-                    <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
+                    </Tabs>
+                    <div className="flex items-center justify-between gap-2 border-t border-border p-3">
                       <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={resetWallpaperTransform}>
-                        <RotateCcw className="h-3.5 w-3.5 mr-1" />초기화
+                        <RotateCcw className="h-3.5 w-3.5 mr-1" />전체 초기화
                       </Button>
                       <Button size="sm" className="h-8 text-xs" onClick={() => setWpAdjustOpen(false)}>완료</Button>
                     </div>
@@ -428,6 +459,7 @@ export default function LibraryDetail() {
               onPointerMove={(e) => { onPointerMove(e); onWallpaperPointerMove(e); }}
               onPointerUp={(e) => { onPointerUp(); onWallpaperPointerUp(); }}
               onPointerLeave={(e) => { onPointerUp(); onWallpaperPointerUp(); }}
+              onWheel={onWallpaperWheel}
               onClick={(e) => { if (e.target === e.currentTarget) setSelected(undefined); }}
               className={cn(
                 "relative w-full aspect-[16/10] rounded-2xl overflow-hidden border shadow-card bg-muted select-none",
@@ -443,9 +475,10 @@ export default function LibraryDetail() {
                   draggable={false}
                   className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
                   style={{
-                    transform: `scale(${wpScale / 100})`,
-                    transformOrigin: `${wpPosX}% ${wpPosY}%`,
-                    objectPosition: `${wpPosX}% ${wpPosY}%`,
+                    transform: wpTransform,
+                    transformOrigin: "center center",
+                    filter: wpFilter,
+                    opacity: wpOpacity / 100,
                   }}
                 />
               )}
