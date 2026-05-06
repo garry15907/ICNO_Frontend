@@ -182,7 +182,41 @@ export default function Library() {
             <DialogDescription>어떻게 시작할지 선택하세요.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 pt-2">
-            <CreateOption icon={Sparkles} title="빈 프리셋 만들기" desc="배경화면과 아이콘을 직접 업로드해서 새로 만들기" />
+            <CreateOption
+              icon={Sparkles}
+              title="빈 프리셋 만들기"
+              desc="배경화면과 아이콘을 직접 업로드해서 새로 만들기"
+              onClick={() => {
+                const id = `lib-new-${Date.now()}`;
+                const baseName = "새 프리셋";
+                const escaped = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                const re = new RegExp(`^${escaped}(?:\\((\\d+)\\))?$`);
+                let maxN = 0;
+                let hasPlain = false;
+                libraryPresets.forEach((x) => {
+                  const m = x.name.match(re);
+                  if (!m) return;
+                  if (m[1]) maxN = Math.max(maxN, parseInt(m[1], 10));
+                  else hasPlain = true;
+                });
+                const name = !hasPlain ? baseName : `${baseName}(${Math.max(maxN, 1) + 1})`;
+                libraryPresets.unshift({
+                  id,
+                  name,
+                  thumbnail: "/placeholder.svg",
+                  iconCount: 0,
+                  mappedCount: 0,
+                  status: "내가 만든 프리셋",
+                  lastModified: new Date().toISOString().slice(0, 10),
+                  description: "새로 만든 빈 프리셋입니다.",
+                  tags: [],
+                  icons: [],
+                });
+                setCreateOpen(false);
+                setPresets([...libraryPresets]);
+                nav(`/library/${id}`);
+              }}
+            />
             <CreateOption icon={Store} title="마켓에서 불러오기" desc="마켓플레이스에서 프리셋을 다운로드" onClick={() => { setCreateOpen(false); nav("/explore"); }} />
           </div>
         </DialogContent>
