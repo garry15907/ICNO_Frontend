@@ -64,30 +64,86 @@ export default function LibraryDetail() {
   const [wallpaper, setWallpaper] = useState<string | undefined>(
     preset.thumbnail && preset.thumbnail !== "/placeholder.svg" ? preset.thumbnail : undefined,
   );
-  const [wpScale, setWpScale] = useState(100);
-  const [wpPosX, setWpPosX] = useState(50);
-  const [wpPosY, setWpPosY] = useState(50);
+  // Wallpaper transform state
+  const [wpScale, setWpScale] = useState(100);   // 25–500%
+  const [wpOffsetX, setWpOffsetX] = useState(0); // px offset in canvas-space
+  const [wpOffsetY, setWpOffsetY] = useState(0);
+  const [wpRotate, setWpRotate] = useState(0);   // -180..180
+  const [wpFlipX, setWpFlipX] = useState(false);
+  const [wpFlipY, setWpFlipY] = useState(false);
+  const [wpBrightness, setWpBrightness] = useState(100);
+  const [wpContrast, setWpContrast] = useState(100);
+  const [wpSaturate, setWpSaturate] = useState(100);
+  const [wpHue, setWpHue] = useState(0);
+  const [wpBlur, setWpBlur] = useState(0);
+  const [wpOpacity, setWpOpacity] = useState(100);
+  const [wpInvert, setWpInvert] = useState(0);
+  const [wpGrayscale, setWpGrayscale] = useState(0);
+  const [wpSepia, setWpSepia] = useState(0);
   const [wpAdjustOpen, setWpAdjustOpen] = useState(false);
+
   const wpDragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
-  const resetWallpaperTransform = () => { setWpScale(100); setWpPosX(50); setWpPosY(50); };
+
+  const resetWallpaperTransform = () => {
+    setWpScale(100); setWpOffsetX(0); setWpOffsetY(0); setWpRotate(0);
+    setWpFlipX(false); setWpFlipY(false);
+    setWpBrightness(100); setWpContrast(100); setWpSaturate(100);
+    setWpHue(0); setWpBlur(0); setWpOpacity(100);
+    setWpInvert(0); setWpGrayscale(0); setWpSepia(0);
+  };
+
   const onWallpaperPointerDown = (e: React.PointerEvent) => {
     if (!wpAdjustOpen || !hasWallpaper) return;
     if ((e.target as HTMLElement).closest("[data-icon-node]")) return;
     e.preventDefault();
-    wpDragRef.current = { startX: e.clientX, startY: e.clientY, baseX: wpPosX, baseY: wpPosY };
+    wpDragRef.current = { startX: e.clientX, startY: e.clientY, baseX: wpOffsetX, baseY: wpOffsetY };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
   const onWallpaperPointerMove = (e: React.PointerEvent) => {
     if (!wpDragRef.current) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const dx = ((e.clientX - wpDragRef.current.startX) / rect.width) * 100;
-    const dy = ((e.clientY - wpDragRef.current.startY) / rect.height) * 100;
-    setWpPosX(Math.max(0, Math.min(100, wpDragRef.current.baseX - dx)));
-    setWpPosY(Math.max(0, Math.min(100, wpDragRef.current.baseY - dy)));
+    setWpOffsetX(wpDragRef.current.baseX + (e.clientX - wpDragRef.current.startX));
+    setWpOffsetY(wpDragRef.current.baseY + (e.clientY - wpDragRef.current.startY));
   };
   const onWallpaperPointerUp = () => { wpDragRef.current = null; };
+
+  const onWallpaperWheel = (e: React.WheelEvent) => {
+    if (!wpAdjustOpen || !hasWallpaper) return;
+    e.preventDefault();
+    const delta = -e.deltaY;
+    if (e.shiftKey) {
+      setWpRotate((r) => Math.max(-180, Math.min(180, r + delta * 0.1)));
+    } else {
+      const factor = delta > 0 ? 1.05 : 1 / 1.05;
+      setWpScale((s) => Math.max(25, Math.min(500, +(s * factor).toFixed(1))));
+    }
+  };
+
+  // Arrow-key nudging while adjust mode is active
+  useEffect(() => {
+    if (!wpAdjustOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      const step = e.shiftKey ? 10 : 1;
+      if (e.key === "ArrowLeft")  { e.preventDefault(); setWpOffsetX((v) => v - step); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); setWpOffsetX((v) => v + step); }
+      else if (e.key === "ArrowUp")    { e.preventDefault(); setWpOffsetY((v) => v - step); }
+      else if (e.key === "ArrowDown")  { e.preventDefault(); setWpOffsetY((v) => v + step); }
+      else if (e.key === "Escape")     { setWpAdjustOpen(false); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [wpAdjustOpen]);
+
+  const wpFilter = [
+    `brightness(${wpBrightness}%)`,
+    `contrast(${wpContrast}%)`,
+    `saturate(${wpSaturate}%)`,
+    `hue-rotate(${wpHue}deg)`,
+    `blur(${wpBlur}px)`,
+    `invert(${wpInvert}%)`,
+    `grayscale(${wpGrayscale}%)`,
+    `sepia(${wpSepia}%)`,
+  ].join(" ");
+  const wpTransform = `translate(${wpOffsetX}px, ${wpOffsetY}px) scale(${(wpFlipX ? -1 : 1) * (wpScale / 100)}, ${(wpFlipY ? -1 : 1) * (wpScale / 100)}) rotate(${wpRotate}deg)`;
 
   const isEmptyPreset = icons.length === 0;
   const hasWallpaper = !!wallpaper;
