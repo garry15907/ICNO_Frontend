@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown } from "lucide-react";
 import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus } from "@/data/mockData";
@@ -369,6 +369,27 @@ const iconStatusStyles: Record<IconLibraryStatus, string> = {
 
 type IconFilter = "all" | "icon" | "iconpack" | "downloaded" | "purchased" | "mine";
 
+type UploadedIcon = {
+  id: string;
+  name: string;
+  dataUrl: string;
+  fileType: "PNG" | "SVG" | "ICO";
+  resolution: string;
+  fileName: string;
+  createdAt: number;
+};
+
+const UPLOADED_ICONS_KEY = "library-uploaded-icons";
+
+function loadUploadedIcons(): UploadedIcon[] {
+  try {
+    const raw = localStorage.getItem(UPLOADED_ICONS_KEY);
+    return raw ? (JSON.parse(raw) as UploadedIcon[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f: IconFilter) => void }) {
   const filters: { value: IconFilter; label: string }[] = [
     { value: "all", label: "전체" },
@@ -389,27 +410,124 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
   const showIcons = filter !== "iconpack";
   const showPacks = filter !== "icon";
 
+  const [uploaded, setUploaded] = useState<UploadedIcon[]>(() => loadUploadedIcons());
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const persist = (next: UploadedIcon[]) => {
+    setUploaded(next);
+    try { localStorage.setItem(UPLOADED_ICONS_KEY, JSON.stringify(next)); } catch {}
+  };
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const arr = Array.from(files);
+    const results: UploadedIcon[] = [];
+    for (const file of arr) {
+      const ext = file.name.split(".").pop()?.toUpperCase();
+      const fileType: UploadedIcon["fileType"] =
+        ext === "SVG" ? "SVG" : ext === "ICO" ? "ICO" : "PNG";
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      // 해상도 측정
+      let resolution = "—";
+      if (fileType !== "SVG") {
+        try {
+          resolution = await new Promise<string>((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(`${img.naturalWidth} × ${img.naturalHeight}`);
+            img.onerror = () => resolve("—");
+            img.src = dataUrl;
+          });
+        } catch {}
+      }
+      results.push({
+        id: `ui-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: file.name.replace(/\.[^.]+$/, ""),
+        dataUrl,
+        fileType,
+        resolution,
+        fileName: file.name,
+        createdAt: Date.now(),
+      });
+    }
+    persist([...results, ...uploaded]);
+    toast({ title: "아이콘이 업로드되었습니다", description: `${results.length}개 추가됨` });
+  };
+
+  const removeUploaded = (id: string) => {
+    persist(uploaded.filter((x) => x.id !== id));
+  };
+
+  const showUploaded = filter === "all" || filter === "icon" || filter === "mine";
+
   const icons = libraryIcons.filter((i) => matchesStatus(i.status));
   const packs = libraryIconPacks.filter((p) => matchesStatus(p.status));
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-2">
-        {filters.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
-              filter === f.value
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground",
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {filters.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+                filter === f.value
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <Button size="sm" onClick={() => fileRef.current?.click()} className="gap-1.5">
+          <Upload className="h-3.5 w-3.5" /> 아이콘 업로드
+        </Button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/svg+xml,image/x-icon,.ico,.png,.svg"
+          multiple
+          className="hidden"
+          onChange={(e) => { handleFiles(e.target.files); if (fileRef.current) fileRef.current.value = ""; }}
+        />
       </div>
+
+      {showUploaded && uploaded.length > 0 && (
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold flex items-center gap-1.5">
+            <Upload className="h-3.5 w-3.5 text-primary" /> 내가 업로드한 아이콘
+            <span className="text-muted-foreground font-normal">({uploaded.length})</span>
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            {uploaded.map((i) => (
+              <div key={i.id} className="relative rounded-xl bg-card border border-border p-3 hover:shadow-glow hover:border-primary/40 transition-all group">
+                <button
+                  onClick={() => removeUploaded(i.id)}
+                  className="absolute top-2 right-2 z-10 h-6 w-6 grid place-items-center rounded-md bg-background/80 backdrop-blur opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition"
+                  aria-label="삭제"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+                <div className="aspect-square rounded-lg bg-muted/50 grid place-items-center overflow-hidden mb-2 group-hover:scale-105 transition-transform">
+                  <img src={i.dataUrl} alt={i.name} className="max-w-full max-h-full object-contain" />
+                </div>
+                <div className="text-xs font-semibold truncate">{i.name}</div>
+                <div className="text-[10px] text-muted-foreground truncate mt-0.5">{i.resolution} · {i.fileType}</div>
+                <span className={cn("inline-block mt-2 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border", iconStatusStyles["내가 만든 아이콘"])}>
+                  내가 만든 아이콘
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {showIcons && icons.length > 0 && (
         <section className="space-y-3">
