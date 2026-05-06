@@ -407,9 +407,6 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
     return true;
   };
 
-  const showIcons = filter !== "iconpack";
-  const showPacks = filter !== "icon";
-
   const [uploaded, setUploaded] = useState<UploadedIcon[]>(() => loadUploadedIcons());
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -462,10 +459,60 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
     persist(uploaded.filter((x) => x.id !== id));
   };
 
-  const showUploaded = filter === "all" || filter === "icon" || filter === "mine";
+  // 업로드한 아이콘 → 단품 아이콘으로 통합 (상태: 내가 만든 아이콘)
+  type UnifiedItem =
+    | { kind: "icon"; id: string; name: string; resolution: string; fileType: string; status: IconLibraryStatus; emoji?: string; dataUrl?: string; uploadedId?: string; createdAt: number }
+    | { kind: "iconpack"; id: string; name: string; iconCount: number; source?: string; thumbnailEmojis: string[]; status: IconLibraryStatus; createdAt: number };
 
-  const icons = libraryIcons.filter((i) => matchesStatus(i.status));
-  const packs = libraryIconPacks.filter((p) => matchesStatus(p.status));
+  const uploadedAsItems: UnifiedItem[] = uploaded.map((u) => ({
+    kind: "icon",
+    id: u.id,
+    name: u.name,
+    resolution: u.resolution,
+    fileType: u.fileType,
+    status: "내가 만든 아이콘",
+    dataUrl: u.dataUrl,
+    uploadedId: u.id,
+    createdAt: u.createdAt,
+  }));
+
+  const iconItems: UnifiedItem[] = libraryIcons.map((i) => ({
+    kind: "icon",
+    id: i.id,
+    name: i.name,
+    resolution: i.resolution,
+    fileType: i.fileType,
+    status: i.status,
+    emoji: i.emoji,
+    createdAt: 0,
+  }));
+
+  const packItems: UnifiedItem[] = libraryIconPacks.map((p) => ({
+    kind: "iconpack",
+    id: p.id,
+    name: p.name,
+    iconCount: p.iconCount,
+    source: p.source,
+    thumbnailEmojis: p.thumbnailEmojis,
+    status: p.status,
+    createdAt: 0,
+  }));
+
+  let merged: UnifiedItem[] = [...uploadedAsItems, ...iconItems, ...packItems];
+
+  // 필터 적용
+  merged = merged.filter((it) => {
+    if (filter === "icon") return it.kind === "icon";
+    if (filter === "iconpack") return it.kind === "iconpack";
+    if (filter === "downloaded") return it.status === "다운로드됨";
+    if (filter === "purchased") return it.status === "구매함";
+    if (filter === "mine") return it.status === "내가 만든 아이콘";
+    return true;
+  });
+
+  // 그룹화: 단품 아이콘 / 아이콘 팩
+  const groupIcons = merged.filter((m) => m.kind === "icon");
+  const groupPacks = merged.filter((m) => m.kind === "iconpack");
 
   return (
     <div className="space-y-5">
