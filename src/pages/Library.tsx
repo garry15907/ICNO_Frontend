@@ -33,6 +33,35 @@ export default function Library() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [presets, setPresets] = useState(libraryPresets);
 
+  // Pull saved/draft wallpaper thumbnails from localStorage so newly-edited
+  // presets show their actual background in the library cards.
+  useEffect(() => {
+    const refresh = () => {
+      setPresets((prev) =>
+        prev.map((p) => {
+          try {
+            const raw =
+              localStorage.getItem(`preset-saved:${p.id}`) ??
+              localStorage.getItem(`preset-draft:${p.id}`);
+            if (!raw) return p;
+            const data = JSON.parse(raw);
+            if (data?.wallpaper && data.wallpaper !== p.thumbnail) {
+              return { ...p, thumbnail: data.wallpaper };
+            }
+          } catch {}
+          return p;
+        }),
+      );
+    };
+    refresh();
+    window.addEventListener("focus", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
   const togglePin = (id: string) =>
     setPinned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
