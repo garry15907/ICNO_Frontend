@@ -122,7 +122,7 @@ export default function LibraryDetail() {
     };
     el.addEventListener("wheel", handler, { passive: false });
     return () => el.removeEventListener("wheel", handler);
-  }, [hasWallpaper]);
+  }, [wallpaper]);
 
   // Arrow-key nudging while adjust mode is active
   useEffect(() => {
