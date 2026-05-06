@@ -35,6 +35,22 @@ import { toast } from "sonner";
 type EditableIcon = IconAsset & { mappedTo?: string; originPos: { x: number; y: number } };
 type SaveState = "saved" | "dirty" | "saving";
 
+type DraftPayload = {
+  v: 1;
+  savedAt: number;
+  icons: EditableIcon[];
+  wallpaper?: string;
+  wp: {
+    scale: number; offsetX: number; offsetY: number; rotate: number;
+    flipX: boolean; flipY: boolean;
+    brightness: number; contrast: number; saturate: number;
+    hue: number; blur: number; opacity: number;
+    invert: number; grayscale: number; sepia: number;
+  };
+};
+const draftKey = (id: string) => `preset-draft:${id}`;
+const savedKey = (id: string) => `preset-saved:${id}`;
+
 const RES_W = 1920;
 const RES_H = 1080;
 
@@ -42,6 +58,7 @@ export default function LibraryDetail() {
   const { id } = useParams();
   const nav = useNavigate();
   const preset = libraryPresets.find((p) => p.id === id) ?? libraryPresets[0];
+  const storageId = id ?? preset.id;
 
   const [icons, setIcons] = useState<EditableIcon[]>(() =>
     preset.icons.map((i) => ({ ...i, originPos: { ...i.position } })),
@@ -81,6 +98,10 @@ export default function LibraryDetail() {
   const [wpGrayscale, setWpGrayscale] = useState(0);
   const [wpSepia, setWpSepia] = useState(0);
   const [wpAdjustOpen, setWpAdjustOpen] = useState(false);
+
+  const [lastDraftAt, setLastDraftAt] = useState<number | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   const wpDragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
 
@@ -150,6 +171,101 @@ export default function LibraryDetail() {
     `sepia(${wpSepia}%)`,
   ].join(" ");
   const wpTransform = `translate(${wpOffsetX}px, ${wpOffsetY}px) scale(${(wpFlipX ? -1 : 1) * (wpScale / 100)}, ${(wpFlipY ? -1 : 1) * (wpScale / 100)}) rotate(${wpRotate}deg)`;
+
+  // ---- Draft persistence (localStorage) ----
+  const collectPayload = (): DraftPayload => ({
+    v: 1,
+    savedAt: Date.now(),
+    icons,
+    wallpaper,
+    wp: {
+      scale: wpScale, offsetX: wpOffsetX, offsetY: wpOffsetY, rotate: wpRotate,
+      flipX: wpFlipX, flipY: wpFlipY,
+      brightness: wpBrightness, contrast: wpContrast, saturate: wpSaturate,
+      hue: wpHue, blur: wpBlur, opacity: wpOpacity,
+      invert: wpInvert, grayscale: wpGrayscale, sepia: wpSepia,
+    },
+  });
+  const applyPayload = (p: DraftPayload) => {
+    if (p.icons) {
+      setIcons(p.icons);
+      setSavedIcons(p.icons);
+    }
+    if (p.wallpaper !== undefined) setWallpaper(p.wallpaper);
+    const w = p.wp;
+    if (w) {
+      setWpScale(w.scale); setWpOffsetX(w.offsetX); setWpOffsetY(w.offsetY); setWpRotate(w.rotate);
+      setWpFlipX(w.flipX); setWpFlipY(w.flipY);
+      setWpBrightness(w.brightness); setWpContrast(w.contrast); setWpSaturate(w.saturate);
+      setWpHue(w.hue); setWpBlur(w.blur); setWpOpacity(w.opacity);
+      setWpInvert(w.invert); setWpGrayscale(w.grayscale); setWpSepia(w.sepia);
+    }
+  };
+
+  // Hydrate on mount: prefer draft over last saved
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey(storageId)) ?? localStorage.getItem(savedKey(storageId));
+      if (raw) {
+        const p = JSON.parse(raw) as DraftPayload;
+        applyPayload(p);
+        const draft = localStorage.getItem(draftKey(storageId));
+        if (draft) setLastDraftAt(p.savedAt);
+        const sv = localStorage.getItem(savedKey(storageId));
+        if (sv) setLastSavedAt((JSON.parse(sv) as DraftPayload).savedAt);
+      }
+    } catch {}
+    setHydrated(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageId]);
+
+  // Auto-save draft (debounced) after any change
+  useEffect(() => {
+    if (!hydrated) return;
+    const t = setTimeout(() => {
+      try {
+        const payload = collectPayload();
+        localStorage.setItem(draftKey(storageId), JSON.stringify(payload));
+        setLastDraftAt(payload.savedAt);
+      } catch {}
+    }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    hydrated, icons, wallpaper, wpScale, wpOffsetX, wpOffsetY, wpRotate,
+    wpFlipX, wpFlipY, wpBrightness, wpContrast, wpSaturate, wpHue, wpBlur,
+    wpOpacity, wpInvert, wpGrayscale, wpSepia,
+  ]);
+
+  const saveDraftNow = () => {
+    try {
+      const payload = collectPayload();
+      localStorage.setItem(draftKey(storageId), JSON.stringify(payload));
+      setLastDraftAt(payload.savedAt);
+      toast.success("임시 저장되었습니다.");
+    } catch {
+      toast.error("임시 저장에 실패했습니다.");
+    }
+  };
+  const savePresetNow = () => {
+    try {
+      const payload = collectPayload();
+      localStorage.setItem(savedKey(storageId), JSON.stringify(payload));
+      localStorage.removeItem(draftKey(storageId));
+      setLastSavedAt(payload.savedAt);
+      setLastDraftAt(null);
+      setSavedIcons(icons);
+      setSaveState("saved");
+      toast.success("프리셋이 저장되었습니다.");
+    } catch {
+      toast.error("저장에 실패했습니다.");
+    }
+  };
+  const formatTime = (ts: number | null) => {
+    if (!ts) return null;
+    const d = new Date(ts);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+  };
 
   const isEmptyPreset = icons.length === 0;
   const hasWallpaper = !!wallpaper;
