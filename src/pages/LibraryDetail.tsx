@@ -465,7 +465,6 @@ export default function LibraryDetail() {
               onPointerMove={(e) => { onPointerMove(e); onWallpaperPointerMove(e); }}
               onPointerUp={(e) => { onPointerUp(); onWallpaperPointerUp(); }}
               onPointerLeave={(e) => { onPointerUp(); onWallpaperPointerUp(); }}
-              onWheel={onWallpaperWheel}
               onClick={(e) => { if (e.target === e.currentTarget) setSelected(undefined); }}
               className={cn(
                 "relative w-full aspect-[16/10] rounded-2xl overflow-hidden border shadow-card bg-muted select-none",
