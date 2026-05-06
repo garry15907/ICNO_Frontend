@@ -4,7 +4,7 @@ import {
   ArrowLeft, Play, Save, MoreHorizontal, Plus, ChevronDown, ChevronUp,
   Move, MousePointer2, Info, Image as ImageIcon, Link2,
   History, RotateCcw, Trash2, Download, FileText, Magnet, AlignJustify,
-  Package, Store, Upload as UploadIcon, X, Sparkles,
+  Package, Store, Upload as UploadIcon, X, Sparkles, Maximize2,
 } from "lucide-react";
 import { libraryPresets, IconAsset } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { IconEditModal } from "@/components/presets/IconEditModal";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -62,6 +64,30 @@ export default function LibraryDetail() {
   const [wallpaper, setWallpaper] = useState<string | undefined>(
     preset.thumbnail && preset.thumbnail !== "/placeholder.svg" ? preset.thumbnail : undefined,
   );
+  const [wpScale, setWpScale] = useState(100);
+  const [wpPosX, setWpPosX] = useState(50);
+  const [wpPosY, setWpPosY] = useState(50);
+  const [wpAdjustOpen, setWpAdjustOpen] = useState(false);
+  const wpDragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
+  const resetWallpaperTransform = () => { setWpScale(100); setWpPosX(50); setWpPosY(50); };
+  const onWallpaperPointerDown = (e: React.PointerEvent) => {
+    if (!wpAdjustOpen || !hasWallpaper) return;
+    if ((e.target as HTMLElement).closest("[data-icon-node]")) return;
+    e.preventDefault();
+    wpDragRef.current = { startX: e.clientX, startY: e.clientY, baseX: wpPosX, baseY: wpPosY };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onWallpaperPointerMove = (e: React.PointerEvent) => {
+    if (!wpDragRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const dx = ((e.clientX - wpDragRef.current.startX) / rect.width) * 100;
+    const dy = ((e.clientY - wpDragRef.current.startY) / rect.height) * 100;
+    setWpPosX(Math.max(0, Math.min(100, wpDragRef.current.baseX - dx)));
+    setWpPosY(Math.max(0, Math.min(100, wpDragRef.current.baseY - dy)));
+  };
+  const onWallpaperPointerUp = () => { wpDragRef.current = null; };
 
   const isEmptyPreset = icons.length === 0;
   const hasWallpaper = !!wallpaper;
@@ -80,6 +106,7 @@ export default function LibraryDetail() {
     const reader = new FileReader();
     reader.onload = () => {
       setWallpaper(reader.result as string);
+      resetWallpaperTransform();
       toast.success(`배경화면이 변경되었습니다 · ${file.name}`);
     };
     reader.readAsDataURL(file);
@@ -253,6 +280,51 @@ export default function LibraryDetail() {
                 <Plus className="h-3.5 w-3.5 mr-1.5" />아이콘 추가
               </Button>
 
+              {hasWallpaper && (
+                <Popover open={wpAdjustOpen} onOpenChange={setWpAdjustOpen}>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-8">
+                      <Maximize2 className="h-3.5 w-3.5 mr-1.5" />배경 조정
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 space-y-4">
+                    <div className="space-y-1.5">
+                      <div className="text-xs font-semibold">배경화면 조정</div>
+                      <p className="text-[11px] text-muted-foreground">
+                        조정 모드에서는 캔버스를 드래그해 위치를 옮길 수 있어요.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">크기</span>
+                        <span className="font-mono">{wpScale}%</span>
+                      </div>
+                      <Slider value={[wpScale]} min={50} max={300} step={1} onValueChange={(v) => setWpScale(v[0])} />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">가로 위치</span>
+                        <span className="font-mono">{Math.round(wpPosX)}%</span>
+                      </div>
+                      <Slider value={[wpPosX]} min={0} max={100} step={1} onValueChange={(v) => setWpPosX(v[0])} />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">세로 위치</span>
+                        <span className="font-mono">{Math.round(wpPosY)}%</span>
+                      </div>
+                      <Slider value={[wpPosY]} min={0} max={100} step={1} onValueChange={(v) => setWpPosY(v[0])} />
+                    </div>
+                    <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
+                      <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={resetWallpaperTransform}>
+                        <RotateCcw className="h-3.5 w-3.5 mr-1" />초기화
+                      </Button>
+                      <Button size="sm" className="h-8 text-xs" onClick={() => setWpAdjustOpen(false)}>완료</Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="icon" variant="outline" className="h-8 w-8">
@@ -296,21 +368,31 @@ export default function LibraryDetail() {
             {/* Canvas */}
             <div
               ref={canvasRef}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerLeave={onPointerUp}
+              onPointerDown={onWallpaperPointerDown}
+              onPointerMove={(e) => { onPointerMove(e); onWallpaperPointerMove(e); }}
+              onPointerUp={(e) => { onPointerUp(); onWallpaperPointerUp(); }}
+              onPointerLeave={(e) => { onPointerUp(); onWallpaperPointerUp(); }}
               onClick={(e) => { if (e.target === e.currentTarget) setSelected(undefined); }}
               className={cn(
                 "relative w-full aspect-[16/10] rounded-2xl overflow-hidden border shadow-card bg-muted select-none",
                 editMode ? "border-primary/50 cursor-crosshair" : "border-border",
                 !hasWallpaper && "bg-gradient-to-br from-muted to-muted/40",
+                wpAdjustOpen && hasWallpaper && "cursor-move ring-2 ring-primary/60",
               )}
-              style={hasWallpaper ? {
-                backgroundImage: `url(${wallpaper})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              } : undefined}
             >
+              {hasWallpaper && (
+                <img
+                  src={wallpaper}
+                  alt="배경화면"
+                  draggable={false}
+                  className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                  style={{
+                    transform: `scale(${wpScale / 100})`,
+                    transformOrigin: `${wpPosX}% ${wpPosY}%`,
+                    objectPosition: `${wpPosX}% ${wpPosY}%`,
+                  }}
+                />
+              )}
               <input
                 ref={wallpaperInputRef}
                 type="file"
@@ -367,6 +449,7 @@ export default function LibraryDetail() {
                 return (
                   <div
                     key={ic.id}
+                    data-icon-node
                     onPointerDown={(e) => onPointerDown(e, ic)}
                     style={{ left: `${ic.position.x}%`, top: `${ic.position.y}%`, touchAction: "none" }}
                     className={cn(
