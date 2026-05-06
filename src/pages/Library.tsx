@@ -543,6 +543,35 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
 
   let merged: UnifiedItem[] = [...uploadedAsItems, ...iconItems, ...packItems];
 
+  // 삭제 + 오버라이드 적용
+  merged = merged
+    .filter((it) => !deletedIds.includes(it.id))
+    .map((it) => {
+      if (it.kind === "icon") {
+        const ov = iconOverrides[it.id];
+        if (!ov) return it;
+        return {
+          ...it,
+          name: ov.name ?? it.name,
+          dataUrl: ov.dataUrl ?? it.dataUrl,
+          resolution: ov.resolution ?? it.resolution,
+          fileType: (ov.fileType as any) ?? it.fileType,
+        };
+      }
+      const ov = packOverrides[it.id];
+      if (!ov) return it;
+      const baseIcons = getPackIconStates(it.id, packOverrides);
+      const thumbs = (ov.thumbnailIds && ov.thumbnailIds.length > 0
+        ? ov.thumbnailIds.map((tid) => baseIcons.find((b) => b.id === tid)).filter(Boolean) as PackIconState[]
+        : baseIcons.slice(0, 6));
+      return {
+        ...it,
+        name: ov.name ?? it.name,
+        iconCount: baseIcons.length,
+        thumbnailEmojis: thumbs.map((t) => t.emoji ?? "🖼️"),
+      };
+    });
+
   // 필터 적용
   merged = merged.filter((it) => {
     if (filter === "icon") return it.kind === "icon";
