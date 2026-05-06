@@ -59,6 +59,9 @@ export default function LibraryDetail() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
 
+  const isEmptyPreset = icons.length === 0;
+  const hasWallpaper = !!preset.thumbnail && preset.thumbnail !== "/placeholder.svg";
+
   const dirty = useMemo(
     () => icons.some((i, idx) => {
       const s = savedIcons[idx];
@@ -277,13 +280,31 @@ export default function LibraryDetail() {
               className={cn(
                 "relative w-full aspect-[16/10] rounded-2xl overflow-hidden border shadow-card bg-muted select-none",
                 editMode ? "border-primary/50 cursor-crosshair" : "border-border",
+                !hasWallpaper && "bg-gradient-to-br from-muted to-muted/40",
               )}
-              style={{
+              style={hasWallpaper ? {
                 backgroundImage: `url(${preset.thumbnail})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-              }}
+              } : undefined}
             >
+              {!hasWallpaper && (
+                <button
+                  type="button"
+                  onClick={() => toast("배경화면 업로드는 곧 지원됩니다.")}
+                  className="absolute inset-6 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <ImageIcon className="h-10 w-10" />
+                  <div className="text-sm font-semibold">배경화면 업로드</div>
+                  <div className="text-xs">PNG, JPG · 권장 1920×1080</div>
+                </button>
+              )}
+              {hasWallpaper && isEmptyPreset && editMode && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 rounded-full bg-background/85 backdrop-blur px-3 py-1 text-[11px] font-medium text-foreground shadow-card border border-border">
+                  <Plus className="h-3 w-3 text-primary" />
+                  우측 상단 "아이콘 추가"로 시작하세요
+                </div>
+              )}
               {editMode && snapToGrid && (
                 <div
                   className="absolute inset-0 pointer-events-none opacity-25"
@@ -346,6 +367,11 @@ export default function LibraryDetail() {
               </div>
               <CollapsibleContent>
                 <div className="mt-2 rounded-xl border border-border bg-card divide-y divide-border">
+                  {isEmptyPreset && (
+                    <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+                      아직 아이콘이 없습니다. 상단의 "아이콘 추가" 버튼으로 추가해 보세요.
+                    </div>
+                  )}
                   {icons.map((ic) => {
                     const px = toPx(ic.position.x, ic.position.y);
                     const isMoved = ic.position.x !== ic.originPos.x || ic.position.y !== ic.originPos.y;
