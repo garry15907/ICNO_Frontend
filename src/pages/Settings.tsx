@@ -22,7 +22,7 @@ export default function Settings() {
 
   return (
     <div className="grid grid-cols-[200px_1fr] gap-8 items-start">
-      <aside className="space-y-1 sticky top-6 self-start h-fit min-w-0 max-h-[calc(100vh-3rem)] overflow-y-auto scrollbar-thin">
+      <aside className="space-y-1 sticky top-20 self-start h-fit min-w-0 max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-thin">
         {sections.map((s) => (
           <a key={s.id} href={`#${s.id}`} className="block px-3 py-2 rounded-lg text-sm hover:bg-muted text-muted-foreground hover:text-foreground">
             {s.label}
