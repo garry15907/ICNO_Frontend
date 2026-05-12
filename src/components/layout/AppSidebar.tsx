@@ -18,8 +18,7 @@ const navItems = [
 export function AppSidebar() {
   const { pathname } = useLocation();
   const nav = useNavigate();
-  const { mode } = useSidebarMode();
-  const [hovered, setHovered] = useState(false);
+  const { mode, hovered, setHovered } = useSidebarMode();
   const { profile } = useProfile();
 
   const expanded =
