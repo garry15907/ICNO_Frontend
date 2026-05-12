@@ -19,15 +19,15 @@ const sections = [
 export default function Settings() {
   const { theme, setTheme } = useTheme();
   const { mode: sidebarMode, setMode: setSidebarMode } = useSidebarMode();
-  const sidebarWidth = sidebarMode === "expanded" ? 240 : 72;
+  const collapsedSidebarWidth = 72;
 
   return (
     <div className="grid grid-cols-[200px_minmax(0,1fr)] gap-8 items-start [--settings-page-x:1rem] sm:[--settings-page-x:1.5rem] lg:[--settings-page-x:2rem]">
       <aside
         style={{
-          left: `max(calc(${sidebarWidth}px + var(--settings-page-x)), calc(50vw + ${sidebarWidth / 2}px - 700px + var(--settings-page-x)))`,
+          left: `max(calc(${collapsedSidebarWidth}px + var(--settings-page-x)), calc(50vw + ${collapsedSidebarWidth / 2}px - 700px + var(--settings-page-x)))`,
         }}
-        className="fixed top-20 lg:top-[5.5rem] z-20 w-[200px] space-y-1 min-w-0 max-h-[calc(100vh-7.5rem)] overflow-y-auto scrollbar-thin"
+        className="fixed top-20 lg:top-[5.5rem] z-0 w-[200px] space-y-1 min-w-0 max-h-[calc(100vh-7.5rem)] overflow-y-auto scrollbar-thin"
       >
         {sections.map((s) => (
           <a key={s.id} href={`#${s.id}`} className="block px-3 py-2 rounded-lg text-sm hover:bg-muted text-muted-foreground hover:text-foreground">
