@@ -1,17 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { Plus, Compass, Library as LibIcon, Settings as SettingsIcon, Sparkles, Star, Download } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { libraryPresets, marketplacePresets, marketItems, downloadedIds } from "@/data/mockData";
 import { MarketItemCard } from "@/components/presets/PresetCard";
 import { useToast } from "@/hooks/use-toast";
 import { useWishlist } from "@/lib/wishlist";
-
-const quickActions = [
-  { icon: Plus, label: "새 프리셋 만들기", to: "/library", tone: "primary" },
-  { icon: Compass, label: "마켓 둘러보기", to: "/explore" },
-  { icon: LibIcon, label: "보관함 열기", to: "/library" },
-  { icon: SettingsIcon, label: "현재 프리셋 관리", to: "/library" },
-] as const;
 
 const Index = () => {
   const nav = useNavigate();
@@ -44,24 +37,6 @@ const Index = () => {
             </Button>
             <Button variant="outline" onClick={() => nav("/library")}>보관함 열기</Button>
           </div>
-        </div>
-      </section>
-
-      {/* Quick actions */}
-      <section>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {quickActions.map((q) => (
-            <button
-              key={q.label}
-              onClick={() => nav(q.to)}
-              className="group card-hover-surface flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left shadow-card hover:border-primary/40 hover:shadow-glow transition-[transform,box-shadow,border-color] duration-300"
-            >
-              <div className="h-11 w-11 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground shadow-glow">
-                <q.icon className="h-5 w-5" />
-              </div>
-              <div className="text-sm font-semibold">{q.label}</div>
-            </button>
-          ))}
         </div>
       </section>
 
