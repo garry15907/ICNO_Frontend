@@ -1,7 +1,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
 export type SidebarMode = "expanded" | "collapsed" | "hover";
-type Ctx = { mode: SidebarMode; setMode: (m: SidebarMode) => void };
+type Ctx = {
+  mode: SidebarMode;
+  setMode: (m: SidebarMode) => void;
+  hovered: boolean;
+  setHovered: (h: boolean) => void;
+};
 
 const SidebarModeCtx = createContext<Ctx | null>(null);
 
@@ -10,13 +15,14 @@ export function SidebarModeProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return "expanded";
     return (localStorage.getItem("icno-sidebar-mode") as SidebarMode) || "expanded";
   });
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("icno-sidebar-mode", mode);
   }, [mode]);
 
   return (
-    <SidebarModeCtx.Provider value={{ mode, setMode: setModeState }}>
+    <SidebarModeCtx.Provider value={{ mode, setMode: setModeState, hovered, setHovered }}>
       {children}
     </SidebarModeCtx.Provider>
   );
