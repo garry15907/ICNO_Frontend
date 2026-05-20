@@ -1,6 +1,5 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { Search, Upload, Minus, Square, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useLocation } from "react-router-dom";
+import { Search, Minus, Square, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const titleMap: Record<string, string> = {
@@ -20,7 +19,6 @@ const titleMap: Record<string, string> = {
 
 export function Topbar() {
   const { pathname } = useLocation();
-  const nav = useNavigate();
   const title = titleMap[pathname] ?? "ICNO";
 
   return (
@@ -34,10 +32,7 @@ export function Topbar() {
         />
       </div>
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-        <Button size="sm" className="bg-gradient-primary hover:opacity-90 text-primary-foreground px-2 sm:px-3" onClick={() => nav("/upload")}>
-          <Upload className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">업로드</span>
-        </Button>
-        <div className="flex items-center gap-0.5 sm:gap-1 ml-1 sm:ml-2 border-l border-border pl-1.5 sm:pl-3">
+        <div className="flex items-center gap-0.5 sm:gap-1">
           <button className="h-7 w-7 grid place-items-center rounded hover:bg-muted text-muted-foreground"><Minus className="h-3.5 w-3.5" /></button>
           <button className="h-7 w-7 grid place-items-center rounded hover:bg-muted text-muted-foreground"><Square className="h-3 w-3" /></button>
           <button className="h-7 w-7 grid place-items-center rounded hover:bg-destructive hover:text-destructive-foreground text-muted-foreground"><X className="h-3.5 w-3.5" /></button>
