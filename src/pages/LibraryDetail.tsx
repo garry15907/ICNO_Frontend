@@ -1020,28 +1020,271 @@ function PresetInfoDialog({
   );
 }
 
-function AddIconDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+function AddIconDialog({
+  open, onOpenChange, onAdd, existingIds,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onAdd: (icon: IconAsset) => void;
+  existingIds: string[];
+}) {
+  const [search, setSearch] = useState("");
+  const [uploadLabel, setUploadLabel] = useState("");
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const [uploadFileName, setUploadFileName] = useState<string>("");
+  const [uploadType, setUploadType] = useState<"PNG" | "SVG" | "ICO">("PNG");
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+
+  // 보관함에서 아이콘 추출 (중복 라벨 제거)
+  const libraryIcons = useMemo(() => {
+    const seen = new Set<string>();
+    const list: { presetName: string; icon: IconAsset }[] = [];
+    for (const p of libraryPresets) {
+      for (const i of p.icons) {
+        const key = `${i.label}-${i.emoji}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        list.push({ presetName: p.name, icon: i });
+      }
+    }
+    return list;
+  }, []);
+
+  const filteredLib = libraryIcons.filter((x) =>
+    search ? x.icon.label.toLowerCase().includes(search.toLowerCase()) : true,
+  );
+  const filteredMarketIcons = marketIcons.filter((x) =>
+    search ? x.name.toLowerCase().includes(search.toLowerCase()) : true,
+  );
+  const filteredPacks = marketIconPacks.filter((p) =>
+    search ? p.name.toLowerCase().includes(search.toLowerCase()) : true,
+  );
+
+  const makeUniqueId = (base: string) => {
+    let id = base;
+    let n = 1;
+    while (existingIds.includes(id)) {
+      id = `${base}-${n++}`;
+    }
+    return id;
+  };
+
+  const handleAddFromLibrary = (icon: IconAsset) => {
+    onAdd({
+      ...icon,
+      id: makeUniqueId(`${icon.id}-lib`),
+      position: { x: 0, y: 0 },
+    });
+  };
+
+  const handleAddFromMarket = (m: typeof marketIcons[number]) => {
+    onAdd({
+      id: makeUniqueId(m.id),
+      label: m.name,
+      emoji: m.emoji,
+      fileName: m.fileName,
+      fileType: m.fileType,
+      size: { w: 96, h: 96 },
+      position: { x: 0, y: 0 },
+    });
+  };
+
+  const handleAddPackIcon = (
+    packIcon: { id: string; label: string; emoji: string; fileName: string; fileType: "PNG" | "SVG" | "ICO" },
+  ) => {
+    onAdd({
+      id: makeUniqueId(packIcon.id),
+      label: packIcon.label,
+      emoji: packIcon.emoji,
+      fileName: packIcon.fileName,
+      fileType: packIcon.fileType,
+      size: { w: 96, h: 96 },
+      position: { x: 0, y: 0 },
+    });
+  };
+
+  const handleUploadPick = () => uploadInputRef.current?.click();
+  const handleUploadFile = (file: File | null | undefined) => {
+    if (!file) return;
+    const name = file.name;
+    const ext = name.split(".").pop()?.toUpperCase();
+    const type: "PNG" | "SVG" | "ICO" =
+      ext === "SVG" ? "SVG" : ext === "ICO" ? "ICO" : "PNG";
+    setUploadFileName(name);
+    setUploadType(type);
+    if (!uploadLabel) setUploadLabel(name.replace(/\.[^.]+$/, ""));
+    const reader = new FileReader();
+    reader.onload = () => setUploadPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+  const handleConfirmUpload = () => {
+    if (!uploadFileName) {
+      toast.error("파일을 선택해주세요.");
+      return;
+    }
+    onAdd({
+      id: makeUniqueId(`upload-${Date.now()}`),
+      label: uploadLabel || uploadFileName,
+      emoji: "🖼️",
+      fileName: uploadFileName,
+      fileType: uploadType,
+      size: { w: 96, h: 96 },
+      position: { x: 0, y: 0 },
+    });
+    setUploadLabel("");
+    setUploadPreview(null);
+    setUploadFileName("");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>아이콘 추가</DialogTitle>
           <DialogDescription>이 프리셋에 추가할 아이콘을 선택하세요.</DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="library">
+        <Tabs defaultValue="library" className="flex-1 min-h-0 flex flex-col">
           <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="library"><Package className="h-3.5 w-3.5 mr-1.5" />내 보관함</TabsTrigger>
             <TabsTrigger value="market"><Store className="h-3.5 w-3.5 mr-1.5" />마켓</TabsTrigger>
             <TabsTrigger value="upload"><UploadIcon className="h-3.5 w-3.5 mr-1.5" />업로드</TabsTrigger>
           </TabsList>
-          <TabsContent value="library" className="text-sm text-muted-foreground py-8 text-center">
-            보관함의 개별 아이콘과 아이콘 팩이 여기에 표시됩니다.
+
+          <TabsContent value="library" className="flex-1 min-h-0 mt-3">
+            <Input
+              placeholder="보관함 아이콘 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="mb-3"
+            />
+            <ScrollArea className="h-[420px] pr-3">
+              {filteredLib.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-10">
+                  표시할 아이콘이 없습니다.
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+                  {filteredLib.map((x, idx) => (
+                    <button
+                      key={`${x.icon.id}-${idx}`}
+                      onClick={() => handleAddFromLibrary(x.icon)}
+                      className="group rounded-xl border border-border bg-card hover:border-primary hover:shadow-md transition-all p-3 flex flex-col items-center gap-2"
+                    >
+                      <div className="text-4xl">{x.icon.emoji}</div>
+                      <div className="text-xs font-medium truncate w-full text-center">{x.icon.label}</div>
+                      <div className="text-[10px] text-muted-foreground truncate w-full text-center">{x.presetName}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
           </TabsContent>
-          <TabsContent value="market" className="text-sm text-muted-foreground py-8 text-center">
-            마켓에서 아이콘을 검색해 추가할 수 있습니다.
+
+          <TabsContent value="market" className="flex-1 min-h-0 mt-3">
+            <Input
+              placeholder="마켓 아이콘 · 팩 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="mb-3"
+            />
+            <ScrollArea className="h-[420px] pr-3 space-y-5">
+              {filteredMarketIcons.length > 0 && (
+                <div className="mb-5">
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">아이콘 단품</div>
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+                    {filteredMarketIcons.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => handleAddFromMarket(m)}
+                        className="group rounded-xl border border-border bg-card hover:border-primary hover:shadow-md transition-all p-3 flex flex-col items-center gap-2"
+                      >
+                        <div className="text-4xl">{m.emoji}</div>
+                        <div className="text-xs font-medium truncate w-full text-center">{m.name}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {m.price === 0 ? "무료" : `₩${m.price.toLocaleString()}`}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {filteredPacks.length > 0 && (
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">아이콘 팩</div>
+                  <div className="space-y-3">
+                    {filteredPacks.map((p) => (
+                      <div key={p.id} className="rounded-xl border border-border bg-card p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-semibold">{p.name}</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {p.price === 0 ? "무료" : `₩${p.price.toLocaleString()}`}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-6 gap-2">
+                          {p.icons.map((pi) => (
+                            <button
+                              key={pi.id}
+                              onClick={() => handleAddPackIcon(pi)}
+                              className="rounded-lg border border-border hover:border-primary p-2 flex flex-col items-center gap-1 transition-colors"
+                            >
+                              <div className="text-2xl">{pi.emoji}</div>
+                              <div className="text-[10px] truncate w-full text-center">{pi.label}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {filteredMarketIcons.length === 0 && filteredPacks.length === 0 && (
+                <div className="text-sm text-muted-foreground text-center py-10">
+                  검색 결과가 없습니다.
+                </div>
+              )}
+            </ScrollArea>
           </TabsContent>
-          <TabsContent value="upload" className="text-sm text-muted-foreground py-8 text-center">
-            내 PC에서 PNG, SVG, ICO 파일을 업로드하세요.
+
+          <TabsContent value="upload" className="flex-1 min-h-0 mt-3 space-y-4">
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept="image/png,image/svg+xml,image/x-icon,.ico"
+              className="hidden"
+              onChange={(e) => handleUploadFile(e.target.files?.[0])}
+            />
+            <div
+              onClick={handleUploadPick}
+              className="rounded-xl border-2 border-dashed border-border hover:border-primary bg-muted/40 p-8 grid place-items-center cursor-pointer transition-colors"
+            >
+              {uploadPreview ? (
+                <div className="flex flex-col items-center gap-2">
+                  <img src={uploadPreview} alt="preview" className="h-24 w-24 object-contain" />
+                  <div className="text-xs text-muted-foreground">{uploadFileName}</div>
+                  <div className="text-[11px] text-primary">다른 파일 선택</div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <UploadIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <div className="text-sm font-semibold">로컬 파일에서 선택</div>
+                  <div className="text-xs text-muted-foreground mt-1">PNG · SVG · ICO</div>
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="text-xs font-medium">아이콘 이름</label>
+              <Input
+                value={uploadLabel}
+                onChange={(e) => setUploadLabel(e.target.value)}
+                placeholder="예: 내 게임"
+                className="mt-1.5"
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={handleConfirmUpload} disabled={!uploadFileName}>
+                <Plus className="h-4 w-4 mr-1.5" />프리셋에 추가
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
       </DialogContent>
