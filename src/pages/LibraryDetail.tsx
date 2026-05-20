@@ -6,7 +6,7 @@ import {
   History, RotateCcw, Trash2, Download, FileText, Magnet, AlignJustify,
   Package, Store, Upload as UploadIcon, X, Sparkles, Maximize2,
 } from "lucide-react";
-import { libraryPresets, IconAsset } from "@/data/mockData";
+import { libraryPresets, marketIcons, marketIconPacks, IconAsset } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { IconEditModal } from "@/components/presets/IconEditModal";
 import { cn } from "@/lib/utils";
@@ -817,6 +819,18 @@ export default function LibraryDetail() {
         <AddIconDialog
           open={addIconOpen}
           onOpenChange={setAddIconOpen}
+          existingIds={icons.map((i) => i.id)}
+          onAdd={(newIcon) => {
+            // Find a free-ish position (simple grid placement)
+            const idx = icons.length;
+            const placed: EditableIcon = {
+              ...newIcon,
+              position: { x: 6 + (idx % 6) * 12, y: 8 + Math.floor(idx / 6) * 18 },
+              originPos: { x: 6 + (idx % 6) * 12, y: 8 + Math.floor(idx / 6) * 18 },
+            };
+            setIcons((prev) => [...prev, placed]);
+            toast.success(`${newIcon.label} 아이콘을 추가했습니다.`);
+          }}
         />
       </div>
     </TooltipProvider>
