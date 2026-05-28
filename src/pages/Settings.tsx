@@ -71,21 +71,6 @@ export default function Settings() {
           </Row>
         </Section>
 
-        <Section id="market" title="마켓 / 탐색">
-          <Row label="기본 정렬">
-            <Select defaultValue="인기순"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>{["인기순","최신순","다운로드순","평점순"].map(o=><SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
-          </Row>
-          <Row label="기본 무료/유료">
-            <Select defaultValue="전체"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>{["전체","무료","유료"].map(o=><SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
-          </Row>
-          <Row label="다운로드한 프리셋 자동 보관함 저장"><Switch defaultChecked /></Row>
-          <Row label="부적절한 콘텐츠 숨기기"><Switch defaultChecked /></Row>
-          <Row label="댓글 알림"><Switch defaultChecked /></Row>
-          <Row label="평점 알림"><Switch defaultChecked /></Row>
-        </Section>
-
         <Section id="library" title="보관함">
           <Row label="기본 정렬">
             <Select defaultValue="recent"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
