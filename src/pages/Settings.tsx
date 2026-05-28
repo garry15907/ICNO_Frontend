@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 
 const sections = [
   { id: "display", label: "화면" },
-  { id: "market", label: "마켓 / 탐색" },
   { id: "library", label: "보관함" },
   { id: "windows", label: "Windows 적용" },
   { id: "notif", label: "알림" },
