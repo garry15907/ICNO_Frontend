@@ -414,6 +414,19 @@ function FullscreenEditor({
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [dirty, setDirty] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (el && !document.fullscreenElement && el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    }
+    return () => {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+  }, []);
 
   const selected = items.find((i) => i.id === selectedId) ?? null;
 
@@ -516,7 +529,7 @@ function FullscreenEditor({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in">
+    <div ref={rootRef} className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in">
       <div className="h-12 border-b border-border/60 bg-card/80 backdrop-blur flex items-center px-4 gap-2 shrink-0">
         <div className="text-sm font-semibold">프리셋 편집</div>
         <div className="flex-1" />
