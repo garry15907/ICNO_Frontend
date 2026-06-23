@@ -215,11 +215,11 @@ export default function Upload() {
                     style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.width * 0.5, height: ic.height * 0.5 }}
                     className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 pointer-events-none"
                   >
-                    <div className="w-full h-full rounded-lg bg-background/80 backdrop-blur grid place-items-center overflow-hidden shadow-card">
-                      {a ? <img src={a.previewUrl} alt="" className="max-h-[80%] max-w-[80%] object-contain" /> : <ImageIcon className="h-4 w-4 text-muted-foreground" />}
+                    <div className="w-full h-full grid place-items-center">
+                      {a ? <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
                     </div>
                     {ic.showLabel && (
-                      <span className="text-[9px] text-white drop-shadow-lg max-w-[64px] truncate">{ic.label}</span>
+                      <span className="text-[9px] text-white max-w-[64px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{ic.label}</span>
                     )}
                   </div>
                 );
