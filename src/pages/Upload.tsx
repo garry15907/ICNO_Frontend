@@ -417,6 +417,8 @@ function FullscreenEditor({
   const [assetOpen, setAssetOpen] = useState<false | "wallpaper" | "icons" | "layout">(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [editIconOpen, setEditIconOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -425,10 +427,13 @@ function FullscreenEditor({
     if (el && !document.fullscreenElement && el.requestFullscreen) {
       el.requestFullscreen().catch(() => {});
     }
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
       if (document.fullscreenElement && document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
       }
+      document.body.style.overflow = prevOverflow;
     };
   }, []);
 
