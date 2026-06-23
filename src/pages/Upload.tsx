@@ -526,11 +526,20 @@ function FullscreenEditor({
         setSelectedId(null);
         setDirty(true);
       }
-      if (e.key === "Escape") setSelectedId(null);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (editIconOpen || assetOpen || confirmCancel) return;
+        if (selectedId) {
+          setSelectedId(null);
+        } else {
+          if (dirty) setConfirmCancel(true);
+          else onClose();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedId]);
+  }, [selectedId, dirty, editIconOpen, assetOpen, confirmCancel, onClose]);
 
   const tryClose = () => {
     if (dirty) setConfirmCancel(true);
