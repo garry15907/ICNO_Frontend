@@ -421,21 +421,37 @@ function FullscreenEditor({
   const [search, setSearch] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
 
   useEffect(() => {
     const el = rootRef.current;
     if (el && !document.fullscreenElement && el.requestFullscreen) {
-      el.requestFullscreen().catch(() => {});
+      el.requestFullscreen().then(() => setIsBrowserFullscreen(true)).catch(() => {});
     }
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onFsChange = () => setIsBrowserFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFsChange);
     return () => {
       if (document.fullscreenElement && document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
       }
       document.body.style.overflow = prevOverflow;
+      document.removeEventListener("fullscreenchange", onFsChange);
     };
   }, []);
+
+  const enterBrowserFullscreen = () => {
+    const el = rootRef.current;
+    if (el && !document.fullscreenElement && el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    }
+  };
+  const exitBrowserFullscreen = () => {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
 
   const selected = items.find((i) => i.id === selectedId) ?? null;
 
@@ -495,17 +511,26 @@ function FullscreenEditor({
   };
 
   const dragRef = useRef<{ id: string; offX: number; offY: number } | null>(null);
+  const pressRef = useRef<{ id: string; startX: number; startY: number; moved: boolean } | null>(null);
+  const DRAG_THRESHOLD = 4;
   const onPointerDown = (e: ReactPointerEvent, ic: PlacedIcon) => {
     e.stopPropagation();
-    setSelectedId(ic.id);
     const rect = canvasRef.current!.getBoundingClientRect();
     const px = (ic.x / 100) * rect.width;
     const py = (ic.y / 100) * rect.height;
     dragRef.current = { id: ic.id, offX: e.clientX - rect.left - px, offY: e.clientY - rect.top - py };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    pressRef.current = { id: ic.id, startX: e.clientX, startY: e.clientY, moved: false };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e: ReactPointerEvent) => {
     if (!dragRef.current) return;
+    if (pressRef.current && !pressRef.current.moved) {
+      const dx = e.clientX - pressRef.current.startX;
+      const dy = e.clientY - pressRef.current.startY;
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      pressRef.current.moved = true;
+      setSelectedId(dragRef.current.id);
+    }
     const rect = canvasRef.current!.getBoundingClientRect();
     let x = ((e.clientX - rect.left - dragRef.current.offX) / rect.width) * 100;
     let y = ((e.clientY - rect.top - dragRef.current.offY) / rect.height) * 100;
@@ -517,7 +542,14 @@ function FullscreenEditor({
     y = Math.max(0, Math.min(100, y));
     update(dragRef.current.id, { x, y });
   };
-  const onPointerUp = () => { dragRef.current = null; };
+  const onPointerUp = (e: ReactPointerEvent) => {
+    if (pressRef.current && !pressRef.current.moved) {
+      // treat as click → select
+      setSelectedId(pressRef.current.id);
+    }
+    dragRef.current = null;
+    pressRef.current = null;
+  };
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -577,12 +609,36 @@ function FullscreenEditor({
           <ToolbarBtn icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setSelectedId(null)}>미리보기</ToolbarBtn>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {isBrowserFullscreen ? (
+            <ToolbarBtn icon={<Maximize2 className="h-3.5 w-3.5" />} onClick={exitBrowserFullscreen}>전체화면 나가기</ToolbarBtn>
+          ) : (
+            <button
+              onClick={enterBrowserFullscreen}
+              className="h-8 px-3 rounded-md text-xs flex items-center gap-1.5 bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25"
+            >
+              <Maximize2 className="h-3.5 w-3.5" /> 전체화면으로 보기
+            </button>
+          )}
           <Button size="sm" variant="ghost" className="h-8" onClick={tryClose}>취소</Button>
           <Button size="sm" className="h-8 bg-primary hover:bg-primary/90" onClick={() => onSave(items)}>
             <Save className="h-3.5 w-3.5" /> 저장하고 나가기
           </Button>
         </div>
       </div>
+
+      {!isBrowserFullscreen && (
+        <div className="px-4 py-2 bg-primary/10 border-b border-primary/20 flex items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-primary/90">
+            전체화면이 해제되었습니다. 다시 전체화면으로 편집할 수 있습니다.
+          </div>
+          <button
+            onClick={enterBrowserFullscreen}
+            className="h-7 px-3 rounded-md text-[11px] flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Maximize2 className="h-3 w-3" /> 전체화면으로 보기
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 relative bg-black overflow-hidden" onClick={() => setSelectedId(null)}>
@@ -614,17 +670,27 @@ function FullscreenEditor({
                 <div
                   key={ic.id}
                   onPointerDown={(e) => onPointerDown(e, ic)}
+                  onClick={(e) => e.stopPropagation()}
                   style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.width, height: ic.height }}
-                  className={cn(
-                    "absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none",
-                    isSel && "ring-2 ring-primary rounded-xl",
-                  )}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
                 >
-                  <div className="w-full h-full rounded-xl bg-background/80 backdrop-blur grid place-items-center overflow-hidden shadow-card">
-                    {a ? <img src={a.previewUrl} alt="" className="max-h-[80%] max-w-[80%] object-contain pointer-events-none" /> : <ImageIcon className="h-5 w-5 text-muted-foreground" />}
+                  <div className="relative w-full h-full grid place-items-center">
+                    {a ? (
+                      <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain pointer-events-none" />
+                    ) : (
+                      <ImageIcon className="h-5 w-5 text-white/70 drop-shadow" />
+                    )}
+                    {isSel && (
+                      <>
+                        <span className="absolute -top-1 -left-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                        <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                        <span className="absolute -bottom-1 -left-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                        <span className="absolute -bottom-1 -right-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                      </>
+                    )}
                   </div>
                   {ic.showLabel && (
-                    <span className="text-[11px] text-white drop-shadow-lg max-w-[100px] truncate">{ic.label}</span>
+                    <span className="text-[11px] text-white max-w-[100px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{ic.label}</span>
                   )}
                 </div>
               );
