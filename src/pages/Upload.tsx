@@ -546,29 +546,42 @@ function FullscreenEditor({
     else onClose();
   };
 
-  return (
-    <div ref={rootRef} className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in">
-      <div className="h-12 border-b border-border/60 bg-card/80 backdrop-blur flex items-center px-4 gap-2 shrink-0">
-        <div className="text-sm font-semibold">프리셋 편집</div>
-        <div className="flex-1" />
-        <ToolbarBtn icon={<ImagePlus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("wallpaper")}>배경화면 변경</ToolbarBtn>
-        <ToolbarBtn icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("icons")}>아이콘 추가</ToolbarBtn>
-        <ToolbarBtn icon={<FolderOpen className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("layout")}>자산 불러오기</ToolbarBtn>
-        <button
-          onClick={() => setGrid((g) => !g)}
-          className={cn(
-            "h-8 px-2.5 rounded-md text-xs flex items-center gap-1.5 border",
-            grid ? "bg-primary/15 text-primary border-primary/30" : "bg-background border-border text-muted-foreground",
-          )}
-        >
-          <Grid3x3 className="h-3.5 w-3.5" /> 그리드 스냅 {grid ? "ON" : "OFF"}
-        </button>
-        <ToolbarBtn icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setSelectedId(null)}>미리보기</ToolbarBtn>
-        <div className="w-px h-6 bg-border mx-1" />
-        <Button size="sm" variant="ghost" className="h-8" onClick={tryClose}>취소</Button>
-        <Button size="sm" className="h-8 bg-primary hover:bg-primary/90" onClick={() => onSave(items)}>
-          <Save className="h-3.5 w-3.5" /> 저장하고 나가기
-        </Button>
+  const content = (
+    <div ref={rootRef} className="fixed inset-0 z-[100] bg-background flex flex-col animate-fade-in">
+      <div className="h-14 border-b border-border/60 bg-card/80 backdrop-blur flex items-center px-4 gap-3 shrink-0">
+        <div className="text-sm font-semibold shrink-0 flex items-center gap-2">
+          <Pencil className="h-3.5 w-3.5 text-primary" /> 프리셋 편집
+        </div>
+        <div className="flex-1 flex items-center justify-center gap-2">
+          <div className="relative w-64 max-w-full">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="프리셋 크리에이터 태그 검색"
+              className="h-8 pl-8 text-xs bg-background/60"
+            />
+          </div>
+          <ToolbarBtn icon={<ImagePlus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("wallpaper")}>배경화면 변경</ToolbarBtn>
+          <ToolbarBtn icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("icons")}>아이콘 추가</ToolbarBtn>
+          <ToolbarBtn icon={<FolderOpen className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("layout")}>자산 불러오기</ToolbarBtn>
+          <button
+            onClick={() => setGrid((g) => !g)}
+            className={cn(
+              "h-8 px-2.5 rounded-md text-xs flex items-center gap-1.5 border",
+              grid ? "bg-primary/15 text-primary border-primary/30" : "bg-background border-border text-muted-foreground",
+            )}
+          >
+            <Grid3x3 className="h-3.5 w-3.5" /> 그리드 스냅 {grid ? "ON" : "OFF"}
+          </button>
+          <ToolbarBtn icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setSelectedId(null)}>미리보기</ToolbarBtn>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button size="sm" variant="ghost" className="h-8" onClick={tryClose}>취소</Button>
+          <Button size="sm" className="h-8 bg-primary hover:bg-primary/90" onClick={() => onSave(items)}>
+            <Save className="h-3.5 w-3.5" /> 저장하고 나가기
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 flex min-h-0">
@@ -637,10 +650,6 @@ function FullscreenEditor({
                 <Label className="text-[11px]">아이콘 이름</Label>
                 <Input className="mt-1 h-8 text-xs" value={selected.label} onChange={(e) => update(selected.id, { label: e.target.value })} />
               </div>
-              <div>
-                <Label className="text-[11px]">연결된 파일</Label>
-                <div className="mt-1 text-xs text-muted-foreground truncate">{selected.fileName}</div>
-              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-[11px]">X (%)</Label>
@@ -660,6 +669,9 @@ function FullscreenEditor({
                 <Label className="text-xs">라벨 표시</Label>
                 <Switch checked={selected.showLabel} onCheckedChange={(v) => update(selected.id, { showLabel: v })} />
               </div>
+              <Button variant="outline" className="w-full" onClick={() => setEditIconOpen(true)}>
+                <Pencil className="h-3.5 w-3.5" /> 상세 편집
+              </Button>
               <Button
                 variant="outline"
                 className="w-full text-destructive hover:text-destructive"
@@ -701,8 +713,22 @@ function FullscreenEditor({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {editIconOpen && selected && (
+        <IconDetailEditModal
+          icon={selected}
+          asset={iconAssets.find((x) => x.id === selected.assetId) ?? null}
+          iconAssets={iconAssets}
+          onPickAsset={(assetId) => update(selected.id, { assetId })}
+          onAddIcons={onAddIcons}
+          onSave={(patch) => { update(selected.id, patch); setEditIconOpen(false); }}
+          onClose={() => setEditIconOpen(false)}
+        />
+      )}
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(content, document.body) : content;
 }
 
 function ToolbarBtn({ icon, children, onClick }: { icon: React.ReactNode; children: React.ReactNode; onClick: () => void }) {
