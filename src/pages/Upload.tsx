@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +35,8 @@ import {
   Eye,
   Save,
   ImagePlus,
+  Search,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -413,6 +417,8 @@ function FullscreenEditor({
   const [assetOpen, setAssetOpen] = useState<false | "wallpaper" | "icons" | "layout">(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [editIconOpen, setEditIconOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -421,10 +427,13 @@ function FullscreenEditor({
     if (el && !document.fullscreenElement && el.requestFullscreen) {
       el.requestFullscreen().catch(() => {});
     }
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
       if (document.fullscreenElement && document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
       }
+      document.body.style.overflow = prevOverflow;
     };
   }, []);
 
@@ -517,40 +526,62 @@ function FullscreenEditor({
         setSelectedId(null);
         setDirty(true);
       }
-      if (e.key === "Escape") setSelectedId(null);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (editIconOpen || assetOpen || confirmCancel) return;
+        if (selectedId) {
+          setSelectedId(null);
+        } else {
+          if (dirty) setConfirmCancel(true);
+          else onClose();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedId]);
+  }, [selectedId, dirty, editIconOpen, assetOpen, confirmCancel, onClose]);
 
   const tryClose = () => {
     if (dirty) setConfirmCancel(true);
     else onClose();
   };
 
-  return (
-    <div ref={rootRef} className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in">
-      <div className="h-12 border-b border-border/60 bg-card/80 backdrop-blur flex items-center px-4 gap-2 shrink-0">
-        <div className="text-sm font-semibold">프리셋 편집</div>
-        <div className="flex-1" />
-        <ToolbarBtn icon={<ImagePlus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("wallpaper")}>배경화면 변경</ToolbarBtn>
-        <ToolbarBtn icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("icons")}>아이콘 추가</ToolbarBtn>
-        <ToolbarBtn icon={<FolderOpen className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("layout")}>자산 불러오기</ToolbarBtn>
-        <button
-          onClick={() => setGrid((g) => !g)}
-          className={cn(
-            "h-8 px-2.5 rounded-md text-xs flex items-center gap-1.5 border",
-            grid ? "bg-primary/15 text-primary border-primary/30" : "bg-background border-border text-muted-foreground",
-          )}
-        >
-          <Grid3x3 className="h-3.5 w-3.5" /> 그리드 스냅 {grid ? "ON" : "OFF"}
-        </button>
-        <ToolbarBtn icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setSelectedId(null)}>미리보기</ToolbarBtn>
-        <div className="w-px h-6 bg-border mx-1" />
-        <Button size="sm" variant="ghost" className="h-8" onClick={tryClose}>취소</Button>
-        <Button size="sm" className="h-8 bg-primary hover:bg-primary/90" onClick={() => onSave(items)}>
-          <Save className="h-3.5 w-3.5" /> 저장하고 나가기
-        </Button>
+  const content = (
+    <div ref={rootRef} className="fixed inset-0 z-[100] bg-background flex flex-col animate-fade-in">
+      <div className="h-14 border-b border-border/60 bg-card/80 backdrop-blur flex items-center px-4 gap-3 shrink-0">
+        <div className="text-sm font-semibold shrink-0 flex items-center gap-2">
+          <Pencil className="h-3.5 w-3.5 text-primary" /> 프리셋 편집
+        </div>
+        <div className="flex-1 flex items-center justify-center gap-2">
+          <div className="relative w-64 max-w-full">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="프리셋 크리에이터 태그 검색"
+              className="h-8 pl-8 text-xs bg-background/60"
+            />
+          </div>
+          <ToolbarBtn icon={<ImagePlus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("wallpaper")}>배경화면 변경</ToolbarBtn>
+          <ToolbarBtn icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("icons")}>아이콘 추가</ToolbarBtn>
+          <ToolbarBtn icon={<FolderOpen className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("layout")}>자산 불러오기</ToolbarBtn>
+          <button
+            onClick={() => setGrid((g) => !g)}
+            className={cn(
+              "h-8 px-2.5 rounded-md text-xs flex items-center gap-1.5 border",
+              grid ? "bg-primary/15 text-primary border-primary/30" : "bg-background border-border text-muted-foreground",
+            )}
+          >
+            <Grid3x3 className="h-3.5 w-3.5" /> 그리드 스냅 {grid ? "ON" : "OFF"}
+          </button>
+          <ToolbarBtn icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setSelectedId(null)}>미리보기</ToolbarBtn>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button size="sm" variant="ghost" className="h-8" onClick={tryClose}>취소</Button>
+          <Button size="sm" className="h-8 bg-primary hover:bg-primary/90" onClick={() => onSave(items)}>
+            <Save className="h-3.5 w-3.5" /> 저장하고 나가기
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 flex min-h-0">
@@ -619,10 +650,6 @@ function FullscreenEditor({
                 <Label className="text-[11px]">아이콘 이름</Label>
                 <Input className="mt-1 h-8 text-xs" value={selected.label} onChange={(e) => update(selected.id, { label: e.target.value })} />
               </div>
-              <div>
-                <Label className="text-[11px]">연결된 파일</Label>
-                <div className="mt-1 text-xs text-muted-foreground truncate">{selected.fileName}</div>
-              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-[11px]">X (%)</Label>
@@ -642,6 +669,9 @@ function FullscreenEditor({
                 <Label className="text-xs">라벨 표시</Label>
                 <Switch checked={selected.showLabel} onCheckedChange={(v) => update(selected.id, { showLabel: v })} />
               </div>
+              <Button variant="outline" className="w-full" onClick={() => setEditIconOpen(true)}>
+                <Pencil className="h-3.5 w-3.5" /> 상세 편집
+              </Button>
               <Button
                 variant="outline"
                 className="w-full text-destructive hover:text-destructive"
@@ -683,8 +713,22 @@ function FullscreenEditor({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {editIconOpen && selected && (
+        <IconDetailEditModal
+          icon={selected}
+          asset={iconAssets.find((x) => x.id === selected.assetId) ?? null}
+          iconAssets={iconAssets}
+          onPickAsset={(assetId) => update(selected.id, { assetId })}
+          onAddIcons={onAddIcons}
+          onSave={(patch) => { update(selected.id, patch); setEditIconOpen(false); }}
+          onClose={() => setEditIconOpen(false)}
+        />
+      )}
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(content, document.body) : content;
 }
 
 function ToolbarBtn({ icon, children, onClick }: { icon: React.ReactNode; children: React.ReactNode; onClick: () => void }) {
@@ -815,5 +859,213 @@ function AssetModal({
         </Tabs>
       </div>
     </div>
+  );
+}
+
+// =====================================================================
+// Icon Detail Edit Modal
+// =====================================================================
+
+const FONTS = [
+  { value: "pretendard", label: "Pretendard" },
+  { value: "noto", label: "Noto Sans KR" },
+  { value: "inter", label: "Inter" },
+  { value: "system", label: "System" },
+];
+const COLORS = ["#ffffff", "#000000", "#a78bfa", "#60a5fa", "#34d399", "#fbbf24", "#f87171", "#ec4899"];
+
+function IconDetailEditModal({
+  icon,
+  asset,
+  iconAssets,
+  onPickAsset,
+  onAddIcons,
+  onSave,
+  onClose,
+}: {
+  icon: PlacedIcon;
+  asset: IconAsset | null;
+  iconAssets: IconAsset[];
+  onPickAsset: (assetId: string) => void;
+  onAddIcons: (f: FileList | File[]) => void;
+  onSave: (patch: Partial<PlacedIcon>) => void;
+  onClose: () => void;
+}) {
+  const [label, setLabel] = useState(icon.label);
+  const [size, setSize] = useState(icon.width);
+  const [showLabel, setShowLabel] = useState(icon.showLabel);
+  const [assetId, setAssetId] = useState(icon.assetId);
+  const [font, setFont] = useState("pretendard");
+  const [fontSize, setFontSize] = useState(12);
+  const [textColor, setTextColor] = useState("#ffffff");
+  const [strokeColor, setStrokeColor] = useState("#000000");
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const previewAsset = iconAssets.find((a) => a.id === assetId) ?? asset;
+
+  const handleSave = () => {
+    onPickAsset(assetId);
+    onSave({ label, width: size, height: size, showLabel });
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm grid place-items-center p-6" onClick={onClose}>
+      <div
+        className="w-full max-w-3xl bg-card border border-border/60 rounded-2xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-4 border-b border-border/60">
+          <div className="text-base font-semibold">아이콘 수정</div>
+          <div className="text-xs text-muted-foreground mt-0.5">선택한 아이콘 설정 변경</div>
+        </div>
+
+        <div className="grid grid-cols-[1fr_280px] gap-0 max-h-[70vh]">
+          {/* Form */}
+          <div className="p-6 space-y-5 overflow-y-auto scrollbar-thin">
+            <div>
+              <Label className="text-xs">아이콘 이름</Label>
+              <Input className="mt-1.5" value={label} onChange={(e) => setLabel(e.target.value)} />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label className="text-xs">커스텀 이미지 선택</Label>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  multiple
+                  accept=".png,.svg,.ico"
+                  className="hidden"
+                  onChange={(e) => e.target.files && onAddIcons(e.target.files)}
+                />
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => fileInput.current?.click()}>
+                  <UploadIcon className="h-3 w-3" /> 업로드
+                </Button>
+              </div>
+              {iconAssets.length > 0 ? (
+                <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1">
+                  {iconAssets.map((a) => (
+                    <button
+                      key={a.id}
+                      onClick={() => setAssetId(a.id)}
+                      className={cn(
+                        "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden transition-all",
+                        assetId === a.id ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
+                      )}
+                    >
+                      <img src={a.previewUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
+                  업로드된 이미지가 없습니다.
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label className="text-xs">아이콘 크기</Label>
+                <span className="text-xs text-muted-foreground">{size}px</span>
+              </div>
+              <Slider value={[size]} min={40} max={512} step={1} onValueChange={(v) => setSize(v[0])} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">이름 표시</Label>
+              <Switch checked={showLabel} onCheckedChange={setShowLabel} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">폰트</Label>
+                <Select value={font} onValueChange={setFont}>
+                  <SelectTrigger className="mt-1.5 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {FONTS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label className="text-xs">폰트 크기</Label>
+                  <span className="text-xs text-muted-foreground">{fontSize}px</span>
+                </div>
+                <Slider value={[fontSize]} min={8} max={28} step={1} onValueChange={(v) => setFontSize(v[0])} />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">글자색</Label>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setTextColor(c)}
+                    style={{ background: c }}
+                    className={cn(
+                      "h-7 w-7 rounded-md border-2 transition-all",
+                      textColor === c ? "border-primary scale-110" : "border-border/40",
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">외곽선색</Label>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setStrokeColor(c)}
+                    style={{ background: c }}
+                    className={cn(
+                      "h-7 w-7 rounded-md border-2 transition-all",
+                      strokeColor === c ? "border-primary scale-110" : "border-border/40",
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div className="border-l border-border/60 bg-muted/20 p-6 flex flex-col items-center justify-center">
+            <div className="text-[11px] text-muted-foreground mb-4 uppercase tracking-wider">미리보기</div>
+            <div
+              className="rounded-xl bg-background/60 border border-border/40 grid place-items-center overflow-hidden shadow-card"
+              style={{ width: Math.min(size, 180), height: Math.min(size, 180) }}
+            >
+              {previewAsset ? (
+                <img src={previewAsset.previewUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
+              ) : (
+                <ImageIcon className="h-10 w-10 text-muted-foreground" />
+              )}
+            </div>
+            {showLabel && (
+              <div
+                className="mt-3 text-center max-w-[200px] truncate"
+                style={{
+                  fontFamily: font,
+                  fontSize: `${fontSize}px`,
+                  color: textColor,
+                  WebkitTextStroke: `0.5px ${strokeColor}`,
+                }}
+              >
+                {label || "아이콘 이름"}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-border/60">
+          <Button variant="ghost" onClick={onClose}>취소</Button>
+          <Button className="bg-primary hover:bg-primary/90" onClick={handleSave}>수정 완료</Button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
