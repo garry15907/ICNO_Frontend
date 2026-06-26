@@ -53,7 +53,9 @@ type PlacedIcon = {
   name: string;
   image_path: string;
   target_path: string;
-  x: number; // canvas-relative percent (0~100); exported as px on save
+  // Pixel coordinates in the desktop canvas reference frame
+  // (matches icons_config.json — NOT a percentage).
+  x: number;
   y: number;
   size: number; // px
   show_name: boolean;
@@ -89,8 +91,8 @@ function normalizeIcon(raw: any, i = 0): PlacedIcon {
     name: raw?.name ?? raw?.label ?? `아이콘 ${i + 1}`,
     image_path: raw?.image_path ?? "",
     target_path: raw?.target_path ?? "",
-    x: Number(raw?.x) || 5,
-    y: Number(raw?.y) || 5,
+    x: Number.isFinite(Number(raw?.x)) ? Math.round(Number(raw?.x)) : 100,
+    y: Number.isFinite(Number(raw?.y)) ? Math.round(Number(raw?.y)) : 100,
     size: Number(raw?.size ?? raw?.width) || 72,
     show_name: raw?.show_name ?? raw?.showLabel ?? true,
     font_family: raw?.font_family ?? "맑은 고딕",
@@ -125,6 +127,12 @@ function extOf(name: string) {
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+// Reference desktop canvas size used by icons_config.json pixel coordinates.
+// Editor & previews scale visually around this logical resolution but the
+// stored x/y values remain pixels in this coordinate space.
+const CANVAS_W = 1920;
+const CANVAS_H = 1080;
 
 export default function Upload() {
   const { toast } = useToast();
@@ -200,6 +208,22 @@ export default function Upload() {
     return m;
   }, [iconAssets]);
 
+  // Scale logical 1920x1080 canvas to fit the small preview box.
+  const previewBoxRef = useRef<HTMLButtonElement>(null);
+  const [previewScale, setPreviewScale] = useState(0.25);
+  useEffect(() => {
+    const el = previewBoxRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      if (w > 0) setPreviewScale(w / CANVAS_W);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -242,6 +266,7 @@ export default function Upload() {
               </button>
             </div>
             <button
+              ref={previewBoxRef}
               onClick={() => setEditorOpen(true)}
               className="relative w-full aspect-[16/10] rounded-xl overflow-hidden border border-border bg-muted group cursor-pointer"
             >
@@ -256,23 +281,35 @@ export default function Upload() {
                   </div>
                 </div>
               )}
-              {wallpaper && placed.map((ic) => {
-                const a = assetById.get(ic.assetId);
-                return (
-                  <div
-                    key={ic.id}
-                    style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.size * 0.5, height: ic.size * 0.5 }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 pointer-events-none"
-                  >
-                    <div className="w-full h-full grid place-items-center">
-                      {a ? <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
-                    </div>
-                    {ic.show_name && (
-                      <span className="text-[9px] text-white max-w-[64px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{ic.name}</span>
-                    )}
-                  </div>
-                );
-              })}
+              {wallpaper && (
+                <div
+                  className="absolute top-0 left-0 pointer-events-none"
+                  style={{
+                    width: CANVAS_W,
+                    height: CANVAS_H,
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: "top left",
+                  }}
+                >
+                  {placed.map((ic) => {
+                    const a = assetById.get(ic.assetId);
+                    return (
+                      <div
+                        key={ic.id}
+                        style={{ left: `${ic.x}px`, top: `${ic.y}px`, width: `${ic.size}px`, height: `${ic.size}px` }}
+                        className="absolute flex flex-col items-center gap-1"
+                      >
+                        <div className="w-full h-full grid place-items-center">
+                          {a ? <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
+                        </div>
+                        {ic.show_name && (
+                          <span className="text-white max-w-[180px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)", fontSize: `${ic.font_size}px`, fontFamily: ic.font_family }}>{ic.name}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors grid place-items-center opacity-0 group-hover:opacity-100">
                 <div className="bg-background/90 rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5">
                   <Maximize2 className="h-3.5 w-3.5" /> 클릭해서 편집 모드 열기
@@ -470,6 +507,8 @@ function FullscreenEditor({
   const [search, setSearch] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageScale, setStageScale] = useState(1);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
   // Tracks whether we need to re-enter fullscreen after a native file picker
   // closes. Browsers exit fullscreen when <input type=file> opens.
@@ -491,6 +530,23 @@ function FullscreenEditor({
       document.body.style.overflow = prevOverflow;
       document.removeEventListener("fullscreenchange", onFsChange);
     };
+  }, []);
+
+  // Fit the logical 1920x1080 canvas inside the editor stage.
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w > 0 && h > 0) {
+        setStageScale(Math.min(w / CANVAS_W, h / CANVAS_H));
+      }
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   const enterBrowserFullscreen = () => {
@@ -536,8 +592,12 @@ function FullscreenEditor({
 
   const addToCanvas = (asset: IconAsset) => {
     const n = items.length;
-    const x = 5 + ((n % 10) * 8);
-    const y = 8 + (Math.floor(n / 10) * 14);
+    // Place new icons on a px grid in the logical desktop canvas.
+    const cols = 10;
+    const cellW = 140;
+    const cellH = 160;
+    const x = 80 + (n % cols) * cellW;
+    const y = 80 + Math.floor(n / cols) * cellH;
     const next: PlacedIcon = normalizeIcon({
       assetId: asset.id,
       fileName: asset.file.name,
@@ -577,39 +637,45 @@ function FullscreenEditor({
   const dragRef = useRef<{ id: string; offX: number; offY: number } | null>(null);
   const pressRef = useRef<{ id: string; startX: number; startY: number; moved: boolean } | null>(null);
   const DRAG_THRESHOLD = 4;
+  // Pixel-based dragging in the logical 1920x1080 canvas frame.
+  // No percent conversions. Grid snap is only applied on pointer-up when ON.
+  const GRID_PX = 20;
   const onPointerDown = (e: ReactPointerEvent, ic: PlacedIcon) => {
     e.stopPropagation();
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const px = (ic.x / 100) * rect.width;
-    const py = (ic.y / 100) * rect.height;
-    dragRef.current = { id: ic.id, offX: e.clientX - rect.left - px, offY: e.clientY - rect.top - py };
+    dragRef.current = {
+      id: ic.id,
+      // Store icon origin px and starting mouse px; we'll add raw deltas / scale.
+      offX: ic.x,
+      offY: ic.y,
+    };
     pressRef.current = { id: ic.id, startX: e.clientX, startY: e.clientY, moved: false };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e: ReactPointerEvent) => {
-    if (!dragRef.current) return;
-    if (pressRef.current && !pressRef.current.moved) {
-      const dx = e.clientX - pressRef.current.startX;
-      const dy = e.clientY - pressRef.current.startY;
-      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    if (!dragRef.current || !pressRef.current) return;
+    const dxScreen = e.clientX - pressRef.current.startX;
+    const dyScreen = e.clientY - pressRef.current.startY;
+    if (!pressRef.current.moved) {
+      if (Math.hypot(dxScreen, dyScreen) < DRAG_THRESHOLD) return;
       pressRef.current.moved = true;
       setSelectedId(dragRef.current.id);
     }
-    const rect = canvasRef.current!.getBoundingClientRect();
-    let x = ((e.clientX - rect.left - dragRef.current.offX) / rect.width) * 100;
-    let y = ((e.clientY - rect.top - dragRef.current.offY) / rect.height) * 100;
-    if (grid) {
-      x = Math.round(x / 2) * 2;
-      y = Math.round(y / 2) * 2;
-    }
-    x = Math.max(0, Math.min(100, x));
-    y = Math.max(0, Math.min(100, y));
+    const scale = stageScale || 1;
+    const x = Math.max(0, Math.min(CANVAS_W, Math.round(dragRef.current.offX + dxScreen / scale)));
+    const y = Math.max(0, Math.min(CANVAS_H, Math.round(dragRef.current.offY + dyScreen / scale)));
     update(dragRef.current.id, { x, y });
   };
-  const onPointerUp = (e: ReactPointerEvent) => {
+  const onPointerUp = (_e: ReactPointerEvent) => {
     if (pressRef.current && !pressRef.current.moved) {
-      // treat as click → select
       setSelectedId(pressRef.current.id);
+    } else if (dragRef.current && grid) {
+      // Snap to nearest grid cell on release when grid snap is ON.
+      const id = dragRef.current.id;
+      setItems((arr) => arr.map((it) => it.id === id ? {
+        ...it,
+        x: Math.round(it.x / GRID_PX) * GRID_PX,
+        y: Math.round(it.y / GRID_PX) * GRID_PX,
+      } : it));
     }
     dragRef.current = null;
     pressRef.current = null;
@@ -705,10 +771,8 @@ function FullscreenEditor({
       )}
 
       <div className="flex-1 flex min-h-0">
-        <div className="flex-1 relative bg-black overflow-hidden" onClick={() => setSelectedId(null)}>
-          {wallpaper ? (
-            <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          ) : (
+        <div ref={stageRef} className="flex-1 relative bg-black overflow-hidden grid place-items-center" onClick={() => setSelectedId(null)}>
+          {!wallpaper && (
             <div className="absolute inset-0 grid place-items-center text-muted-foreground">
               <div className="text-center">
                 <Monitor className="h-12 w-12 mx-auto mb-3 opacity-40" />
@@ -716,17 +780,32 @@ function FullscreenEditor({
               </div>
             </div>
           )}
-          {grid && (
-            <div
-              className="absolute inset-0 pointer-events-none opacity-20"
-              style={{
-                backgroundImage:
-                  "linear-gradient(to right, hsl(var(--primary) / 0.3) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--primary) / 0.3) 1px, transparent 1px)",
-                backgroundSize: "5% 5%",
-              }}
-            />
-          )}
-          <div ref={canvasRef} className="absolute inset-0" onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
+          {/* Logical 1920x1080 stage, scaled to fit the editor area. */}
+          <div
+            ref={canvasRef}
+            className="relative"
+            style={{
+              width: CANVAS_W,
+              height: CANVAS_H,
+              transform: `scale(${stageScale})`,
+              transformOrigin: "center center",
+            }}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+          >
+            {wallpaper && (
+              <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+            )}
+            {grid && (
+              <div
+                className="absolute inset-0 pointer-events-none opacity-20"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(to right, hsl(var(--primary) / 0.3) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--primary) / 0.3) 1px, transparent 1px)",
+                  backgroundSize: `${20}px ${20}px`,
+                }}
+              />
+            )}
             {items.map((ic) => {
               const a = iconAssets.find((x) => x.id === ic.assetId);
               const isSel = ic.id === selectedId;
@@ -735,8 +814,8 @@ function FullscreenEditor({
                   key={ic.id}
                   onPointerDown={(e) => onPointerDown(e, ic)}
                   onClick={(e) => e.stopPropagation()}
-                  style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.size, height: ic.size }}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
+                  style={{ left: `${ic.x}px`, top: `${ic.y}px`, width: `${ic.size}px`, height: `${ic.size}px` }}
+                  className="absolute flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
                 >
                   <div className="relative w-full h-full grid place-items-center">
                     {a ? (
@@ -795,12 +874,12 @@ function FullscreenEditor({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-[11px]">X (%)</Label>
-                  <Input type="number" className="mt-1 h-8 text-xs" value={Math.round(selected.x)} onChange={(e) => update(selected.id, { x: Number(e.target.value) })} />
+                  <Label className="text-[11px]">X (px)</Label>
+                  <Input type="number" className="mt-1 h-8 text-xs" value={Math.round(selected.x)} onChange={(e) => update(selected.id, { x: Math.round(Number(e.target.value) || 0) })} />
                 </div>
                 <div>
-                  <Label className="text-[11px]">Y (%)</Label>
-                  <Input type="number" className="mt-1 h-8 text-xs" value={Math.round(selected.y)} onChange={(e) => update(selected.id, { y: Number(e.target.value) })} />
+                  <Label className="text-[11px]">Y (px)</Label>
+                  <Input type="number" className="mt-1 h-8 text-xs" value={Math.round(selected.y)} onChange={(e) => update(selected.id, { y: Math.round(Number(e.target.value) || 0) })} />
                 </div>
               </div>
               <div>
