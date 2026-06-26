@@ -917,7 +917,6 @@ function FullscreenEditor({
             </div>
           )}
         </aside>
-      </div>
 
       {assetOpen && (
         <AssetModal
