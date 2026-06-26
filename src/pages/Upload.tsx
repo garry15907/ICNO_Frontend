@@ -42,17 +42,66 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 type IconAsset = { id: string; file: File; previewUrl: string };
+// Matches icons_config.json spec. `assetId`/`fileName` are internal-only fields
+// used to bind the in-memory File preview; they are NOT serialized to UI/paths.
 type PlacedIcon = {
   id: string;
+  // internal binding to uploaded File preview
   assetId: string;
   fileName: string;
-  label: string;
-  x: number;
+  // ===== icons_config.json fields =====
+  name: string;
+  image_path: string;
+  target_path: string;
+  x: number; // canvas-relative percent (0~100); exported as px on save
   y: number;
-  width: number;
-  height: number;
-  showLabel: boolean;
+  size: number; // px
+  show_name: boolean;
+  font_family: string;
+  font_size: number;
+  font_bold: boolean;
+  font_italic: boolean;
+  font_color: string;
+  outline_color: string;
+  hover_image_path: string;
 };
+
+const DEFAULT_ICON: Omit<PlacedIcon, "id" | "assetId" | "fileName" | "name" | "x" | "y"> = {
+  image_path: "",
+  target_path: "",
+  size: 72,
+  show_name: true,
+  font_family: "맑은 고딕",
+  font_size: 10,
+  font_bold: false,
+  font_italic: false,
+  font_color: "#ffffff",
+  outline_color: "#000000",
+  hover_image_path: "",
+};
+
+// Fill missing fields with defaults so legacy/partial data stays compatible.
+function normalizeIcon(raw: any, i = 0): PlacedIcon {
+  return {
+    id: raw?.id ?? uid(),
+    assetId: raw?.assetId ?? "",
+    fileName: raw?.fileName ?? raw?.file ?? "",
+    name: raw?.name ?? raw?.label ?? `아이콘 ${i + 1}`,
+    image_path: raw?.image_path ?? "",
+    target_path: raw?.target_path ?? "",
+    x: Number(raw?.x) || 5,
+    y: Number(raw?.y) || 5,
+    size: Number(raw?.size ?? raw?.width) || 72,
+    show_name: raw?.show_name ?? raw?.showLabel ?? true,
+    font_family: raw?.font_family ?? "맑은 고딕",
+    font_size: Number(raw?.font_size) || 10,
+    font_bold: !!raw?.font_bold,
+    font_italic: !!raw?.font_italic,
+    font_color: raw?.font_color ?? "#ffffff",
+    outline_color: raw?.outline_color ?? "#000000",
+    hover_image_path: raw?.hover_image_path ?? "",
+  };
+}
 
 const CATEGORIES = ["자연", "캐릭터", "다크", "미니멀", "게임", "파스텔", "사이버펑크"];
 
@@ -212,14 +261,14 @@ export default function Upload() {
                 return (
                   <div
                     key={ic.id}
-                    style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.width * 0.5, height: ic.height * 0.5 }}
+                    style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.size * 0.5, height: ic.size * 0.5 }}
                     className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 pointer-events-none"
                   >
                     <div className="w-full h-full grid place-items-center">
                       {a ? <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
                     </div>
-                    {ic.showLabel && (
-                      <span className="text-[9px] text-white max-w-[64px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{ic.label}</span>
+                    {ic.show_name && (
+                      <span className="text-[9px] text-white max-w-[64px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{ic.name}</span>
                     )}
                   </div>
                 );
@@ -422,6 +471,9 @@ function FullscreenEditor({
   const canvasRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
+  // Tracks whether we need to re-enter fullscreen after a native file picker
+  // closes. Browsers exit fullscreen when <input type=file> opens.
+  const shouldRestoreFsRef = useRef(false);
 
   useEffect(() => {
     const el = rootRef.current;
@@ -453,6 +505,28 @@ function FullscreenEditor({
     }
   };
 
+  // Open a native file picker while preserving the editor's fullscreen mode.
+  // After the picker closes, focus returns to the window — we use that signal
+  // to restore fullscreen if the browser forced an exit.
+  const safeOpenFilePicker = (input: HTMLInputElement | null) => {
+    if (!input) return;
+    shouldRestoreFsRef.current = !!document.fullscreenElement;
+    input.click();
+  };
+
+  useEffect(() => {
+    const restore = () => {
+      if (!shouldRestoreFsRef.current) return;
+      // give the file dialog a moment to fully release fullscreen control
+      window.setTimeout(() => {
+        if (!document.fullscreenElement) enterBrowserFullscreen();
+        shouldRestoreFsRef.current = false;
+      }, 120);
+    };
+    window.addEventListener("focus", restore);
+    return () => window.removeEventListener("focus", restore);
+  }, []);
+
   const selected = items.find((i) => i.id === selectedId) ?? null;
 
   const update = (id: string, patch: Partial<PlacedIcon>) => {
@@ -464,16 +538,13 @@ function FullscreenEditor({
     const n = items.length;
     const x = 5 + ((n % 10) * 8);
     const y = 8 + (Math.floor(n / 10) * 14);
-    const next: PlacedIcon = {
-      id: uid(),
+    const next: PlacedIcon = normalizeIcon({
       assetId: asset.id,
       fileName: asset.file.name,
-      label: asset.file.name.replace(/\.[^.]+$/, ""),
+      name: asset.file.name.replace(/\.[^.]+$/, ""),
+      image_path: asset.file.name, // internal-only — UI never shows this
       x, y,
-      width: 72,
-      height: 72,
-      showLabel: true,
-    };
+    });
     setItems((a) => [...a, next]);
     setSelectedId(next.id);
     setDirty(true);
@@ -487,20 +558,13 @@ function FullscreenEditor({
     try {
       const text = await file.text();
       const parsed: any = parseJsonc(text);
-      if (!parsed?.icons || !Array.isArray(parsed.icons)) throw new Error();
-      const next: PlacedIcon[] = parsed.icons.map((it: any, i: number) => {
-        const match = iconAssets.find((a) => a.file.name === it.fileName || a.file.name === it.file || a.file.name === it.name);
-        return {
-          id: uid(),
-          assetId: match?.id ?? "",
-          fileName: it.fileName || it.file || it.name || `icon-${i}`,
-          label: it.label || it.name || `아이콘 ${i + 1}`,
-          x: Number(it.x) || 5,
-          y: Number(it.y) || 5,
-          width: Number(it.width) || 72,
-          height: Number(it.height) || 72,
-          showLabel: it.showLabel !== false,
-        };
+      const list = Array.isArray(parsed) ? parsed : parsed?.icons;
+      if (!Array.isArray(list)) throw new Error();
+      const next: PlacedIcon[] = list.map((it: any, i: number) => {
+        const match = iconAssets.find(
+          (a) => a.file.name === it.fileName || a.file.name === it.image_path || a.file.name === it.name,
+        );
+        return normalizeIcon({ ...it, assetId: match?.id ?? "" }, i);
       });
       setItems(next);
       setDirty(true);
@@ -671,7 +735,7 @@ function FullscreenEditor({
                   key={ic.id}
                   onPointerDown={(e) => onPointerDown(e, ic)}
                   onClick={(e) => e.stopPropagation()}
-                  style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.width, height: ic.height }}
+                  style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.size, height: ic.size }}
                   className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
                 >
                   <div className="relative w-full h-full grid place-items-center">
@@ -689,8 +753,21 @@ function FullscreenEditor({
                       </>
                     )}
                   </div>
-                  {ic.showLabel && (
-                    <span className="text-[11px] text-white max-w-[100px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{ic.label}</span>
+                  {ic.show_name && (
+                    <span
+                      className="max-w-[100px] truncate"
+                      style={{
+                        textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                        color: ic.font_color,
+                        fontFamily: ic.font_family,
+                        fontSize: `${ic.font_size}px`,
+                        fontWeight: ic.font_bold ? 700 : 400,
+                        fontStyle: ic.font_italic ? "italic" : "normal",
+                        WebkitTextStroke: `0.4px ${ic.outline_color}`,
+                      }}
+                    >
+                      {ic.name}
+                    </span>
                   )}
                 </div>
               );
@@ -714,7 +791,7 @@ function FullscreenEditor({
               </div>
               <div>
                 <Label className="text-[11px]">아이콘 이름</Label>
-                <Input className="mt-1 h-8 text-xs" value={selected.label} onChange={(e) => update(selected.id, { label: e.target.value })} />
+                <Input className="mt-1 h-8 text-xs" value={selected.name} onChange={(e) => update(selected.id, { name: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -728,12 +805,12 @@ function FullscreenEditor({
               </div>
               <div>
                 <Label className="text-[11px]">크기 (px)</Label>
-                <Input type="number" className="mt-1 h-8 text-xs" value={selected.width}
-                  onChange={(e) => { const v = Number(e.target.value) || 32; update(selected.id, { width: v, height: v }); }} />
+                <Input type="number" className="mt-1 h-8 text-xs" value={selected.size}
+                  onChange={(e) => update(selected.id, { size: Number(e.target.value) || 32 })} />
               </div>
               <div className="flex items-center justify-between py-1">
-                <Label className="text-xs">라벨 표시</Label>
-                <Switch checked={selected.showLabel} onCheckedChange={(v) => update(selected.id, { showLabel: v })} />
+                <Label className="text-xs">이름 표시</Label>
+                <Switch checked={selected.show_name} onCheckedChange={(v) => update(selected.id, { show_name: v })} />
               </div>
               <Button variant="outline" className="w-full" onClick={() => setEditIconOpen(true)}>
                 <Pencil className="h-3.5 w-3.5" /> 상세 편집
@@ -763,6 +840,7 @@ function FullscreenEditor({
           onAddIcons={onAddIcons}
           onAddToCanvas={addToCanvas}
           onImportLayout={importLayout}
+          openFilePicker={safeOpenFilePicker}
           onClose={() => setAssetOpen(false)}
         />
       )}
@@ -787,6 +865,7 @@ function FullscreenEditor({
           iconAssets={iconAssets}
           onPickAsset={(assetId) => update(selected.id, { assetId })}
           onAddIcons={onAddIcons}
+          openFilePicker={safeOpenFilePicker}
           onSave={(patch) => { update(selected.id, patch); setEditIconOpen(false); }}
           onClose={() => setEditIconOpen(false)}
         />
@@ -816,6 +895,7 @@ function AssetModal({
   onAddIcons,
   onAddToCanvas,
   onImportLayout,
+  openFilePicker,
   onClose,
 }: {
   tab: "wallpaper" | "icons" | "layout";
@@ -825,6 +905,7 @@ function AssetModal({
   onAddIcons: (f: FileList | File[]) => void;
   onAddToCanvas: (a: IconAsset) => void;
   onImportLayout: (f: File) => void;
+  openFilePicker: (input: HTMLInputElement | null) => void;
   onClose: () => void;
 }) {
   const [active, setActive] = useState<string>(tab);
@@ -856,7 +937,7 @@ function AssetModal({
               onChange={(e) => onWallpaper(e.target.files?.[0])} />
             <div
               {...dropZone((f) => onWallpaper(f[0]))}
-              onClick={() => wallpaperInput.current?.click()}
+              onClick={() => openFilePicker(wallpaperInput.current)}
               className="rounded-xl border border-dashed border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer p-8 text-center"
             >
               <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -880,7 +961,7 @@ function AssetModal({
               onChange={(e) => e.target.files && onAddIcons(e.target.files)} />
             <div
               {...dropZone((f) => onAddIcons(f))}
-              onClick={() => iconsInput.current?.click()}
+              onClick={() => openFilePicker(iconsInput.current)}
               className="rounded-xl border border-dashed border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer p-6 text-center"
             >
               <UploadIcon className="h-7 w-7 mx-auto text-muted-foreground mb-2" />
@@ -911,7 +992,7 @@ function AssetModal({
               onChange={(e) => e.target.files?.[0] && onImportLayout(e.target.files[0])} />
             <div
               {...dropZone((f) => f[0] && onImportLayout(f[0]))}
-              onClick={() => layoutInput.current?.click()}
+              onClick={() => openFilePicker(layoutInput.current)}
               className="rounded-xl border border-dashed border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer p-8 text-center"
             >
               <AlertCircle className="h-7 w-7 mx-auto text-muted-foreground mb-2" />
@@ -946,6 +1027,7 @@ function IconDetailEditModal({
   iconAssets,
   onPickAsset,
   onAddIcons,
+  openFilePicker,
   onSave,
   onClose,
 }: {
@@ -954,24 +1036,37 @@ function IconDetailEditModal({
   iconAssets: IconAsset[];
   onPickAsset: (assetId: string) => void;
   onAddIcons: (f: FileList | File[]) => void;
+  openFilePicker: (input: HTMLInputElement | null) => void;
   onSave: (patch: Partial<PlacedIcon>) => void;
   onClose: () => void;
 }) {
-  const [label, setLabel] = useState(icon.label);
-  const [size, setSize] = useState(icon.width);
-  const [showLabel, setShowLabel] = useState(icon.showLabel);
+  const [label, setLabel] = useState(icon.name);
+  const [size, setSize] = useState(icon.size);
+  const [showLabel, setShowLabel] = useState(icon.show_name);
   const [assetId, setAssetId] = useState(icon.assetId);
-  const [font, setFont] = useState("pretendard");
-  const [fontSize, setFontSize] = useState(12);
-  const [textColor, setTextColor] = useState("#ffffff");
-  const [strokeColor, setStrokeColor] = useState("#000000");
+  const [font, setFont] = useState(icon.font_family);
+  const [fontSize, setFontSize] = useState(icon.font_size);
+  const [bold, setBold] = useState(icon.font_bold);
+  const [italic, setItalic] = useState(icon.font_italic);
+  const [textColor, setTextColor] = useState(icon.font_color);
+  const [strokeColor, setStrokeColor] = useState(icon.outline_color);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const previewAsset = iconAssets.find((a) => a.id === assetId) ?? asset;
 
   const handleSave = () => {
     onPickAsset(assetId);
-    onSave({ label, width: size, height: size, showLabel });
+    onSave({
+      name: label,
+      size,
+      show_name: showLabel,
+      font_family: font,
+      font_size: fontSize,
+      font_bold: bold,
+      font_italic: italic,
+      font_color: textColor,
+      outline_color: strokeColor,
+    });
   };
 
   return createPortal(
@@ -1004,7 +1099,7 @@ function IconDetailEditModal({
                   className="hidden"
                   onChange={(e) => e.target.files && onAddIcons(e.target.files)}
                 />
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => fileInput.current?.click()}>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openFilePicker(fileInput.current)}>
                   <UploadIcon className="h-3 w-3" /> 업로드
                 </Button>
               </div>
