@@ -208,6 +208,22 @@ export default function Upload() {
     return m;
   }, [iconAssets]);
 
+  // Scale logical 1920x1080 canvas to fit the small preview box.
+  const previewBoxRef = useRef<HTMLButtonElement>(null);
+  const [previewScale, setPreviewScale] = useState(0.25);
+  useEffect(() => {
+    const el = previewBoxRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      if (w > 0) setPreviewScale(w / CANVAS_W);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
