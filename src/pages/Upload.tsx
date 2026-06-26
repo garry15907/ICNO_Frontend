@@ -128,6 +128,12 @@ function extOf(name: string) {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+// Reference desktop canvas size used by icons_config.json pixel coordinates.
+// Editor & previews scale visually around this logical resolution but the
+// stored x/y values remain pixels in this coordinate space.
+const CANVAS_W = 1920;
+const CANVAS_H = 1080;
+
 export default function Upload() {
   const { toast } = useToast();
 
