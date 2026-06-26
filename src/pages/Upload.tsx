@@ -1027,6 +1027,7 @@ function IconDetailEditModal({
   iconAssets,
   onPickAsset,
   onAddIcons,
+  openFilePicker,
   onSave,
   onClose,
 }: {
@@ -1035,6 +1036,7 @@ function IconDetailEditModal({
   iconAssets: IconAsset[];
   onPickAsset: (assetId: string) => void;
   onAddIcons: (f: FileList | File[]) => void;
+  openFilePicker: (input: HTMLInputElement | null) => void;
   onSave: (patch: Partial<PlacedIcon>) => void;
   onClose: () => void;
 }) {
@@ -1097,7 +1099,7 @@ function IconDetailEditModal({
                   className="hidden"
                   onChange={(e) => e.target.files && onAddIcons(e.target.files)}
                 />
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => fileInput.current?.click()}>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openFilePicker(fileInput.current)}>
                   <UploadIcon className="h-3 w-3" /> 업로드
                 </Button>
               </div>
