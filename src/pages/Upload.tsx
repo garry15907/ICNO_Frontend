@@ -128,6 +128,19 @@ function extOf(name: string) {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+const LEGACY_FONT_MAP: Record<string, string> = {
+  "맑은 고딕": "Malgun Gothic, sans-serif",
+  "malgun gothic": "Malgun Gothic, sans-serif",
+  pretendard: "Pretendard, sans-serif",
+  noto: "Noto Sans KR, sans-serif",
+  inter: "Inter, sans-serif",
+  system: "system-ui, -apple-system, sans-serif",
+};
+function normalizeFontFamily(value?: string) {
+  if (!value) return "Malgun Gothic, sans-serif";
+  return LEGACY_FONT_MAP[value.toLowerCase()] ?? value;
+}
+
 // Reference desktop canvas size used by icons_config.json pixel coordinates.
 // Editor & previews scale visually around this logical resolution but the
 // stored x/y values remain pixels in this coordinate space.
