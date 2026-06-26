@@ -264,23 +264,36 @@ export default function Upload() {
                   </div>
                 </div>
               )}
-              {wallpaper && placed.map((ic) => {
-                const a = assetById.get(ic.assetId);
-                return (
-                  <div
-                    key={ic.id}
-                    style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.size * 0.5, height: ic.size * 0.5 }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 pointer-events-none"
-                  >
-                    <div className="w-full h-full grid place-items-center">
-                      {a ? <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
-                    </div>
-                    {ic.show_name && (
-                      <span className="text-[9px] text-white max-w-[64px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{ic.name}</span>
-                    )}
-                  </div>
-                );
-              })}
+              {wallpaper && (
+                <div
+                  className="absolute top-0 left-0 pointer-events-none"
+                  style={{
+                    width: CANVAS_W,
+                    height: CANVAS_H,
+                    transform: `scale(calc(100% / ${CANVAS_W} * 1))`,
+                    transformOrigin: "top left",
+                    // CSS calc with unitless ratio doesn't work — use container query fallback below
+                  }}
+                >
+                  {placed.map((ic) => {
+                    const a = assetById.get(ic.assetId);
+                    return (
+                      <div
+                        key={ic.id}
+                        style={{ left: `${ic.x}px`, top: `${ic.y}px`, width: `${ic.size}px`, height: `${ic.size}px` }}
+                        className="absolute flex flex-col items-center gap-1"
+                      >
+                        <div className="w-full h-full grid place-items-center">
+                          {a ? <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
+                        </div>
+                        {ic.show_name && (
+                          <span className="text-white max-w-[180px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)", fontSize: `${ic.font_size}px`, fontFamily: ic.font_family }}>{ic.name}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors grid place-items-center opacity-0 group-hover:opacity-100">
                 <div className="bg-background/90 rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5">
                   <Maximize2 className="h-3.5 w-3.5" /> 클릭해서 편집 모드 열기
