@@ -895,6 +895,7 @@ function AssetModal({
   onAddIcons,
   onAddToCanvas,
   onImportLayout,
+  openFilePicker,
   onClose,
 }: {
   tab: "wallpaper" | "icons" | "layout";
@@ -904,6 +905,7 @@ function AssetModal({
   onAddIcons: (f: FileList | File[]) => void;
   onAddToCanvas: (a: IconAsset) => void;
   onImportLayout: (f: File) => void;
+  openFilePicker: (input: HTMLInputElement | null) => void;
   onClose: () => void;
 }) {
   const [active, setActive] = useState<string>(tab);
@@ -935,7 +937,7 @@ function AssetModal({
               onChange={(e) => onWallpaper(e.target.files?.[0])} />
             <div
               {...dropZone((f) => onWallpaper(f[0]))}
-              onClick={() => wallpaperInput.current?.click()}
+              onClick={() => openFilePicker(wallpaperInput.current)}
               className="rounded-xl border border-dashed border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer p-8 text-center"
             >
               <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -959,7 +961,7 @@ function AssetModal({
               onChange={(e) => e.target.files && onAddIcons(e.target.files)} />
             <div
               {...dropZone((f) => onAddIcons(f))}
-              onClick={() => iconsInput.current?.click()}
+              onClick={() => openFilePicker(iconsInput.current)}
               className="rounded-xl border border-dashed border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer p-6 text-center"
             >
               <UploadIcon className="h-7 w-7 mx-auto text-muted-foreground mb-2" />
@@ -990,7 +992,7 @@ function AssetModal({
               onChange={(e) => e.target.files?.[0] && onImportLayout(e.target.files[0])} />
             <div
               {...dropZone((f) => f[0] && onImportLayout(f[0]))}
-              onClick={() => layoutInput.current?.click()}
+              onClick={() => openFilePicker(layoutInput.current)}
               className="rounded-xl border border-dashed border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer p-8 text-center"
             >
               <AlertCircle className="h-7 w-7 mx-auto text-muted-foreground mb-2" />
