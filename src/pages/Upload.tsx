@@ -1009,21 +1009,33 @@ function IconDetailEditModal({
   onSave: (patch: Partial<PlacedIcon>) => void;
   onClose: () => void;
 }) {
-  const [label, setLabel] = useState(icon.label);
-  const [size, setSize] = useState(icon.width);
-  const [showLabel, setShowLabel] = useState(icon.showLabel);
+  const [label, setLabel] = useState(icon.name);
+  const [size, setSize] = useState(icon.size);
+  const [showLabel, setShowLabel] = useState(icon.show_name);
   const [assetId, setAssetId] = useState(icon.assetId);
-  const [font, setFont] = useState("pretendard");
-  const [fontSize, setFontSize] = useState(12);
-  const [textColor, setTextColor] = useState("#ffffff");
-  const [strokeColor, setStrokeColor] = useState("#000000");
+  const [font, setFont] = useState(icon.font_family);
+  const [fontSize, setFontSize] = useState(icon.font_size);
+  const [bold, setBold] = useState(icon.font_bold);
+  const [italic, setItalic] = useState(icon.font_italic);
+  const [textColor, setTextColor] = useState(icon.font_color);
+  const [strokeColor, setStrokeColor] = useState(icon.outline_color);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const previewAsset = iconAssets.find((a) => a.id === assetId) ?? asset;
 
   const handleSave = () => {
     onPickAsset(assetId);
-    onSave({ label, width: size, height: size, showLabel });
+    onSave({
+      name: label,
+      size,
+      show_name: showLabel,
+      font_family: font,
+      font_size: fontSize,
+      font_bold: bold,
+      font_italic: italic,
+      font_color: textColor,
+      outline_color: strokeColor,
+    });
   };
 
   return createPortal(
