@@ -268,10 +268,10 @@ export default function Upload() {
             <button
               ref={previewBoxRef}
               onClick={() => setEditorOpen(true)}
-              className="relative w-full aspect-[16/10] rounded-xl overflow-hidden border border-border bg-muted group cursor-pointer"
+              className="relative w-full aspect-video rounded-xl overflow-hidden border border-border bg-muted group cursor-pointer"
             >
               {wallpaper ? (
-                <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-contain" />
               ) : (
                 <div className="absolute inset-0 grid place-items-center text-center px-6 bg-gradient-to-br from-muted/40 to-muted/10">
                   <div className="text-muted-foreground">
