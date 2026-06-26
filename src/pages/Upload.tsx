@@ -710,7 +710,7 @@ function FullscreenEditor({
                   key={ic.id}
                   onPointerDown={(e) => onPointerDown(e, ic)}
                   onClick={(e) => e.stopPropagation()}
-                  style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.width, height: ic.height }}
+                  style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.size, height: ic.size }}
                   className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
                 >
                   <div className="relative w-full h-full grid place-items-center">
@@ -728,8 +728,21 @@ function FullscreenEditor({
                       </>
                     )}
                   </div>
-                  {ic.showLabel && (
-                    <span className="text-[11px] text-white max-w-[100px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{ic.label}</span>
+                  {ic.show_name && (
+                    <span
+                      className="max-w-[100px] truncate"
+                      style={{
+                        textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                        color: ic.font_color,
+                        fontFamily: ic.font_family,
+                        fontSize: `${ic.font_size}px`,
+                        fontWeight: ic.font_bold ? 700 : 400,
+                        fontStyle: ic.font_italic ? "italic" : "normal",
+                        WebkitTextStroke: `0.4px ${ic.outline_color}`,
+                      }}
+                    >
+                      {ic.name}
+                    </span>
                   )}
                 </div>
               );
@@ -753,7 +766,7 @@ function FullscreenEditor({
               </div>
               <div>
                 <Label className="text-[11px]">아이콘 이름</Label>
-                <Input className="mt-1 h-8 text-xs" value={selected.label} onChange={(e) => update(selected.id, { label: e.target.value })} />
+                <Input className="mt-1 h-8 text-xs" value={selected.name} onChange={(e) => update(selected.id, { name: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -767,12 +780,12 @@ function FullscreenEditor({
               </div>
               <div>
                 <Label className="text-[11px]">크기 (px)</Label>
-                <Input type="number" className="mt-1 h-8 text-xs" value={selected.width}
-                  onChange={(e) => { const v = Number(e.target.value) || 32; update(selected.id, { width: v, height: v }); }} />
+                <Input type="number" className="mt-1 h-8 text-xs" value={selected.size}
+                  onChange={(e) => update(selected.id, { size: Number(e.target.value) || 32 })} />
               </div>
               <div className="flex items-center justify-between py-1">
-                <Label className="text-xs">라벨 표시</Label>
-                <Switch checked={selected.showLabel} onCheckedChange={(v) => update(selected.id, { showLabel: v })} />
+                <Label className="text-xs">이름 표시</Label>
+                <Switch checked={selected.show_name} onCheckedChange={(v) => update(selected.id, { show_name: v })} />
               </div>
               <Button variant="outline" className="w-full" onClick={() => setEditIconOpen(true)}>
                 <Pencil className="h-3.5 w-3.5" /> 상세 편집
