@@ -532,8 +532,9 @@ function FullscreenEditor({
     };
   }, []);
 
-  // Cover the available preview area with the logical 16:9 desktop stage so
-  // the wallpaper fills the whole space like a real desktop background.
+  // Scale the logical 16:9 desktop stage. Browser fullscreen keeps the current
+  // cover behavior, while the normal editor view contains the whole stage so
+  // the wallpaper is never cropped by the inspector/sidebar layout.
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
@@ -541,14 +542,15 @@ function FullscreenEditor({
       const w = el.clientWidth;
       const h = el.clientHeight;
       if (w > 0 && h > 0) {
-        setStageScale(Math.max(w / CANVAS_W, h / CANVAS_H));
+        const fit = isBrowserFullscreen ? Math.max : Math.min;
+        setStageScale(fit(w / CANVAS_W, h / CANVAS_H));
       }
     };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [isBrowserFullscreen]);
 
   const enterBrowserFullscreen = () => {
     const el = rootRef.current;
@@ -774,16 +776,14 @@ function FullscreenEditor({
 
       {/* Body: wallpaper preview area + inspector side panel, fully separated. */}
       <div className="flex-1 flex min-h-0">
-        {/* Wallpaper preview area — its own column. The uploaded wallpaper image
-            covers the entire available area like a real desktop background,
-            and the icon stage overlays only the wallpaper (not the inspector). */}
+        {/* Wallpaper preview area — its own column. The uploaded wallpaper and
+            icon grid live inside the same 16:9 stage, so leaving fullscreen no
+            longer lets the side panel/toolbar crop the image width. */}
         <div
           className="flex-1 min-w-0 relative bg-black overflow-hidden"
           onClick={() => setSelectedId(null)}
         >
-          {wallpaper ? (
-            <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
-          ) : (
+          {!wallpaper && (
             <div className="absolute inset-0 grid place-items-center text-muted-foreground pointer-events-none">
               <div className="text-center">
                 <Monitor className="h-12 w-12 mx-auto mb-3 opacity-40" />
@@ -813,6 +813,9 @@ function FullscreenEditor({
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
             >
+              {wallpaper && (
+                <img src={wallpaper.url} alt="" className="absolute inset-0 h-full w-full object-cover pointer-events-none" />
+              )}
               {grid && (
                 <div
                   className="absolute inset-0 pointer-events-none opacity-20"
