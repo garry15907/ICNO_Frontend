@@ -540,7 +540,8 @@ function FullscreenEditor({
       const w = el.clientWidth;
       const h = el.clientHeight;
       if (w > 0 && h > 0) {
-        setStageScale(Math.min(w / CANVAS_W, h / CANVAS_H));
+        // Cover the editor area (no black letterbox) — mirrors how Windows shows a wallpaper.
+        setStageScale(Math.max(w / CANVAS_W, h / CANVAS_H));
       }
     };
     update();
