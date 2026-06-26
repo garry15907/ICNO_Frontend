@@ -53,7 +53,9 @@ type PlacedIcon = {
   name: string;
   image_path: string;
   target_path: string;
-  x: number; // canvas-relative percent (0~100); exported as px on save
+  // Pixel coordinates in the desktop canvas reference frame
+  // (matches icons_config.json — NOT a percentage).
+  x: number;
   y: number;
   size: number; // px
   show_name: boolean;
@@ -89,8 +91,8 @@ function normalizeIcon(raw: any, i = 0): PlacedIcon {
     name: raw?.name ?? raw?.label ?? `아이콘 ${i + 1}`,
     image_path: raw?.image_path ?? "",
     target_path: raw?.target_path ?? "",
-    x: Number(raw?.x) || 5,
-    y: Number(raw?.y) || 5,
+    x: Number.isFinite(Number(raw?.x)) ? Math.round(Number(raw?.x)) : 100,
+    y: Number.isFinite(Number(raw?.y)) ? Math.round(Number(raw?.y)) : 100,
     size: Number(raw?.size ?? raw?.width) || 72,
     show_name: raw?.show_name ?? raw?.showLabel ?? true,
     font_family: raw?.font_family ?? "맑은 고딕",
