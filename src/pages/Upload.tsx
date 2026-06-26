@@ -42,17 +42,66 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 type IconAsset = { id: string; file: File; previewUrl: string };
+// Matches icons_config.json spec. `assetId`/`fileName` are internal-only fields
+// used to bind the in-memory File preview; they are NOT serialized to UI/paths.
 type PlacedIcon = {
   id: string;
+  // internal binding to uploaded File preview
   assetId: string;
   fileName: string;
-  label: string;
-  x: number;
+  // ===== icons_config.json fields =====
+  name: string;
+  image_path: string;
+  target_path: string;
+  x: number; // canvas-relative percent (0~100); exported as px on save
   y: number;
-  width: number;
-  height: number;
-  showLabel: boolean;
+  size: number; // px
+  show_name: boolean;
+  font_family: string;
+  font_size: number;
+  font_bold: boolean;
+  font_italic: boolean;
+  font_color: string;
+  outline_color: string;
+  hover_image_path: string;
 };
+
+const DEFAULT_ICON: Omit<PlacedIcon, "id" | "assetId" | "fileName" | "name" | "x" | "y"> = {
+  image_path: "",
+  target_path: "",
+  size: 72,
+  show_name: true,
+  font_family: "맑은 고딕",
+  font_size: 10,
+  font_bold: false,
+  font_italic: false,
+  font_color: "#ffffff",
+  outline_color: "#000000",
+  hover_image_path: "",
+};
+
+// Fill missing fields with defaults so legacy/partial data stays compatible.
+function normalizeIcon(raw: any, i = 0): PlacedIcon {
+  return {
+    id: raw?.id ?? uid(),
+    assetId: raw?.assetId ?? "",
+    fileName: raw?.fileName ?? raw?.file ?? "",
+    name: raw?.name ?? raw?.label ?? `아이콘 ${i + 1}`,
+    image_path: raw?.image_path ?? "",
+    target_path: raw?.target_path ?? "",
+    x: Number(raw?.x) || 5,
+    y: Number(raw?.y) || 5,
+    size: Number(raw?.size ?? raw?.width) || 72,
+    show_name: raw?.show_name ?? raw?.showLabel ?? true,
+    font_family: raw?.font_family ?? "맑은 고딕",
+    font_size: Number(raw?.font_size) || 10,
+    font_bold: !!raw?.font_bold,
+    font_italic: !!raw?.font_italic,
+    font_color: raw?.font_color ?? "#ffffff",
+    outline_color: raw?.outline_color ?? "#000000",
+    hover_image_path: raw?.hover_image_path ?? "",
+  };
+}
 
 const CATEGORIES = ["자연", "캐릭터", "다크", "미니멀", "게임", "파스텔", "사이버펑크"];
 
@@ -212,14 +261,14 @@ export default function Upload() {
                 return (
                   <div
                     key={ic.id}
-                    style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.width * 0.5, height: ic.height * 0.5 }}
+                    style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.size * 0.5, height: ic.size * 0.5 }}
                     className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 pointer-events-none"
                   >
                     <div className="w-full h-full grid place-items-center">
                       {a ? <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
                     </div>
-                    {ic.showLabel && (
-                      <span className="text-[9px] text-white max-w-[64px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{ic.label}</span>
+                    {ic.show_name && (
+                      <span className="text-[9px] text-white max-w-[64px] truncate" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>{ic.name}</span>
                     )}
                   </div>
                 );
