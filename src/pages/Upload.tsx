@@ -1246,7 +1246,7 @@ function IconDetailEditModal({
                 <Label className="text-xs">폰트</Label>
                 <Select value={font} onValueChange={setFont}>
                   <SelectTrigger className="mt-1.5 h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[120]">
                     {FONTS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
