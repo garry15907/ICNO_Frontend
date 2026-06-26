@@ -874,12 +874,12 @@ function FullscreenEditor({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-[11px]">X (%)</Label>
-                  <Input type="number" className="mt-1 h-8 text-xs" value={Math.round(selected.x)} onChange={(e) => update(selected.id, { x: Number(e.target.value) })} />
+                  <Label className="text-[11px]">X (px)</Label>
+                  <Input type="number" className="mt-1 h-8 text-xs" value={Math.round(selected.x)} onChange={(e) => update(selected.id, { x: Math.round(Number(e.target.value) || 0) })} />
                 </div>
                 <div>
-                  <Label className="text-[11px]">Y (%)</Label>
-                  <Input type="number" className="mt-1 h-8 text-xs" value={Math.round(selected.y)} onChange={(e) => update(selected.id, { y: Number(e.target.value) })} />
+                  <Label className="text-[11px]">Y (px)</Label>
+                  <Input type="number" className="mt-1 h-8 text-xs" value={Math.round(selected.y)} onChange={(e) => update(selected.id, { y: Math.round(Number(e.target.value) || 0) })} />
                 </div>
               </div>
               <div>
