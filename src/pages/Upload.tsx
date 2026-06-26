@@ -532,7 +532,8 @@ function FullscreenEditor({
     };
   }, []);
 
-  // Fit the logical 1920x1080 canvas inside the editor stage.
+  // Cover the available preview area with the logical 16:9 desktop stage so
+  // the wallpaper fills the whole space like a real desktop background.
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
@@ -540,9 +541,7 @@ function FullscreenEditor({
       const w = el.clientWidth;
       const h = el.clientHeight;
       if (w > 0 && h > 0) {
-        // Fit a 16:9 desktop preview inside the editor area while keeping the
-        // monitor aspect ratio — like viewing a real desktop on a stand.
-        setStageScale(Math.min(w / CANVAS_W, h / CANVAS_H));
+        setStageScale(Math.max(w / CANVAS_W, h / CANVAS_H));
       }
     };
     update();
