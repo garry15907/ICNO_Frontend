@@ -710,8 +710,99 @@ function FullscreenEditor({
   };
 
   const content = (
-    <div ref={rootRef} className="fixed inset-0 z-[100] bg-background flex flex-col animate-fade-in">
-      <div className="h-14 border-b border-border/60 bg-card/80 backdrop-blur flex items-center px-4 gap-3 shrink-0">
+    <div ref={rootRef} className="fixed inset-0 z-[100] bg-background overflow-hidden animate-fade-in">
+      {/* Wallpaper stage — occupies the entire viewport so the background ratio
+          is calculated against 100vw x 100vh, exactly like a real Windows
+          desktop. Toolbar and side inspector float on top as overlays. */}
+      <div
+        ref={stageRef}
+        className="absolute inset-0 bg-black overflow-hidden grid place-items-center"
+        onClick={() => setSelectedId(null)}
+      >
+        {!wallpaper && (
+          <div className="absolute inset-0 grid place-items-center text-muted-foreground">
+            <div className="text-center">
+              <Monitor className="h-12 w-12 mx-auto mb-3 opacity-40" />
+              <div className="text-sm">상단 "배경화면 변경"으로 배경을 선택하세요.</div>
+            </div>
+          </div>
+        )}
+        {/* Logical 1920x1080 stage, scaled to cover the viewport. */}
+        <div
+          ref={canvasRef}
+          className="relative"
+          style={{
+            width: CANVAS_W,
+            height: CANVAS_H,
+            transform: `scale(${stageScale})`,
+            transformOrigin: "center center",
+          }}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        >
+          {wallpaper && (
+            <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+          )}
+          {grid && (
+            <div
+              className="absolute inset-0 pointer-events-none opacity-20"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, hsl(var(--primary) / 0.3) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--primary) / 0.3) 1px, transparent 1px)",
+                backgroundSize: `${20}px ${20}px`,
+              }}
+            />
+          )}
+          {items.map((ic) => {
+            const a = iconAssets.find((x) => x.id === ic.assetId);
+            const isSel = ic.id === selectedId;
+            return (
+              <div
+                key={ic.id}
+                onPointerDown={(e) => onPointerDown(e, ic)}
+                onClick={(e) => e.stopPropagation()}
+                style={{ left: `${ic.x}px`, top: `${ic.y}px`, width: `${ic.size}px`, height: `${ic.size}px` }}
+                className="absolute flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
+              >
+                <div className="relative w-full h-full grid place-items-center">
+                  {a ? (
+                    <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain pointer-events-none" />
+                  ) : (
+                    <ImageIcon className="h-5 w-5 text-white/70 drop-shadow" />
+                  )}
+                  {isSel && (
+                    <>
+                      <span className="absolute -top-1 -left-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                      <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                      <span className="absolute -bottom-1 -left-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                      <span className="absolute -bottom-1 -right-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                    </>
+                  )}
+                </div>
+                {ic.show_name && (
+                  <span
+                    className="max-w-[100px] truncate"
+                    style={{
+                      textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                      color: ic.font_color,
+                      fontFamily: ic.font_family,
+                      fontSize: `${ic.font_size}px`,
+                      fontWeight: ic.font_bold ? 700 : 400,
+                      fontStyle: ic.font_italic ? "italic" : "normal",
+                      WebkitTextStroke: `0.4px ${ic.outline_color}`,
+                    }}
+                  >
+                    {ic.name}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Top toolbar — overlay, does not shrink the wallpaper area. */}
+      <div className="absolute top-0 left-0 right-0 z-20 h-14 border-b border-border/60 bg-card/80 backdrop-blur flex items-center px-4 gap-3">
         <div className="text-sm font-semibold shrink-0 flex items-center gap-2">
           <Pencil className="h-3.5 w-3.5 text-primary" /> 프리셋 편집
         </div>
@@ -758,7 +849,7 @@ function FullscreenEditor({
       </div>
 
       {!isBrowserFullscreen && (
-        <div className="px-4 py-2 bg-primary/10 border-b border-primary/20 flex items-center justify-between gap-3 shrink-0">
+        <div className="absolute top-14 left-0 right-0 z-20 px-4 py-2 bg-primary/10 border-b border-primary/20 flex items-center justify-between gap-3">
           <div className="text-xs text-primary/90">
             전체화면이 해제되었습니다. 다시 전체화면으로 편집할 수 있습니다.
           </div>
@@ -771,92 +862,9 @@ function FullscreenEditor({
         </div>
       )}
 
-      <div className="flex-1 flex min-h-0">
-        <div ref={stageRef} className="flex-1 relative bg-black overflow-hidden grid place-items-center" onClick={() => setSelectedId(null)}>
-          {!wallpaper && (
-            <div className="absolute inset-0 grid place-items-center text-muted-foreground">
-              <div className="text-center">
-                <Monitor className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                <div className="text-sm">상단 "배경화면 변경"으로 배경을 선택하세요.</div>
-              </div>
-            </div>
-          )}
-          {/* Logical 1920x1080 stage, scaled to fit the editor area. */}
-          <div
-            ref={canvasRef}
-            className="relative"
-            style={{
-              width: CANVAS_W,
-              height: CANVAS_H,
-              transform: `scale(${stageScale})`,
-              transformOrigin: "center center",
-            }}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-          >
-            {wallpaper && (
-              <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
-            )}
-            {grid && (
-              <div
-                className="absolute inset-0 pointer-events-none opacity-20"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(to right, hsl(var(--primary) / 0.3) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--primary) / 0.3) 1px, transparent 1px)",
-                  backgroundSize: `${20}px ${20}px`,
-                }}
-              />
-            )}
-            {items.map((ic) => {
-              const a = iconAssets.find((x) => x.id === ic.assetId);
-              const isSel = ic.id === selectedId;
-              return (
-                <div
-                  key={ic.id}
-                  onPointerDown={(e) => onPointerDown(e, ic)}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ left: `${ic.x}px`, top: `${ic.y}px`, width: `${ic.size}px`, height: `${ic.size}px` }}
-                  className="absolute flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
-                >
-                  <div className="relative w-full h-full grid place-items-center">
-                    {a ? (
-                      <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain pointer-events-none" />
-                    ) : (
-                      <ImageIcon className="h-5 w-5 text-white/70 drop-shadow" />
-                    )}
-                    {isSel && (
-                      <>
-                        <span className="absolute -top-1 -left-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
-                        <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
-                        <span className="absolute -bottom-1 -left-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
-                        <span className="absolute -bottom-1 -right-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
-                      </>
-                    )}
-                  </div>
-                  {ic.show_name && (
-                    <span
-                      className="max-w-[100px] truncate"
-                      style={{
-                        textShadow: "0 1px 2px rgba(0,0,0,0.8)",
-                        color: ic.font_color,
-                        fontFamily: ic.font_family,
-                        fontSize: `${ic.font_size}px`,
-                        fontWeight: ic.font_bold ? 700 : 400,
-                        fontStyle: ic.font_italic ? "italic" : "normal",
-                        WebkitTextStroke: `0.4px ${ic.outline_color}`,
-                      }}
-                    >
-                      {ic.name}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <aside className="w-72 border-l border-border/60 bg-card/40 p-4 shrink-0 overflow-y-auto">
-          <div className="text-sm font-semibold mb-3">아이콘 설정</div>
+      {/* Right inspector — overlay only, never reduces the wallpaper width. */}
+      <aside className="absolute top-14 right-0 bottom-0 z-20 w-72 border-l border-border/60 bg-card/80 backdrop-blur p-4 overflow-y-auto">
+        <div className="text-sm font-semibold mb-3">아이콘 설정</div>
           {!selected ? (
             <div className="text-xs text-muted-foreground py-8 text-center">
               아이콘을 선택하면 상세 설정이 표시됩니다.
@@ -909,7 +917,6 @@ function FullscreenEditor({
             </div>
           )}
         </aside>
-      </div>
 
       {assetOpen && (
         <AssetModal
