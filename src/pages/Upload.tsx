@@ -1115,10 +1115,12 @@ function AssetModal({
 // =====================================================================
 
 const FONTS = [
-  { value: "pretendard", label: "Pretendard" },
-  { value: "noto", label: "Noto Sans KR" },
-  { value: "inter", label: "Inter" },
-  { value: "system", label: "System" },
+  { value: "Malgun Gothic, sans-serif", label: "맑은 고딕" },
+  { value: "Pretendard, sans-serif", label: "Pretendard" },
+  { value: "Noto Sans KR, sans-serif", label: "Noto Sans KR" },
+  { value: "Inter, sans-serif", label: "Inter" },
+  { value: "Arial, sans-serif", label: "Arial" },
+  { value: "system-ui, -apple-system, sans-serif", label: "System" },
 ];
 const COLORS = ["#ffffff", "#000000", "#a78bfa", "#60a5fa", "#34d399", "#fbbf24", "#f87171", "#ec4899"];
 
