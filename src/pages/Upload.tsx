@@ -471,6 +471,9 @@ function FullscreenEditor({
   const canvasRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
+  // Tracks whether we need to re-enter fullscreen after a native file picker
+  // closes. Browsers exit fullscreen when <input type=file> opens.
+  const shouldRestoreFsRef = useRef(false);
 
   useEffect(() => {
     const el = rootRef.current;
@@ -501,6 +504,28 @@ function FullscreenEditor({
       document.exitFullscreen().catch(() => {});
     }
   };
+
+  // Open a native file picker while preserving the editor's fullscreen mode.
+  // After the picker closes, focus returns to the window — we use that signal
+  // to restore fullscreen if the browser forced an exit.
+  const safeOpenFilePicker = (input: HTMLInputElement | null) => {
+    if (!input) return;
+    shouldRestoreFsRef.current = !!document.fullscreenElement;
+    input.click();
+  };
+
+  useEffect(() => {
+    const restore = () => {
+      if (!shouldRestoreFsRef.current) return;
+      // give the file dialog a moment to fully release fullscreen control
+      window.setTimeout(() => {
+        if (!document.fullscreenElement) enterBrowserFullscreen();
+        shouldRestoreFsRef.current = false;
+      }, 120);
+    };
+    window.addEventListener("focus", restore);
+    return () => window.removeEventListener("focus", restore);
+  }, []);
 
   const selected = items.find((i) => i.id === selectedId) ?? null;
 
@@ -815,6 +840,7 @@ function FullscreenEditor({
           onAddIcons={onAddIcons}
           onAddToCanvas={addToCanvas}
           onImportLayout={importLayout}
+          openFilePicker={safeOpenFilePicker}
           onClose={() => setAssetOpen(false)}
         />
       )}
@@ -839,6 +865,7 @@ function FullscreenEditor({
           iconAssets={iconAssets}
           onPickAsset={(assetId) => update(selected.id, { assetId })}
           onAddIcons={onAddIcons}
+          openFilePicker={safeOpenFilePicker}
           onSave={(patch) => { update(selected.id, patch); setEditIconOpen(false); }}
           onClose={() => setEditIconOpen(false)}
         />
