@@ -507,6 +507,8 @@ function FullscreenEditor({
   const [search, setSearch] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageScale, setStageScale] = useState(1);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
   // Tracks whether we need to re-enter fullscreen after a native file picker
   // closes. Browsers exit fullscreen when <input type=file> opens.
@@ -528,6 +530,23 @@ function FullscreenEditor({
       document.body.style.overflow = prevOverflow;
       document.removeEventListener("fullscreenchange", onFsChange);
     };
+  }, []);
+
+  // Fit the logical 1920x1080 canvas inside the editor stage.
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w > 0 && h > 0) {
+        setStageScale(Math.min(w / CANVAS_W, h / CANVAS_H));
+      }
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   const enterBrowserFullscreen = () => {
@@ -573,8 +592,12 @@ function FullscreenEditor({
 
   const addToCanvas = (asset: IconAsset) => {
     const n = items.length;
-    const x = 5 + ((n % 10) * 8);
-    const y = 8 + (Math.floor(n / 10) * 14);
+    // Place new icons on a px grid in the logical desktop canvas.
+    const cols = 10;
+    const cellW = 140;
+    const cellH = 160;
+    const x = 80 + (n % cols) * cellW;
+    const y = 80 + Math.floor(n / cols) * cellH;
     const next: PlacedIcon = normalizeIcon({
       assetId: asset.id,
       fileName: asset.file.name,
@@ -614,39 +637,45 @@ function FullscreenEditor({
   const dragRef = useRef<{ id: string; offX: number; offY: number } | null>(null);
   const pressRef = useRef<{ id: string; startX: number; startY: number; moved: boolean } | null>(null);
   const DRAG_THRESHOLD = 4;
+  // Pixel-based dragging in the logical 1920x1080 canvas frame.
+  // No percent conversions. Grid snap is only applied on pointer-up when ON.
+  const GRID_PX = 20;
   const onPointerDown = (e: ReactPointerEvent, ic: PlacedIcon) => {
     e.stopPropagation();
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const px = (ic.x / 100) * rect.width;
-    const py = (ic.y / 100) * rect.height;
-    dragRef.current = { id: ic.id, offX: e.clientX - rect.left - px, offY: e.clientY - rect.top - py };
+    dragRef.current = {
+      id: ic.id,
+      // Store icon origin px and starting mouse px; we'll add raw deltas / scale.
+      offX: ic.x,
+      offY: ic.y,
+    };
     pressRef.current = { id: ic.id, startX: e.clientX, startY: e.clientY, moved: false };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e: ReactPointerEvent) => {
-    if (!dragRef.current) return;
-    if (pressRef.current && !pressRef.current.moved) {
-      const dx = e.clientX - pressRef.current.startX;
-      const dy = e.clientY - pressRef.current.startY;
-      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    if (!dragRef.current || !pressRef.current) return;
+    const dxScreen = e.clientX - pressRef.current.startX;
+    const dyScreen = e.clientY - pressRef.current.startY;
+    if (!pressRef.current.moved) {
+      if (Math.hypot(dxScreen, dyScreen) < DRAG_THRESHOLD) return;
       pressRef.current.moved = true;
       setSelectedId(dragRef.current.id);
     }
-    const rect = canvasRef.current!.getBoundingClientRect();
-    let x = ((e.clientX - rect.left - dragRef.current.offX) / rect.width) * 100;
-    let y = ((e.clientY - rect.top - dragRef.current.offY) / rect.height) * 100;
-    if (grid) {
-      x = Math.round(x / 2) * 2;
-      y = Math.round(y / 2) * 2;
-    }
-    x = Math.max(0, Math.min(100, x));
-    y = Math.max(0, Math.min(100, y));
+    const scale = stageScale || 1;
+    const x = Math.max(0, Math.min(CANVAS_W, Math.round(dragRef.current.offX + dxScreen / scale)));
+    const y = Math.max(0, Math.min(CANVAS_H, Math.round(dragRef.current.offY + dyScreen / scale)));
     update(dragRef.current.id, { x, y });
   };
-  const onPointerUp = (e: ReactPointerEvent) => {
+  const onPointerUp = (_e: ReactPointerEvent) => {
     if (pressRef.current && !pressRef.current.moved) {
-      // treat as click → select
       setSelectedId(pressRef.current.id);
+    } else if (dragRef.current && grid) {
+      // Snap to nearest grid cell on release when grid snap is ON.
+      const id = dragRef.current.id;
+      setItems((arr) => arr.map((it) => it.id === id ? {
+        ...it,
+        x: Math.round(it.x / GRID_PX) * GRID_PX,
+        y: Math.round(it.y / GRID_PX) * GRID_PX,
+      } : it));
     }
     dragRef.current = null;
     pressRef.current = null;
