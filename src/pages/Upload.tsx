@@ -774,41 +774,45 @@ function FullscreenEditor({
 
       {/* Body: wallpaper preview area + inspector side panel, fully separated. */}
       <div className="flex-1 flex min-h-0">
-        {/* Wallpaper preview area — its own column. Inside, a 16:9 desktop
-            stage scales to fit while preserving the monitor aspect ratio so
-            the background looks like an actual desktop. */}
+        {/* Wallpaper preview area — its own column. The uploaded wallpaper image
+            covers the entire available area like a real desktop background,
+            and the icon stage overlays only the wallpaper (not the inspector). */}
         <div
-          className="flex-1 min-w-0 relative bg-black/90 grid place-items-center p-6 overflow-hidden"
+          className="flex-1 min-w-0 relative bg-black overflow-hidden"
           onClick={() => setSelectedId(null)}
         >
+          {wallpaper ? (
+            <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center text-muted-foreground pointer-events-none">
+              <div className="text-center">
+                <Monitor className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                <div className="text-sm">상단 "배경화면 변경"으로 배경을 선택하세요.</div>
+              </div>
+            </div>
+          )}
+
           <div
             ref={stageRef}
-            className="relative w-full h-full grid place-items-center"
+            className="absolute inset-0"
           >
-            {!wallpaper && (
-              <div className="absolute inset-0 grid place-items-center text-muted-foreground pointer-events-none">
-                <div className="text-center">
-                  <Monitor className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                  <div className="text-sm">상단 "배경화면 변경"으로 배경을 선택하세요.</div>
-                </div>
-              </div>
-            )}
-            {/* Logical 1920x1080 monitor stage. */}
+            {/* Logical 1920x1080 monitor stage covering the available area. */}
             <div
               ref={canvasRef}
-              className="relative shadow-2xl ring-1 ring-white/10 bg-black overflow-hidden"
+              className="absolute shadow-2xl ring-1 ring-white/10 overflow-hidden"
               style={{
                 width: CANVAS_W,
                 height: CANVAS_H,
                 transform: `scale(${stageScale})`,
                 transformOrigin: "center center",
+                left: "50%",
+                top: "50%",
+                marginLeft: -CANVAS_W / 2,
+                marginTop: -CANVAS_H / 2,
               }}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
             >
-              {wallpaper && (
-                <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
-              )}
               {grid && (
                 <div
                   className="absolute inset-0 pointer-events-none opacity-20"
@@ -869,7 +873,7 @@ function FullscreenEditor({
         </div>
 
         {/* Right inspector — separate column, opaque, never overlaps the preview. */}
-        <aside className="w-72 shrink-0 border-l border-border/60 bg-card p-4 overflow-y-auto">
+        <aside className="w-72 shrink-0 border-l border-border bg-card p-4 overflow-y-auto">
           <div className="text-sm font-semibold mb-3">아이콘 설정</div>
           {!selected ? (
             <div className="text-xs text-muted-foreground py-8 text-center">
