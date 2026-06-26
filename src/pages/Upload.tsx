@@ -771,10 +771,8 @@ function FullscreenEditor({
       )}
 
       <div className="flex-1 flex min-h-0">
-        <div className="flex-1 relative bg-black overflow-hidden" onClick={() => setSelectedId(null)}>
-          {wallpaper ? (
-            <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          ) : (
+        <div ref={stageRef} className="flex-1 relative bg-black overflow-hidden grid place-items-center" onClick={() => setSelectedId(null)}>
+          {!wallpaper && (
             <div className="absolute inset-0 grid place-items-center text-muted-foreground">
               <div className="text-center">
                 <Monitor className="h-12 w-12 mx-auto mb-3 opacity-40" />
@@ -782,17 +780,32 @@ function FullscreenEditor({
               </div>
             </div>
           )}
-          {grid && (
-            <div
-              className="absolute inset-0 pointer-events-none opacity-20"
-              style={{
-                backgroundImage:
-                  "linear-gradient(to right, hsl(var(--primary) / 0.3) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--primary) / 0.3) 1px, transparent 1px)",
-                backgroundSize: "5% 5%",
-              }}
-            />
-          )}
-          <div ref={canvasRef} className="absolute inset-0" onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
+          {/* Logical 1920x1080 stage, scaled to fit the editor area. */}
+          <div
+            ref={canvasRef}
+            className="relative"
+            style={{
+              width: CANVAS_W,
+              height: CANVAS_H,
+              transform: `scale(${stageScale})`,
+              transformOrigin: "center center",
+            }}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+          >
+            {wallpaper && (
+              <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+            )}
+            {grid && (
+              <div
+                className="absolute inset-0 pointer-events-none opacity-20"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(to right, hsl(var(--primary) / 0.3) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--primary) / 0.3) 1px, transparent 1px)",
+                  backgroundSize: `${20}px ${20}px`,
+                }}
+              />
+            )}
             {items.map((ic) => {
               const a = iconAssets.find((x) => x.id === ic.assetId);
               const isSel = ic.id === selectedId;
@@ -801,8 +814,8 @@ function FullscreenEditor({
                   key={ic.id}
                   onPointerDown={(e) => onPointerDown(e, ic)}
                   onClick={(e) => e.stopPropagation()}
-                  style={{ left: `${ic.x}%`, top: `${ic.y}%`, width: ic.size, height: ic.size }}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
+                  style={{ left: `${ic.x}px`, top: `${ic.y}px`, width: `${ic.size}px`, height: `${ic.size}px` }}
+                  className="absolute flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
                 >
                   <div className="relative w-full h-full grid place-items-center">
                     {a ? (
