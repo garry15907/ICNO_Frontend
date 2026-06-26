@@ -513,16 +513,13 @@ function FullscreenEditor({
     const n = items.length;
     const x = 5 + ((n % 10) * 8);
     const y = 8 + (Math.floor(n / 10) * 14);
-    const next: PlacedIcon = {
-      id: uid(),
+    const next: PlacedIcon = normalizeIcon({
       assetId: asset.id,
       fileName: asset.file.name,
-      label: asset.file.name.replace(/\.[^.]+$/, ""),
+      name: asset.file.name.replace(/\.[^.]+$/, ""),
+      image_path: asset.file.name, // internal-only — UI never shows this
       x, y,
-      width: 72,
-      height: 72,
-      showLabel: true,
-    };
+    });
     setItems((a) => [...a, next]);
     setSelectedId(next.id);
     setDirty(true);
@@ -536,20 +533,13 @@ function FullscreenEditor({
     try {
       const text = await file.text();
       const parsed: any = parseJsonc(text);
-      if (!parsed?.icons || !Array.isArray(parsed.icons)) throw new Error();
-      const next: PlacedIcon[] = parsed.icons.map((it: any, i: number) => {
-        const match = iconAssets.find((a) => a.file.name === it.fileName || a.file.name === it.file || a.file.name === it.name);
-        return {
-          id: uid(),
-          assetId: match?.id ?? "",
-          fileName: it.fileName || it.file || it.name || `icon-${i}`,
-          label: it.label || it.name || `아이콘 ${i + 1}`,
-          x: Number(it.x) || 5,
-          y: Number(it.y) || 5,
-          width: Number(it.width) || 72,
-          height: Number(it.height) || 72,
-          showLabel: it.showLabel !== false,
-        };
+      const list = Array.isArray(parsed) ? parsed : parsed?.icons;
+      if (!Array.isArray(list)) throw new Error();
+      const next: PlacedIcon[] = list.map((it: any, i: number) => {
+        const match = iconAssets.find(
+          (a) => a.file.name === it.fileName || a.file.name === it.image_path || a.file.name === it.name,
+        );
+        return normalizeIcon({ ...it, assetId: match?.id ?? "" }, i);
       });
       setItems(next);
       setDirty(true);
