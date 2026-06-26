@@ -73,7 +73,7 @@ const DEFAULT_ICON: Omit<PlacedIcon, "id" | "assetId" | "fileName" | "name" | "x
   target_path: "",
   size: 72,
   show_name: true,
-  font_family: "맑은 고딕",
+  font_family: "Malgun Gothic, sans-serif",
   font_size: 10,
   font_bold: false,
   font_italic: false,
@@ -95,7 +95,7 @@ function normalizeIcon(raw: any, i = 0): PlacedIcon {
     y: Number.isFinite(Number(raw?.y)) ? Math.round(Number(raw?.y)) : 100,
     size: Number(raw?.size ?? raw?.width) || 72,
     show_name: raw?.show_name ?? raw?.showLabel ?? true,
-    font_family: raw?.font_family ?? "맑은 고딕",
+    font_family: normalizeFontFamily(raw?.font_family),
     font_size: Number(raw?.font_size) || 10,
     font_bold: !!raw?.font_bold,
     font_italic: !!raw?.font_italic,
@@ -127,6 +127,19 @@ function extOf(name: string) {
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+const LEGACY_FONT_MAP: Record<string, string> = {
+  "맑은 고딕": "Malgun Gothic, sans-serif",
+  "malgun gothic": "Malgun Gothic, sans-serif",
+  pretendard: "Pretendard, sans-serif",
+  noto: "Noto Sans KR, sans-serif",
+  inter: "Inter, sans-serif",
+  system: "system-ui, -apple-system, sans-serif",
+};
+function normalizeFontFamily(value?: string) {
+  if (!value) return "Malgun Gothic, sans-serif";
+  return LEGACY_FONT_MAP[value.toLowerCase()] ?? value;
+}
 
 // Reference desktop canvas size used by icons_config.json pixel coordinates.
 // Editor & previews scale visually around this logical resolution but the
@@ -1115,10 +1128,12 @@ function AssetModal({
 // =====================================================================
 
 const FONTS = [
-  { value: "pretendard", label: "Pretendard" },
-  { value: "noto", label: "Noto Sans KR" },
-  { value: "inter", label: "Inter" },
-  { value: "system", label: "System" },
+  { value: "Malgun Gothic, sans-serif", label: "맑은 고딕" },
+  { value: "Pretendard, sans-serif", label: "Pretendard" },
+  { value: "Noto Sans KR, sans-serif", label: "Noto Sans KR" },
+  { value: "Inter, sans-serif", label: "Inter" },
+  { value: "Arial, sans-serif", label: "Arial" },
+  { value: "system-ui, -apple-system, sans-serif", label: "System" },
 ];
 const COLORS = ["#ffffff", "#000000", "#a78bfa", "#60a5fa", "#34d399", "#fbbf24", "#f87171", "#ec4899"];
 
@@ -1244,7 +1259,7 @@ function IconDetailEditModal({
                 <Label className="text-xs">폰트</Label>
                 <Select value={font} onValueChange={setFont}>
                   <SelectTrigger className="mt-1.5 h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[120]">
                     {FONTS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
