@@ -266,6 +266,7 @@ export default function Upload() {
               </button>
             </div>
             <button
+              ref={previewBoxRef}
               onClick={() => setEditorOpen(true)}
               className="relative w-full aspect-[16/10] rounded-xl overflow-hidden border border-border bg-muted group cursor-pointer"
             >
@@ -286,9 +287,8 @@ export default function Upload() {
                   style={{
                     width: CANVAS_W,
                     height: CANVAS_H,
-                    transform: `scale(calc(100% / ${CANVAS_W} * 1))`,
+                    transform: `scale(${previewScale})`,
                     transformOrigin: "top left",
-                    // CSS calc with unitless ratio doesn't work — use container query fallback below
                   }}
                 >
                   {placed.map((ic) => {
