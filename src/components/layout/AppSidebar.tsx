@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Home, Compass, Library, Bell, Settings, Sparkles, ChevronUp, User, Heart, Download, Receipt, Store, LogOut, Users, Upload } from "lucide-react";
+import { Home, Compass, Library, Bell, Settings, Sparkles, ChevronUp, User, Heart, Download, Receipt, Store, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { currentUser } from "@/data/mockData";
 import { useSidebarMode } from "@/lib/sidebar-mode";
@@ -10,7 +10,6 @@ const navItems = [
   { to: "/", label: "홈", icon: Home },
   { to: "/explore", label: "탐색", icon: Compass },
   { to: "/library", label: "보관함", icon: Library },
-  { to: "/upload", label: "업로드", icon: Upload },
   { to: "/notifications", label: "알림", icon: Bell, badge: 3 },
   { to: "/settings", label: "설정", icon: Settings },
 ];
