@@ -132,6 +132,15 @@ function extOf(name: string) {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+// Show only the basename of a Windows/POSIX path. UI must never expose the
+// full absolute target_path/image_path — those stay in internal data only.
+function basenameOf(p?: string) {
+  if (!p) return "";
+  const norm = p.replace(/[\\/]+$/, "");
+  const idx = Math.max(norm.lastIndexOf("\\"), norm.lastIndexOf("/"));
+  return idx >= 0 ? norm.slice(idx + 1) : norm;
+}
+
 const LEGACY_FONT_MAP: Record<string, string> = {
   "맑은 고딕": "Malgun Gothic, sans-serif",
   "malgun gothic": "Malgun Gothic, sans-serif",
