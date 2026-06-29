@@ -1,5 +1,16 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -95,8 +106,69 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
   const [label, setLabel] = useState(icon.label);
   const [showLabel, setShowLabel] = useState(true);
   const [mapping, setMapping] = useState(icon.mappedTo);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [path, setPath] = useState<string[]>(["내 PC"]);
   const [search, setSearch] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Snapshot of last-saved state for dirty tracking
+  const [saved, setSaved] = useState(() => ({
+    w: icon.size.w,
+    h: icon.size.h,
+    label: icon.label,
+    showLabel: true,
+    mapping: icon.mappedTo,
+    imageSrc: null as string | null,
+  }));
+
+  const isDirty = useMemo(
+    () =>
+      saved.w !== w ||
+      saved.h !== h ||
+      saved.label !== label ||
+      saved.showLabel !== showLabel ||
+      saved.mapping !== mapping ||
+      saved.imageSrc !== imageSrc,
+    [saved, w, h, label, showLabel, mapping, imageSrc],
+  );
+
+  const handleSave = () => {
+    setSaved({ w, h, label, showLabel, mapping, imageSrc });
+    toast({ title: "저장되었습니다", description: `${label} 아이콘 변경 사항을 저장했습니다.` });
+  };
+
+  const handleExitClick = () => {
+    if (isDirty) {
+      setConfirmOpen(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleSaveAndExit = () => {
+    handleSave();
+    setConfirmOpen(false);
+    onClose();
+  };
+
+  const handleDiscardAndExit = () => {
+    setConfirmOpen(false);
+    onClose();
+  };
+
+  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setImageSrc(reader.result);
+    };
+    reader.readAsDataURL(file);
+    // Reset input so selecting the same file again still triggers change
+    e.target.value = "";
+  };
+
   const currentNode = findNode(path.slice(1));
   const entries = (currentNode?.children ?? []).filter((e) =>
     search ? e.name.toLowerCase().includes(search.toLowerCase()) : true,
