@@ -37,6 +37,8 @@ import {
   ImagePlus,
   Search,
   Pencil,
+  Link2,
+  Link2Off,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -129,6 +131,15 @@ function extOf(name: string) {
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+// Show only the basename of a Windows/POSIX path. UI must never expose the
+// full absolute target_path/image_path — those stay in internal data only.
+function basenameOf(p?: string) {
+  if (!p) return "";
+  const norm = p.replace(/[\\/]+$/, "");
+  const idx = Math.max(norm.lastIndexOf("\\"), norm.lastIndexOf("/"));
+  return idx >= 0 ? norm.slice(idx + 1) : norm;
+}
 
 const LEGACY_FONT_MAP: Record<string, string> = {
   "맑은 고딕": "Malgun Gothic, sans-serif",
@@ -470,6 +481,7 @@ function FullscreenEditor({
   const canvasRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const targetInputRef = useRef<HTMLInputElement>(null);
   const [stageScale, setStageScale] = useState(1);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
   // Tracks whether we need to re-enter fullscreen after a native file picker
@@ -530,6 +542,25 @@ function FullscreenEditor({
     if (!input) return;
     shouldRestoreFsRef.current = !!document.fullscreenElement;
     input.click();
+  };
+
+  // Pick a program/file/folder to bind as the selected icon's launch target.
+  // Prefers Electron native dialog when available; falls back to <input type=file>.
+  const pickTargetForSelected = async () => {
+    if (!selected) return;
+    const api = (window as any).electronAPI;
+    if (api?.selectIconTarget) {
+      shouldRestoreFsRef.current = !!document.fullscreenElement;
+      try {
+        const result = await api.selectIconTarget();
+        const path: string | undefined = result?.path ?? result;
+        if (path) update(selected.id, { target_path: path });
+      } catch {
+        toast({ title: "선택을 취소했습니다" });
+      }
+      return;
+    }
+    safeOpenFilePicker(targetInputRef.current);
   };
 
   useEffect(() => {
@@ -672,6 +703,21 @@ function FullscreenEditor({
 
   const content = (
     <div ref={rootRef} className="fixed inset-0 z-[100] bg-background overflow-hidden animate-fade-in flex flex-col">
+      {/* Hidden fallback when not running under Electron — captures filename as target_path. */}
+      <input
+        ref={targetInputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file && selected) {
+            // In browser there's no absolute path, so store the file name.
+            // Electron path (preferred) sets the real absolute path.
+            update(selected.id, { target_path: (file as any).path || file.name });
+          }
+          e.target.value = "";
+        }}
+      />
       {/* Top toolbar */}
       <div className="h-14 border-b border-border/60 bg-card/80 backdrop-blur flex items-center px-4 gap-3 shrink-0">
         <div className="text-sm font-semibold shrink-0 flex items-center gap-2">
@@ -689,7 +735,6 @@ function FullscreenEditor({
           </div>
           <ToolbarBtn icon={<ImagePlus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("wallpaper")}>배경화면 변경</ToolbarBtn>
           <ToolbarBtn icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("icons")}>아이콘 추가</ToolbarBtn>
-          <ToolbarBtn icon={<FolderOpen className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("layout")}>자산 불러오기</ToolbarBtn>
           <button
             onClick={() => setGrid((g) => !g)}
             className={cn(
@@ -880,6 +925,43 @@ function FullscreenEditor({
               <div className="flex items-center justify-between py-1">
                 <Label className="text-xs">이름 표시</Label>
                 <Switch checked={selected.show_name} onCheckedChange={(v) => update(selected.id, { show_name: v })} />
+              </div>
+              {/* 연결 대상 (target_path) — 사용자가 아이콘에 매핑할 프로그램/파일/폴더 */}
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Link2 className="h-3.5 w-3.5 text-primary" />
+                  <Label className="text-xs font-semibold">연결 대상</Label>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  이 아이콘을 클릭했을 때 실행할 프로그램, 파일, 폴더를 선택하세요.
+                </p>
+                <div className="text-[11px]">
+                  {selected.target_path ? (
+                    <span className="text-foreground">
+                      연결됨:&nbsp;
+                      <span className="font-medium text-primary truncate inline-block max-w-[180px] align-bottom">
+                        {basenameOf(selected.target_path)}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">연결된 대상 없음</span>
+                  )}
+                </div>
+                <div className="flex gap-1.5">
+                  <Button size="sm" variant="outline" className="flex-1 h-7 text-[11px]" onClick={pickTargetForSelected}>
+                    <FolderOpen className="h-3 w-3" /> {selected.target_path ? "연결 변경" : "프로그램/파일 선택"}
+                  </Button>
+                  {selected.target_path && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-[11px] text-muted-foreground hover:text-destructive"
+                      onClick={() => update(selected.id, { target_path: "" })}
+                    >
+                      <Link2Off className="h-3 w-3" /> 해제
+                    </Button>
+                  )}
+                </div>
               </div>
               <Button variant="outline" className="w-full" onClick={() => setEditIconOpen(true)}>
                 <Pencil className="h-3.5 w-3.5" /> 상세 편집
