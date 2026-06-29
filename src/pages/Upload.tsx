@@ -586,10 +586,7 @@ function FullscreenEditor({
   const shouldRestoreFsRef = useRef(false);
 
   useEffect(() => {
-    const el = rootRef.current;
-    if (el && !document.fullscreenElement && el.requestFullscreen) {
-      el.requestFullscreen().then(() => setIsBrowserFullscreen(true)).catch(() => {});
-    }
+    // Do not auto-enter browser fullscreen; user can toggle via toolbar.
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onFsChange = () => setIsBrowserFullscreen(!!document.fullscreenElement);
