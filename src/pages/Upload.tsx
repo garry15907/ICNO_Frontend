@@ -369,16 +369,16 @@ export default function Upload() {
                   {placed.map((ic) => {
                     const a = assetById.get(ic.assetId);
                     return (
-                      <div
+                    <div
                         key={ic.id}
                         style={{ left: `${ic.x}px`, top: `${ic.y}px` }}
-                        className="absolute flex flex-col items-center gap-1"
+                        className="absolute flex flex-col items-center"
                       >
                         <div style={{ width: `${ic.size}px`, height: `${ic.size}px` }} className="grid place-items-center">
                           {a ? <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
                         </div>
                         {ic.show_name && (
-                          <span className="text-white whitespace-nowrap" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)", fontSize: `${ic.font_size}px`, fontFamily: ic.font_family }}>{ic.name}</span>
+                          <div className="mt-2 text-center text-white whitespace-nowrap leading-none" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)", fontSize: `${ic.font_size}px`, fontFamily: ic.font_family }}>{ic.name}</div>
                         )}
                       </div>
                     );
@@ -834,45 +834,45 @@ function FullscreenEditor({
                 const a = iconAssets.find((x) => x.id === ic.assetId);
                 const isSel = ic.id === selectedId;
                 return (
-                  <div
-                    key={ic.id}
-                    onPointerDown={(e) => onPointerDown(e, ic)}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ left: `${ic.x}px`, top: `${ic.y}px` }}
-                    className="absolute flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
-                  >
-                    <div style={{ width: `${ic.size}px`, height: `${ic.size}px` }} className="relative grid place-items-center">
-                      {a ? (
-                        <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain pointer-events-none" />
-                      ) : (
-                        <ImageIcon className="h-5 w-5 text-white/70 drop-shadow" />
-                      )}
-                      {isSel && (
-                        <>
-                          <span className="absolute -top-1 -left-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
-                          <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
-                          <span className="absolute -bottom-1 -left-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
-                          <span className="absolute -bottom-1 -right-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
-                        </>
+                    <div
+                      key={ic.id}
+                      onPointerDown={(e) => onPointerDown(e, ic)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ left: `${ic.x}px`, top: `${ic.y}px` }}
+                      className="absolute flex flex-col items-center cursor-grab active:cursor-grabbing select-none"
+                    >
+                      <div style={{ width: `${ic.size}px`, height: `${ic.size}px` }} className="relative grid place-items-center">
+                        {a ? (
+                          <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain pointer-events-none" />
+                        ) : (
+                          <ImageIcon className="h-5 w-5 text-white/70 drop-shadow" />
+                        )}
+                        {isSel && (
+                          <>
+                            <span className="absolute -top-1 -left-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                            <span className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                            <span className="absolute -bottom-1 -left-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                            <span className="absolute -bottom-1 -right-1 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+                          </>
+                        )}
+                      </div>
+                      {ic.show_name && (
+                        <div
+                          className="mt-2 text-center whitespace-nowrap leading-none"
+                          style={{
+                            textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                            color: ic.font_color,
+                            fontFamily: ic.font_family,
+                            fontSize: `${ic.font_size}px`,
+                            fontWeight: ic.font_bold ? 700 : 400,
+                            fontStyle: ic.font_italic ? "italic" : "normal",
+                            WebkitTextStroke: `0.4px ${ic.outline_color}`,
+                          }}
+                        >
+                          {ic.name}
+                        </div>
                       )}
                     </div>
-                    {ic.show_name && (
-                      <span
-                        className="whitespace-nowrap"
-                        style={{
-                          textShadow: "0 1px 2px rgba(0,0,0,0.8)",
-                          color: ic.font_color,
-                          fontFamily: ic.font_family,
-                          fontSize: `${ic.font_size}px`,
-                          fontWeight: ic.font_bold ? 700 : 400,
-                          fontStyle: ic.font_italic ? "italic" : "normal",
-                          WebkitTextStroke: `0.4px ${ic.outline_color}`,
-                        }}
-                      >
-                        {ic.name}
-                      </span>
-                    )}
-                  </div>
                 );
               })}
             </div>
