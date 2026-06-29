@@ -189,7 +189,7 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
   const setBoth = (v: number) => { setW(v); if (lock) setH(v); };
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <Dialog open onOpenChange={(o) => { if (!o) handleExitClick(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle>아이콘 수정 · {label}</DialogTitle>
@@ -207,10 +207,37 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs">기본 이미지</Label>
-                <div className="mt-2 aspect-square rounded-xl bg-muted grid place-items-center text-7xl border border-border">{icon.emoji}</div>
+                <div className="mt-2 aspect-square rounded-xl bg-muted grid place-items-center text-7xl border border-border overflow-hidden">
+                  {imageSrc ? (
+                    <img src={imageSrc} alt={label} className="w-full h-full object-contain" />
+                  ) : (
+                    <span>{icon.emoji}</span>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImagePick}
+                />
                 <div className="flex gap-2 mt-2">
-                  <Button variant="outline" size="sm" className="flex-1"><ImageIcon className="h-3.5 w-3.5 mr-1" />변경</Button>
-                  <Button variant="ghost" size="sm"><RotateCcw className="h-3.5 w-3.5" /></Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <ImageIcon className="h-3.5 w-3.5 mr-1" />변경
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setImageSrc(null)}
+                    aria-label="초기화"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
               <div>
