@@ -265,12 +265,11 @@ export default function Upload() {
   const allDone = checks.every((c) => c.done);
 
   const handlePublish = () => {
-    if (!allDone) return;
-    toast({ title: "프리셋이 게시되었습니다", description: `${name} · ${placed.length}개 아이콘 배치됨` });
+    toast({ title: "프리셋이 적용되었습니다", description: `${name || "이름 없는 프리셋"} · ${placed.length}개 아이콘` });
   };
 
   const handleSaveDraft = () => {
-    toast({ title: "임시저장되었습니다", description: name || "이름 없는 프리셋" });
+    toast({ title: "저장되었습니다", description: name || "이름 없는 프리셋" });
   };
 
   const assetById = useMemo(() => {
@@ -296,34 +295,28 @@ export default function Upload() {
   }, []);
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12">
+    <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">프리셋 등록</h1>
+          <h1 className="text-3xl font-bold tracking-tight">프리셋 수정</h1>
           <p className="text-muted-foreground mt-1.5 text-sm">
-            배경화면, 아이콘, 배치 정보를 구성해 나만의 데스크탑 프리셋을 공유하세요.
+            배경화면과 아이콘 배치를 자유롭게 수정해보세요.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="rounded-lg" onClick={handleSaveDraft}>임시저장</Button>
+          <Button variant="outline" className="rounded-lg" onClick={handleSaveDraft}>
+            <Save className="h-4 w-4" /> 저장하기
+          </Button>
           <Button
             onClick={handlePublish}
-            disabled={!allDone}
-            className={cn(
-              "rounded-lg h-10 px-5 font-semibold transition-all",
-              allDone
-                ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow"
-                : "bg-muted text-muted-foreground cursor-not-allowed",
-            )}
+            className="rounded-lg h-10 px-5 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow"
           >
-            <Sparkles className="h-4 w-4" /> 게시하기
+            <Sparkles className="h-4 w-4" /> 적용하기
           </Button>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[1.15fr_1fr] gap-6">
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-border/60 bg-card/50 p-5">
+      <section className="rounded-2xl border border-border/60 bg-card/50 p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Monitor className="h-4 w-4 text-primary" />
@@ -395,108 +388,6 @@ export default function Upload() {
               <span>배치된 아이콘 {placed.length}개</span>
             </div>
           </section>
-        </div>
-
-        <div className="space-y-6">
-          <StepCard step="01" title="프리셋 정보" desc="마켓에 표시될 기본 정보를 입력해주세요.">
-            <div className="space-y-4">
-              <div>
-                <Label className="text-xs">프리셋 이름</Label>
-                <Input className="mt-1.5" value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 노을, 픽셀 게임룸" />
-              </div>
-              <div>
-                <Label className="text-xs">설명</Label>
-                <Textarea className="mt-1.5 min-h-20" value={description} onChange={(e) => setDescription(e.target.value)}
-                  placeholder="프리셋의 컨셉과 분위기를 설명하세요." />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">카테고리</Label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger className="mt-1.5"><SelectValue placeholder="선택" /></SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">태그</Label>
-                  <Input
-                    className="mt-1.5"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === ",") {
-                        e.preventDefault();
-                        addTag();
-                      }
-                    }}
-                    placeholder="태그 입력 후 Enter"
-                  />
-                </div>
-              </div>
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {tags.map((t) => (
-                    <Badge key={t} variant="secondary" className="gap-1 pr-1">
-                      {t}
-                      <button onClick={() => setTags(tags.filter((x) => x !== t))} className="opacity-60 hover:opacity-100">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          </StepCard>
-
-          <StepCard step="02" title="공개 및 판매 설정" desc="누구에게 어떻게 공개할지 선택하세요.">
-            <div className="space-y-1 divide-y divide-border/50">
-              <ToggleRow label="공개" desc="마켓에서 다른 사용자가 검색·다운로드할 수 있어요." checked={isPublic} onChange={setIsPublic} />
-              <ToggleRow label="유료 판매" desc="가격을 설정하고 판매할 수 있어요." checked={isPaid} onChange={setIsPaid} />
-              {isPaid && (
-                <div className="pt-3">
-                  <Label className="text-xs">가격 (원)</Label>
-                  <Input type="number" className="mt-1.5" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="4900" />
-                </div>
-              )}
-              <ToggleRow label="댓글 허용" desc="다른 사용자가 댓글을 남길 수 있어요." checked={allowComments} onChange={setAllowComments} />
-              <ToggleRow label="평점 허용" desc="다른 사용자가 평점을 매길 수 있어요." checked={allowRatings} onChange={setAllowRatings} />
-            </div>
-          </StepCard>
-
-          <StepCard step="03" title="업로드 상태" desc="모든 항목이 완료되면 게시할 수 있어요.">
-            <ul className="space-y-2">
-              {checks.map((c) => (
-                <li key={c.key} className="flex items-center gap-3 text-sm">
-                  <span className={cn(
-                    "h-5 w-5 rounded-full grid place-items-center border transition-colors",
-                    c.done ? "bg-primary border-primary text-primary-foreground" : "border-border text-muted-foreground",
-                  )}>
-                    {c.done ? <Check className="h-3 w-3" /> : <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />}
-                  </span>
-                  <span className={c.done ? "text-foreground" : "text-muted-foreground"}>{c.label}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="flex gap-2 mt-5">
-              <Button variant="outline" className="flex-1 rounded-lg" onClick={handleSaveDraft}>임시저장</Button>
-              <Button
-                onClick={handlePublish}
-                disabled={!allDone}
-                className={cn(
-                  "flex-1 rounded-lg font-semibold",
-                  allDone
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow"
-                    : "bg-muted text-muted-foreground cursor-not-allowed",
-                )}
-              >
-                <Sparkles className="h-4 w-4" /> 게시하기
-              </Button>
-            </div>
-          </StepCard>
-        </div>
-      </div>
 
       {editorOpen && (
         <FullscreenEditor
