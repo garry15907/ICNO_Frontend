@@ -170,14 +170,17 @@ All colors MUST be HSL.
     place-items: center;
     position: relative;
     width: var(--desktop-icon-size, auto);
-    height: var(--desktop-icon-size, auto);
-    overflow: hidden;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
     order: 1;
   }
   .desktopIconImage {
     display: block;
     width: 100%;
-    height: 100%;
+    height: auto;
+    max-width: none;
+    max-height: none;
     object-fit: contain;
   }
   .desktopIconLabel {
