@@ -1348,29 +1348,31 @@ function IconDetailEditModal({
           {/* Preview */}
           <div className="border-l border-border/60 bg-muted/20 p-6 flex flex-col items-center justify-center">
             <div className="text-[11px] text-muted-foreground mb-4 uppercase tracking-wider">미리보기</div>
-            <div
-              className="rounded-xl bg-background/60 border border-border/40 grid place-items-center overflow-hidden shadow-card"
-              style={{ width: Math.min(size, 180), height: Math.min(size, 180) }}
-            >
-              {previewAsset ? (
-                <img src={previewAsset.previewUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
-              ) : (
-                <ImageIcon className="h-10 w-10 text-muted-foreground" />
+            <div className="desktopIconWrapper">
+              <div
+                className="desktopIconImageBox rounded-xl bg-background/60 border border-border/40 overflow-hidden shadow-card"
+                style={{ width: Math.min(size, 180), height: Math.min(size, 180) }}
+              >
+                {previewAsset ? (
+                  <img src={previewAsset.previewUrl} alt="" className="desktopIconImage max-h-[75%] max-w-[75%] object-contain" />
+                ) : (
+                  <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                )}
+              </div>
+              {showLabel && (
+                <div
+                  className="desktopIconLabel max-w-[200px] truncate"
+                  style={{
+                    fontFamily: font,
+                    fontSize: `${fontSize}px`,
+                    color: textColor,
+                    WebkitTextStroke: `0.5px ${strokeColor}`,
+                  }}
+                >
+                  {label || "아이콘 이름"}
+                </div>
               )}
             </div>
-            {showLabel && (
-              <div
-                className="mt-3 text-center max-w-[200px] truncate"
-                style={{
-                  fontFamily: font,
-                  fontSize: `${fontSize}px`,
-                  color: textColor,
-                  WebkitTextStroke: `0.5px ${strokeColor}`,
-                }}
-              >
-                {label || "아이콘 이름"}
-              </div>
-            )}
           </div>
         </div>
 
