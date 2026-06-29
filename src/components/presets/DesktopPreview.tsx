@@ -1,5 +1,6 @@
 import { IconAsset } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+import type { CSSProperties } from "react";
 
 export function DesktopPreview({
   wallpaper,
@@ -24,7 +25,7 @@ export function DesktopPreview({
           <button
             key={ic.id}
             onClick={() => onSelect?.(ic.id)}
-            style={{ left: `${ic.position.x}%`, top: `${ic.position.y}%`, "--desktop-icon-size": "3rem" } as React.CSSProperties}
+            style={{ left: `${ic.position.x}%`, top: `${ic.position.y}%`, "--desktop-icon-size": "3rem" } as CSSProperties}
             className={cn(
               "absolute desktopIconWrapper group/icon transition-transform hover:scale-110",
               selectedId === ic.id && "scale-110",
