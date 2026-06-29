@@ -1,5 +1,16 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -95,8 +106,69 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
   const [label, setLabel] = useState(icon.label);
   const [showLabel, setShowLabel] = useState(true);
   const [mapping, setMapping] = useState(icon.mappedTo);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [path, setPath] = useState<string[]>(["내 PC"]);
   const [search, setSearch] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Snapshot of last-saved state for dirty tracking
+  const [saved, setSaved] = useState(() => ({
+    w: icon.size.w,
+    h: icon.size.h,
+    label: icon.label,
+    showLabel: true,
+    mapping: icon.mappedTo,
+    imageSrc: null as string | null,
+  }));
+
+  const isDirty = useMemo(
+    () =>
+      saved.w !== w ||
+      saved.h !== h ||
+      saved.label !== label ||
+      saved.showLabel !== showLabel ||
+      saved.mapping !== mapping ||
+      saved.imageSrc !== imageSrc,
+    [saved, w, h, label, showLabel, mapping, imageSrc],
+  );
+
+  const handleSave = () => {
+    setSaved({ w, h, label, showLabel, mapping, imageSrc });
+    toast({ title: "저장되었습니다", description: `${label} 아이콘 변경 사항을 저장했습니다.` });
+  };
+
+  const handleExitClick = () => {
+    if (isDirty) {
+      setConfirmOpen(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleSaveAndExit = () => {
+    handleSave();
+    setConfirmOpen(false);
+    onClose();
+  };
+
+  const handleDiscardAndExit = () => {
+    setConfirmOpen(false);
+    onClose();
+  };
+
+  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setImageSrc(reader.result);
+    };
+    reader.readAsDataURL(file);
+    // Reset input so selecting the same file again still triggers change
+    e.target.value = "";
+  };
+
   const currentNode = findNode(path.slice(1));
   const entries = (currentNode?.children ?? []).filter((e) =>
     search ? e.name.toLowerCase().includes(search.toLowerCase()) : true,
@@ -117,7 +189,7 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
   const setBoth = (v: number) => { setW(v); if (lock) setH(v); };
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <Dialog open onOpenChange={(o) => { if (!o) handleExitClick(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle>아이콘 수정 · {label}</DialogTitle>
@@ -135,10 +207,37 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs">기본 이미지</Label>
-                <div className="mt-2 aspect-square rounded-xl bg-muted grid place-items-center text-7xl border border-border">{icon.emoji}</div>
+                <div className="mt-2 aspect-square rounded-xl bg-muted grid place-items-center text-7xl border border-border overflow-hidden">
+                  {imageSrc ? (
+                    <img src={imageSrc} alt={label} className="w-full h-full object-contain" />
+                  ) : (
+                    <span>{icon.emoji}</span>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImagePick}
+                />
                 <div className="flex gap-2 mt-2">
-                  <Button variant="outline" size="sm" className="flex-1"><ImageIcon className="h-3.5 w-3.5 mr-1" />변경</Button>
-                  <Button variant="ghost" size="sm"><RotateCcw className="h-3.5 w-3.5" /></Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <ImageIcon className="h-3.5 w-3.5 mr-1" />변경
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setImageSrc(null)}
+                    aria-label="초기화"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
               <div>
@@ -349,11 +448,33 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end gap-2 border-t border-border pt-4 mt-2">
-          <Button variant="ghost" onClick={onClose}>취소</Button>
-          <Button className="bg-gradient-primary text-primary-foreground" onClick={onClose}>저장</Button>
+        <div className="flex items-center justify-between gap-2 border-t border-border pt-4 mt-2">
+          <Button
+            className="bg-gradient-primary text-primary-foreground"
+            onClick={handleSave}
+            disabled={!isDirty}
+          >
+            저장
+          </Button>
+          <Button variant="ghost" onClick={handleExitClick}>나가기</Button>
         </div>
       </DialogContent>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>저장하지 않은 변경 사항이 있습니다</AlertDialogTitle>
+            <AlertDialogDescription>
+              저장하고 나가시겠습니까? 저장하지 않으면 변경 사항이 사라집니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <Button variant="outline" onClick={handleDiscardAndExit}>저장 안 함</Button>
+            <AlertDialogAction onClick={handleSaveAndExit}>저장하고 나가기</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
