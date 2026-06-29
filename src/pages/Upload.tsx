@@ -372,13 +372,13 @@ export default function Upload() {
                     <div
                         key={ic.id}
                         style={{ left: `${ic.x}px`, top: `${ic.y}px` }}
-                        className="absolute flex flex-col items-center"
+                        className="absolute desktopIconWrapper"
                       >
-                        <div style={{ width: `${ic.size}px`, height: `${ic.size}px` }} className="grid place-items-center">
-                          {a ? <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
+                        <div className="desktopIconImageBox grid place-items-center" style={{ width: `${ic.size}px`, height: `${ic.size}px` }}>
+                          {a ? <img src={a.previewUrl} alt="" className="desktopIconImage max-h-full max-w-full object-contain" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
                         </div>
                         {ic.show_name && (
-                          <div className="mt-2 text-center text-white whitespace-nowrap leading-none" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)", fontSize: `${ic.font_size}px`, fontFamily: ic.font_family }}>{ic.name}</div>
+                          <div className="desktopIconLabel mt-2 text-center text-white whitespace-nowrap leading-none" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)", fontSize: `${ic.font_size}px`, fontFamily: ic.font_family }}>{ic.name}</div>
                         )}
                       </div>
                     );
@@ -839,11 +839,11 @@ function FullscreenEditor({
                       onPointerDown={(e) => onPointerDown(e, ic)}
                       onClick={(e) => e.stopPropagation()}
                       style={{ left: `${ic.x}px`, top: `${ic.y}px` }}
-                      className="absolute flex flex-col items-center cursor-grab active:cursor-grabbing select-none"
+                      className="absolute desktopIconWrapper cursor-grab active:cursor-grabbing select-none"
                     >
-                      <div style={{ width: `${ic.size}px`, height: `${ic.size}px` }} className="relative grid place-items-center">
+                      <div className="desktopIconImageBox relative grid place-items-center" style={{ width: `${ic.size}px`, height: `${ic.size}px` }}>
                         {a ? (
-                          <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain pointer-events-none" />
+                          <img src={a.previewUrl} alt="" className="desktopIconImage max-h-full max-w-full object-contain pointer-events-none" />
                         ) : (
                           <ImageIcon className="h-5 w-5 text-white/70 drop-shadow" />
                         )}
@@ -858,7 +858,7 @@ function FullscreenEditor({
                       </div>
                       {ic.show_name && (
                         <div
-                          className="mt-2 text-center whitespace-nowrap leading-none"
+                          className="desktopIconLabel mt-2 text-center whitespace-nowrap leading-none"
                           style={{
                             textShadow: "0 1px 2px rgba(0,0,0,0.8)",
                             color: ic.font_color,
@@ -1348,29 +1348,31 @@ function IconDetailEditModal({
           {/* Preview */}
           <div className="border-l border-border/60 bg-muted/20 p-6 flex flex-col items-center justify-center">
             <div className="text-[11px] text-muted-foreground mb-4 uppercase tracking-wider">미리보기</div>
-            <div
-              className="rounded-xl bg-background/60 border border-border/40 grid place-items-center overflow-hidden shadow-card"
-              style={{ width: Math.min(size, 180), height: Math.min(size, 180) }}
-            >
-              {previewAsset ? (
-                <img src={previewAsset.previewUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
-              ) : (
-                <ImageIcon className="h-10 w-10 text-muted-foreground" />
+            <div className="desktopIconWrapper">
+              <div
+                className="desktopIconImageBox rounded-xl bg-background/60 border border-border/40 overflow-hidden shadow-card"
+                style={{ width: Math.min(size, 180), height: Math.min(size, 180) }}
+              >
+                {previewAsset ? (
+                  <img src={previewAsset.previewUrl} alt="" className="desktopIconImage max-h-[75%] max-w-[75%] object-contain" />
+                ) : (
+                  <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                )}
+              </div>
+              {showLabel && (
+                <div
+                  className="desktopIconLabel max-w-[200px] truncate"
+                  style={{
+                    fontFamily: font,
+                    fontSize: `${fontSize}px`,
+                    color: textColor,
+                    WebkitTextStroke: `0.5px ${strokeColor}`,
+                  }}
+                >
+                  {label || "아이콘 이름"}
+                </div>
               )}
             </div>
-            {showLabel && (
-              <div
-                className="mt-3 text-center max-w-[200px] truncate"
-                style={{
-                  fontFamily: font,
-                  fontSize: `${fontSize}px`,
-                  color: textColor,
-                  WebkitTextStroke: `0.5px ${strokeColor}`,
-                }}
-              >
-                {label || "아이콘 이름"}
-              </div>
-            )}
           </div>
         </div>
 

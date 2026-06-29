@@ -150,4 +150,30 @@ All colors MUST be HSL.
     border-radius: 8px;
   }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+  /* Desktop-style icon layout: image box and label are strictly separated so
+     the label always renders below the image regardless of icon size. */
+  .desktopIconWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .desktopIconImageBox {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+  }
+  .desktopIconImage {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .desktopIconLabel {
+    flex: 0 0 auto;
+    margin-top: 0.5rem;
+    text-align: center;
+    white-space: nowrap;
+    line-height: 1;
+  }
 }
