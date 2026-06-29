@@ -911,6 +911,43 @@ function FullscreenEditor({
                 <Label className="text-xs">이름 표시</Label>
                 <Switch checked={selected.show_name} onCheckedChange={(v) => update(selected.id, { show_name: v })} />
               </div>
+              {/* 연결 대상 (target_path) — 사용자가 아이콘에 매핑할 프로그램/파일/폴더 */}
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Link2 className="h-3.5 w-3.5 text-primary" />
+                  <Label className="text-xs font-semibold">연결 대상</Label>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  이 아이콘을 클릭했을 때 실행할 프로그램, 파일, 폴더를 선택하세요.
+                </p>
+                <div className="text-[11px]">
+                  {selected.target_path ? (
+                    <span className="text-foreground">
+                      연결됨:&nbsp;
+                      <span className="font-medium text-primary truncate inline-block max-w-[180px] align-bottom">
+                        {basenameOf(selected.target_path)}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">연결된 대상 없음</span>
+                  )}
+                </div>
+                <div className="flex gap-1.5">
+                  <Button size="sm" variant="outline" className="flex-1 h-7 text-[11px]" onClick={pickTargetForSelected}>
+                    <FolderOpen className="h-3 w-3" /> {selected.target_path ? "연결 변경" : "프로그램/파일 선택"}
+                  </Button>
+                  {selected.target_path && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-[11px] text-muted-foreground hover:text-destructive"
+                      onClick={() => update(selected.id, { target_path: "" })}
+                    >
+                      <Link2Off className="h-3 w-3" /> 해제
+                    </Button>
+                  )}
+                </div>
+              </div>
               <Button variant="outline" className="w-full" onClick={() => setEditIconOpen(true)}>
                 <Pencil className="h-3.5 w-3.5" /> 상세 편집
               </Button>
