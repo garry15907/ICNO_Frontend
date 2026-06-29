@@ -39,6 +39,7 @@ import {
   Pencil,
   Link2,
   Link2Off,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
