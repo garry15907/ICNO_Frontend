@@ -373,7 +373,7 @@ type UploadedIcon = {
   id: string;
   name: string;
   dataUrl: string;
-  fileType: "PNG" | "SVG" | "ICO";
+  fileType: "PNG" | "SVG" | "ICO" | "GIF";
   resolution: string;
   fileName: string;
   createdAt: number;
@@ -622,7 +622,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         <input
           ref={fileRef}
           type="file"
-          accept="image/png,image/svg+xml,image/x-icon,.ico,.png,.svg"
+          accept="image/png,image/svg+xml,image/x-icon,image/gif,.ico,.png,.svg,.gif"
           multiple
           className="hidden"
           onChange={(e) => { handleFiles(e.target.files); if (fileRef.current) fileRef.current.value = ""; }}
@@ -802,7 +802,7 @@ function IconDetailModal({
             <input
               ref={fileRef}
               type="file"
-              accept="image/png,image/svg+xml,image/x-icon,.ico,.png,.svg"
+              accept="image/png,image/svg+xml,image/x-icon,image/gif,.ico,.png,.svg,.gif"
               className="hidden"
               onChange={(e) => { handleFile(e.target.files?.[0]); if (fileRef.current) fileRef.current.value = ""; }}
             />
@@ -924,7 +924,7 @@ function PackDetailModal({
                   <Button size="sm" variant="outline" onClick={() => addRef.current?.click()} className="gap-1.5">
                     <Plus className="h-3.5 w-3.5" /> 아이콘 추가
                   </Button>
-                  <input ref={addRef} type="file" multiple accept="image/png,image/svg+xml,image/x-icon,.ico,.png,.svg" className="hidden"
+                  <input ref={addRef} type="file" multiple accept="image/png,image/svg+xml,image/x-icon,image/gif,.ico,.png,.svg,.gif" className="hidden"
                     onChange={(e) => { handleAddIcons(e.target.files); if (addRef.current) addRef.current.value = ""; }} />
                 </div>
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-[320px] overflow-auto p-1">
@@ -993,7 +993,7 @@ function PackDetailModal({
                 <Button size="sm" variant="outline" onClick={() => replaceRef.current?.click()} className="gap-1.5">
                   <Replace className="h-3.5 w-3.5" /> 이미지 파일 변경
                 </Button>
-                <input ref={replaceRef} type="file" accept="image/png,image/svg+xml,image/x-icon,.ico,.png,.svg" className="hidden"
+                <input ref={replaceRef} type="file" accept="image/png,image/svg+xml,image/x-icon,image/gif,.ico,.png,.svg,.gif" className="hidden"
                   onChange={(e) => { handleReplaceChild(e.target.files?.[0]); if (replaceRef.current) replaceRef.current.value = ""; }} />
               </div>
               <div>
