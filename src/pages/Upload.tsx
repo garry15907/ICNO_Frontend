@@ -839,7 +839,7 @@ function FullscreenEditor({
                       onPointerDown={(e) => onPointerDown(e, ic)}
                       onClick={(e) => e.stopPropagation()}
                       style={{ left: `${ic.x}px`, top: `${ic.y}px` }}
-                      className="absolute flex flex-col items-center cursor-grab active:cursor-grabbing select-none"
+                      className="absolute desktopIconWrapper cursor-grab active:cursor-grabbing select-none"
                     >
                       <div className="desktopIconImageBox relative grid place-items-center" style={{ width: `${ic.size}px`, height: `${ic.size}px` }}>
                         {a ? (
