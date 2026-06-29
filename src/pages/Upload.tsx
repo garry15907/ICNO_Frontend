@@ -39,10 +39,11 @@ import {
   Pencil,
   Link2,
   Link2Off,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { libraryPresets } from "@/data/mockData";
 
 type IconAsset = { id: string; file: File; previewUrl: string };
@@ -162,6 +163,7 @@ const CANVAS_H = 1080;
 
 export default function Upload() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const presetIdParam = searchParams.get("preset");
 
@@ -308,11 +310,22 @@ export default function Upload() {
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">프리셋 수정</h1>
-          <p className="text-muted-foreground mt-1.5 text-sm">
-            배경화면과 아이콘 배치를 자유롭게 수정해보세요.
-          </p>
+        <div className="flex items-start gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-lg mt-1"
+            onClick={() => navigate("/library")}
+            aria-label="보관함으로 돌아가기"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">프리셋 수정</h1>
+            <p className="text-muted-foreground mt-1.5 text-sm">
+              배경화면과 아이콘 배치를 자유롭게 수정해보세요.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" className="rounded-lg" onClick={handleSaveDraft}>
