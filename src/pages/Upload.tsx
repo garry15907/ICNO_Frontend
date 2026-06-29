@@ -375,7 +375,7 @@ export default function Upload() {
                         className="absolute desktopIconWrapper"
                       >
                         <div className="desktopIconImageBox">
-                          {a ? <img src={a.previewUrl} alt="" className="desktopIconImage" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
+                          {a ? <img src={a.previewUrl} alt="" className="desktopIconImage" draggable={false} /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
                         </div>
                         {ic.show_name && (
                           <div className="desktopIconLabel text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)", fontSize: `${ic.font_size}px`, fontFamily: ic.font_family }}>{ic.name}</div>
@@ -843,7 +843,7 @@ function FullscreenEditor({
                     >
                       <div className="desktopIconImageBox">
                         {a ? (
-                          <img src={a.previewUrl} alt="" className="desktopIconImage pointer-events-none" />
+                          <img src={a.previewUrl} alt="" className="desktopIconImage pointer-events-none" draggable={false} />
                         ) : (
                           <ImageIcon className="h-5 w-5 text-white/70 drop-shadow" />
                         )}
@@ -1353,7 +1353,7 @@ function IconDetailEditModal({
                 className="desktopIconImageBox rounded-xl bg-background/60 border border-border/40 overflow-hidden shadow-card"
               >
                 {previewAsset ? (
-                  <img src={previewAsset.previewUrl} alt="" className="desktopIconImage max-h-[75%] max-w-[75%]" />
+                  <img src={previewAsset.previewUrl} alt="" className="desktopIconImage max-h-[75%] max-w-[75%]" draggable={false} />
                 ) : (
                   <ImageIcon className="h-10 w-10 text-muted-foreground" />
                 )}
