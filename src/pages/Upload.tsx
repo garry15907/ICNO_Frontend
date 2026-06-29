@@ -40,6 +40,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useSearchParams } from "react-router-dom";
+import { libraryPresets } from "@/data/mockData";
 
 type IconAsset = { id: string; file: File; previewUrl: string };
 // Matches icons_config.json spec. `assetId`/`fileName` are internal-only fields
@@ -149,6 +151,8 @@ const CANVAS_H = 1080;
 
 export default function Upload() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const presetIdParam = searchParams.get("preset");
 
   const [wallpaper, setWallpaper] = useState<{ file: File; url: string } | null>(null);
   const [iconAssets, setIconAssets] = useState<IconAsset[]>([]);
@@ -167,6 +171,60 @@ export default function Upload() {
   const [allowRatings, setAllowRatings] = useState(true);
 
   const [editorOpen, setEditorOpen] = useState(false);
+
+  // Load a library preset into the editor when `?preset=<id>` is present, so
+  // every library card and the "새 프리셋 만들기" flow share the same
+  // fullscreen editor experience.
+  useEffect(() => {
+    if (!presetIdParam) return;
+    const preset = libraryPresets.find((p) => p.id === presetIdParam);
+
+    let wpUrl: string | undefined;
+    let savedIcons: any[] | undefined;
+    let savedName: string | undefined;
+    try {
+      const raw =
+        localStorage.getItem(`preset-saved:${presetIdParam}`) ??
+        localStorage.getItem(`preset-draft:${presetIdParam}`);
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (data?.wallpaper) wpUrl = data.wallpaper;
+        if (Array.isArray(data?.icons)) savedIcons = data.icons;
+        if (data?.name) savedName = data.name;
+      }
+    } catch {}
+
+    if (!wpUrl && preset?.thumbnail && preset.thumbnail !== "/placeholder.svg") {
+      wpUrl = preset.thumbnail;
+    }
+    if (wpUrl) {
+      const stub = new File([], "wallpaper", { type: "image/*" });
+      setWallpaper({ file: stub, url: wpUrl });
+    }
+
+    const sourceIcons = savedIcons ?? preset?.icons ?? [];
+    if (sourceIcons.length) {
+      const next: PlacedIcon[] = sourceIcons.map((it: any, i: number) => {
+        // LibraryDetail/mockData icons use {position:{x,y}} as percentages
+        // (0–100). Upload editor uses px in a 1920x1080 canvas.
+        const px = it?.x ?? it?.position?.x ?? 0;
+        const py = it?.y ?? it?.position?.y ?? 0;
+        const isPercent = px <= 100 && py <= 100 && !("size" in (it ?? {}));
+        return normalizeIcon({
+          ...it,
+          name: it?.name ?? it?.label ?? `아이콘 ${i + 1}`,
+          x: isPercent ? Math.round((px / 100) * CANVAS_W) : px,
+          y: isPercent ? Math.round((py / 100) * CANVAS_H) : py,
+        }, i);
+      });
+      setPlaced(next);
+    }
+
+    if (preset?.name && !name) setName(savedName ?? preset.name);
+    if (preset?.description && !description) setDescription(preset.description);
+    setEditorOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presetIdParam]);
 
   const handleWallpaper = (file?: File) => {
     if (!file) return;
