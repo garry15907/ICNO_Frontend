@@ -8,7 +8,7 @@ const titleMap: Record<string, string> = {
   "/library": "보관함",
   "/notifications": "알림",
   "/settings": "설정",
-  "/upload": "업로드 / 판매 등록",
+  "/upload": "프리셋 수정",
   "/icon-maker": "아이콘 제작",
   "/profile": "내 프로필",
   "/profile/wishlist": "찜한 프리셋",
