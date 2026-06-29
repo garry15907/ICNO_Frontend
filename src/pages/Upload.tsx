@@ -864,9 +864,18 @@ function FullscreenEditor({
                 </div>
               </div>
               <div>
-                <Label className="text-[11px]">크기 (px)</Label>
-                <Input type="number" className="mt-1 h-8 text-xs" value={selected.size}
-                  onChange={(e) => update(selected.id, { size: Number(e.target.value) || 32 })} />
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px]">크기</Label>
+                  <span className="text-[11px] text-muted-foreground">{selected.size}px</span>
+                </div>
+                <Slider
+                  className="mt-2"
+                  value={[selected.size]}
+                  min={32}
+                  max={512}
+                  step={1}
+                  onValueChange={(v) => update(selected.id, { size: v[0] })}
+                />
               </div>
               <div className="flex items-center justify-between py-1">
                 <Label className="text-xs">이름 표시</Label>
