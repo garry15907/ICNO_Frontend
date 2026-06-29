@@ -138,10 +138,20 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
     toast({ title: "저장되었습니다", description: `${label} 아이콘 변경 사항을 저장했습니다.` });
   };
 
+  // Radix Dialog/AlertDialog 중첩 시 body에 pointer-events:none 가 남아 화면이 멈추는 문제 방지
+  const restorePointerEvents = () => {
+    setTimeout(() => {
+      if (typeof document !== "undefined") {
+        document.body.style.pointerEvents = "";
+      }
+    }, 0);
+  };
+
   const handleExitClick = () => {
     if (isDirty) {
       setConfirmOpen(true);
     } else {
+      restorePointerEvents();
       onClose();
     }
   };
@@ -149,12 +159,19 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
   const handleSaveAndExit = () => {
     handleSave();
     setConfirmOpen(false);
+    restorePointerEvents();
     onClose();
   };
 
   const handleDiscardAndExit = () => {
     setConfirmOpen(false);
+    restorePointerEvents();
     onClose();
+  };
+
+  const handleCancelExit = () => {
+    setConfirmOpen(false);
+    restorePointerEvents();
   };
 
   const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -460,7 +477,13 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
         </div>
       </DialogContent>
 
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(o) => {
+          setConfirmOpen(o);
+          if (!o) restorePointerEvents();
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>저장하지 않은 변경 사항이 있습니다</AlertDialogTitle>
@@ -469,7 +492,7 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel onClick={handleCancelExit}>계속 편집</AlertDialogCancel>
             <Button variant="outline" onClick={handleDiscardAndExit}>저장 안 함</Button>
             <AlertDialogAction onClick={handleSaveAndExit}>저장하고 나가기</AlertDialogAction>
           </AlertDialogFooter>
