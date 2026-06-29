@@ -37,6 +37,8 @@ import {
   ImagePlus,
   Search,
   Pencil,
+  Link2,
+  Link2Off,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -470,6 +472,7 @@ function FullscreenEditor({
   const canvasRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const targetInputRef = useRef<HTMLInputElement>(null);
   const [stageScale, setStageScale] = useState(1);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
   // Tracks whether we need to re-enter fullscreen after a native file picker
@@ -530,6 +533,25 @@ function FullscreenEditor({
     if (!input) return;
     shouldRestoreFsRef.current = !!document.fullscreenElement;
     input.click();
+  };
+
+  // Pick a program/file/folder to bind as the selected icon's launch target.
+  // Prefers Electron native dialog when available; falls back to <input type=file>.
+  const pickTargetForSelected = async () => {
+    if (!selected) return;
+    const api = (window as any).electronAPI;
+    if (api?.selectIconTarget) {
+      shouldRestoreFsRef.current = !!document.fullscreenElement;
+      try {
+        const result = await api.selectIconTarget();
+        const path: string | undefined = result?.path ?? result;
+        if (path) update(selected.id, { target_path: path });
+      } catch {
+        toast({ title: "선택을 취소했습니다" });
+      }
+      return;
+    }
+    safeOpenFilePicker(targetInputRef.current);
   };
 
   useEffect(() => {
@@ -689,7 +711,6 @@ function FullscreenEditor({
           </div>
           <ToolbarBtn icon={<ImagePlus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("wallpaper")}>배경화면 변경</ToolbarBtn>
           <ToolbarBtn icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("icons")}>아이콘 추가</ToolbarBtn>
-          <ToolbarBtn icon={<FolderOpen className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("layout")}>자산 불러오기</ToolbarBtn>
           <button
             onClick={() => setGrid((g) => !g)}
             className={cn(
