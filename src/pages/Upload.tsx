@@ -372,7 +372,7 @@ export default function Upload() {
                       <div
                         key={ic.id}
                         style={{ left: `${ic.x}px`, top: `${ic.y}px` }}
-                        className="absolute flex flex-col items-center gap-1 -translate-x-1/2"
+                        className="absolute flex flex-col items-center gap-1"
                       >
                         <div style={{ width: `${ic.size}px`, height: `${ic.size}px` }} className="grid place-items-center">
                           {a ? <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain" /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
@@ -839,7 +839,7 @@ function FullscreenEditor({
                     onPointerDown={(e) => onPointerDown(e, ic)}
                     onClick={(e) => e.stopPropagation()}
                     style={{ left: `${ic.x}px`, top: `${ic.y}px` }}
-                    className="absolute flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none -translate-x-1/2"
+                    className="absolute flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
                   >
                     <div style={{ width: `${ic.size}px`, height: `${ic.size}px` }} className="relative grid place-items-center">
                       {a ? (
