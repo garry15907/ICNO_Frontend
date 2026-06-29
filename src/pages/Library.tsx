@@ -395,9 +395,10 @@ function saveJSON(key: string, val: unknown) {
   try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
 }
 
-async function fileToDataUrl(file: File): Promise<{ dataUrl: string; resolution: string; fileType: "PNG" | "SVG" | "ICO" }> {
+async function fileToDataUrl(file: File): Promise<{ dataUrl: string; resolution: string; fileType: "PNG" | "SVG" | "ICO" | "GIF" }> {
   const ext = file.name.split(".").pop()?.toUpperCase();
-  const fileType: "PNG" | "SVG" | "ICO" = ext === "SVG" ? "SVG" : ext === "ICO" ? "ICO" : "PNG";
+  const fileType: "PNG" | "SVG" | "ICO" | "GIF" =
+    ext === "SVG" ? "SVG" : ext === "ICO" ? "ICO" : ext === "GIF" ? "GIF" : "PNG";
   const dataUrl: string = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
