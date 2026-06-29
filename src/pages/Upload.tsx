@@ -249,9 +249,9 @@ export default function Upload() {
   };
 
   const handleIcons = (files: FileList | File[]) => {
-    const arr = Array.from(files).filter((f) => /\.(png|svg|ico)$/i.test(f.name));
+    const arr = Array.from(files).filter((f) => /\.(png|svg|ico|gif)$/i.test(f.name));
     if (!arr.length) {
-      toast({ title: "지원하지 않는 형식", description: "PNG, SVG, ICO만 업로드할 수 있어요." });
+      toast({ title: "지원하지 않는 형식", description: "PNG, SVG, ICO, GIF만 업로드할 수 있어요." });
       return;
     }
     setIconAssets((prev) => [
@@ -1121,7 +1121,7 @@ function AssetModal({
           </TabsContent>
 
           <TabsContent value="icons" className="p-5 space-y-4">
-            <input ref={iconsInput} type="file" multiple accept=".png,.svg,.ico" className="hidden"
+            <input ref={iconsInput} type="file" multiple accept=".png,.svg,.ico,.gif" className="hidden"
               onChange={(e) => e.target.files && onAddIcons(e.target.files)} />
             <div
               {...dropZone((f) => onAddIcons(f))}
@@ -1261,7 +1261,7 @@ function IconDetailEditModal({
                   ref={fileInput}
                   type="file"
                   multiple
-                  accept=".png,.svg,.ico"
+                  accept=".png,.svg,.ico,.gif"
                   className="hidden"
                   onChange={(e) => e.target.files && onAddIcons(e.target.files)}
                 />
