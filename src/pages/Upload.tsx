@@ -703,6 +703,21 @@ function FullscreenEditor({
 
   const content = (
     <div ref={rootRef} className="fixed inset-0 z-[100] bg-background overflow-hidden animate-fade-in flex flex-col">
+      {/* Hidden fallback when not running under Electron — captures filename as target_path. */}
+      <input
+        ref={targetInputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file && selected) {
+            // In browser there's no absolute path, so store the file name.
+            // Electron path (preferred) sets the real absolute path.
+            update(selected.id, { target_path: (file as any).path || file.name });
+          }
+          e.target.value = "";
+        }}
+      />
       {/* Top toolbar */}
       <div className="h-14 border-b border-border/60 bg-card/80 backdrop-blur flex items-center px-4 gap-3 shrink-0">
         <div className="text-sm font-semibold shrink-0 flex items-center gap-2">
