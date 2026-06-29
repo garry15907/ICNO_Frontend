@@ -1185,7 +1185,7 @@ function IconDetailEditModal({
     });
   };
 
-  return createPortal(
+  return (
     <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm grid place-items-center p-6" onClick={onClose}>
       <div
         className="w-full max-w-3xl bg-card border border-border/60 rounded-2xl shadow-2xl overflow-hidden"
@@ -1342,7 +1342,6 @@ function IconDetailEditModal({
           <Button className="bg-primary hover:bg-primary/90" onClick={handleSave}>수정 완료</Button>
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }
