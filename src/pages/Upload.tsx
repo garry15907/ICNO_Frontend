@@ -841,9 +841,9 @@ function FullscreenEditor({
                       style={{ left: `${ic.x}px`, top: `${ic.y}px` }}
                       className="absolute flex flex-col items-center cursor-grab active:cursor-grabbing select-none"
                     >
-                      <div style={{ width: `${ic.size}px`, height: `${ic.size}px` }} className="relative grid place-items-center">
+                      <div className="desktopIconImageBox relative grid place-items-center" style={{ width: `${ic.size}px`, height: `${ic.size}px` }}>
                         {a ? (
-                          <img src={a.previewUrl} alt="" className="max-h-full max-w-full object-contain pointer-events-none" />
+                          <img src={a.previewUrl} alt="" className="desktopIconImage max-h-full max-w-full object-contain pointer-events-none" />
                         ) : (
                           <ImageIcon className="h-5 w-5 text-white/70 drop-shadow" />
                         )}
@@ -858,7 +858,7 @@ function FullscreenEditor({
                       </div>
                       {ic.show_name && (
                         <div
-                          className="mt-2 text-center whitespace-nowrap leading-none"
+                          className="desktopIconLabel mt-2 text-center whitespace-nowrap leading-none"
                           style={{
                             textShadow: "0 1px 2px rgba(0,0,0,0.8)",
                             color: ic.font_color,
