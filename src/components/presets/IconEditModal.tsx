@@ -448,11 +448,33 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end gap-2 border-t border-border pt-4 mt-2">
-          <Button variant="ghost" onClick={onClose}>취소</Button>
-          <Button className="bg-gradient-primary text-primary-foreground" onClick={onClose}>저장</Button>
+        <div className="flex items-center justify-between gap-2 border-t border-border pt-4 mt-2">
+          <Button
+            className="bg-gradient-primary text-primary-foreground"
+            onClick={handleSave}
+            disabled={!isDirty}
+          >
+            저장
+          </Button>
+          <Button variant="ghost" onClick={handleExitClick}>나가기</Button>
         </div>
       </DialogContent>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>저장하지 않은 변경 사항이 있습니다</AlertDialogTitle>
+            <AlertDialogDescription>
+              저장하고 나가시겠습니까? 저장하지 않으면 변경 사항이 사라집니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <Button variant="outline" onClick={handleDiscardAndExit}>저장 안 함</Button>
+            <AlertDialogAction onClick={handleSaveAndExit}>저장하고 나가기</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
