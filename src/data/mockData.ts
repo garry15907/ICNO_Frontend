@@ -623,15 +623,31 @@ export type Notice = {
   body: string;
   time: string;
   read?: boolean;
+  detail?: string;
+  relatedPresetId?: string;
+  relatedUserId?: string;
+  targetRoute?: string;
 };
 
 export const notifications: Notice[] = [
-  { id: "n1", type: "sale", title: "판매 알림", body: "‘픽셀 게임룸’이 1건 판매되었습니다. (+6,900₩)", time: "5분 전" },
-  { id: "n2", type: "comment", title: "새 댓글", body: "haneul: 정말 잘 만드셨네요!", time: "1시간 전" },
-  { id: "n3", type: "rating", title: "평점 알림", body: "‘노을’ 프리셋에 ★5점이 등록되었습니다.", time: "3시간 전", read: true },
-  { id: "n4", type: "download", title: "다운로드", body: "‘심해’ 프리셋이 100회 다운로드를 돌파했습니다.", time: "어제", read: true },
-  { id: "n5", type: "error", title: "매핑 오류", body: "‘픽셀 게임룸’ 프리셋의 아이콘 4개가 연결되어 있지 않습니다.", time: "어제" },
-  { id: "n6", type: "update", title: "앱 업데이트", body: "ICNO 1.2.0 버전이 출시되었습니다.", time: "2일 전", read: true },
+  { id: "n1", type: "sale", title: "판매 알림", body: "‘픽셀 게임룸’이 1건 판매되었습니다. (+6,900₩)", time: "5분 전",
+    detail: "구매자 @minji 님이 ‘픽셀 게임룸’ 프리셋을 6,900원에 구매했습니다. 정산은 다음 정산일에 반영됩니다.",
+    relatedPresetId: "mp-005", targetRoute: "/profile/sales" },
+  { id: "n2", type: "comment", title: "새 댓글", body: "haneul: 정말 잘 만드셨네요!", time: "1시간 전",
+    detail: "‘노을’ 프리셋에 haneul 님이 새 댓글을 남겼습니다: “정말 잘 만드셨네요! 색감이 특히 마음에 들어요.”",
+    relatedPresetId: "mp-001", relatedUserId: "haneul", targetRoute: "/library/lib-001" },
+  { id: "n3", type: "rating", title: "평점 알림", body: "‘노을’ 프리셋에 ★5점이 등록되었습니다.", time: "3시간 전", read: true,
+    detail: "‘노을’ 프리셋에 새로운 ★5점 리뷰가 등록되었습니다. 현재 평균 평점은 4.8점입니다.",
+    relatedPresetId: "mp-001", targetRoute: "/library/lib-001" },
+  { id: "n4", type: "download", title: "다운로드", body: "‘심해’ 프리셋이 100회 다운로드를 돌파했습니다.", time: "어제", read: true,
+    detail: "‘심해’ 프리셋이 누적 다운로드 100회를 돌파했습니다. 축하합니다!",
+    relatedPresetId: "mp-003", targetRoute: "/library/lib-004" },
+  { id: "n5", type: "error", title: "매핑 오류", body: "‘픽셀 게임룸’ 프리셋의 아이콘 4개가 연결되어 있지 않습니다.", time: "어제",
+    detail: "‘픽셀 게임룸’ 프리셋에서 4개의 아이콘이 실행 파일과 매핑되지 않았습니다. 보관함에서 매핑을 완료해 주세요.",
+    relatedPresetId: "mp-005", targetRoute: "/library/lib-002" },
+  { id: "n6", type: "update", title: "앱 업데이트", body: "ICNO 1.2.0 버전이 출시되었습니다.", time: "2일 전", read: true,
+    detail: "ICNO 1.2.0 버전이 출시되었습니다. 새로운 아이콘 메이커와 성능 개선이 포함되어 있습니다.",
+    targetRoute: "/settings" },
 ];
 
 export const reviews = [

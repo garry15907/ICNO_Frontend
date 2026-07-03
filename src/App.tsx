@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { SidebarModeProvider } from "@/lib/sidebar-mode";
 import { ProfileProvider } from "@/lib/profile";
 import { WishlistProvider } from "@/lib/wishlist";
+import { NotificationsProvider } from "@/lib/notifications";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Explore from "./pages/Explore";
@@ -28,6 +29,7 @@ const App = () => (
       <SidebarModeProvider>
       <ProfileProvider>
       <WishlistProvider>
+      <NotificationsProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -54,6 +56,7 @@ const App = () => (
           </AppLayout>
         </BrowserRouter>
       </TooltipProvider>
+      </NotificationsProvider>
       </WishlistProvider>
       </ProfileProvider>
       </SidebarModeProvider>

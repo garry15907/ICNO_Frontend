@@ -4,13 +4,14 @@ import { cn } from "@/lib/utils";
 import { currentUser } from "@/data/mockData";
 import { useSidebarMode } from "@/lib/sidebar-mode";
 import { useProfile, isImageAvatar } from "@/lib/profile";
+import { useNotifications } from "@/lib/notifications";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const navItems = [
   { to: "/", label: "홈", icon: Home },
   { to: "/explore", label: "탐색", icon: Compass },
   { to: "/library", label: "보관함", icon: Library },
-  { to: "/notifications", label: "알림", icon: Bell, badge: 3 },
+  { to: "/notifications", label: "알림", icon: Bell, badgeKey: "notifications" as const },
   { to: "/settings", label: "설정", icon: Settings },
 ];
 
@@ -19,6 +20,7 @@ export function AppSidebar() {
   const nav = useNavigate();
   const { mode, hovered, setHovered } = useSidebarMode();
   const { profile } = useProfile();
+  const { unreadCount } = useNotifications();
 
   const expanded =
     mode === "expanded" || (mode === "hover" && hovered);
@@ -78,9 +80,9 @@ export function AppSidebar() {
             >
               <span className="relative shrink-0">
                 <Icon className={cn("h-[18px] w-[18px]", active && "text-primary")} />
-                {item.badge ? (
+                {("badgeKey" in item && item.badgeKey === "notifications" && unreadCount > 0) ? (
                   <span className="absolute -top-1.5 -right-1.5 text-[9px] leading-none font-semibold bg-primary text-primary-foreground rounded-full min-w-[14px] h-[14px] px-1 grid place-items-center">
-                    {item.badge}
+                    {unreadCount}
                   </span>
                 ) : null}
               </span>
