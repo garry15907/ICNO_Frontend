@@ -10,16 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Upload as UploadIcon,
   ImageIcon,
   Check,
@@ -696,7 +686,11 @@ function FullscreenEditor({
       }
       if (e.key === "Escape") {
         e.preventDefault();
-        if (editIconOpen || assetOpen || confirmCancel) return;
+        if (confirmCancel) {
+          setConfirmCancel(false);
+          return;
+        }
+        if (editIconOpen || assetOpen) return;
         if (selectedId) {
           setSelectedId(null);
         } else {
@@ -1009,18 +1003,30 @@ function FullscreenEditor({
         />
       )}
 
-      <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>변경사항을 저장하지 않고 나갈까요?</AlertDialogTitle>
-            <AlertDialogDescription>저장하지 않은 배치 정보는 사라집니다.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>계속 편집</AlertDialogCancel>
-            <AlertDialogAction onClick={onClose}>나가기</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {confirmCancel && (
+        <div
+          className="fixed inset-0 z-[130] bg-black/70 backdrop-blur-sm grid place-items-center p-6"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="preset-cancel-title"
+          aria-describedby="preset-cancel-description"
+          onClick={() => setConfirmCancel(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="preset-cancel-title" className="text-lg font-semibold">변경사항을 저장하지 않고 나갈까요?</h2>
+            <p id="preset-cancel-description" className="mt-2 text-sm text-muted-foreground">
+              저장하지 않은 배치 정보는 사라집니다.
+            </p>
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setConfirmCancel(false)}>계속 편집</Button>
+              <Button onClick={onClose}>나가기</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editIconOpen && selected && (
         <IconDetailEditModal
