@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MarketplacePreset, reviews, currentDisplayResolution, pickRecommendedVariant, ResolutionVariant } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
-import { Heart, Share2, Flag, Download, ShoppingCart, Star, ChevronRight, ThumbsUp, MessageCircle, Monitor, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Heart, Share2, Flag, Download, ShoppingCart, Star, ChevronRight, ThumbsUp, MessageCircle, Monitor, CheckCircle2, AlertTriangle, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLibrary } from "@/lib/library";
 
 export function ExplorePresetModal({
   preset,
@@ -19,6 +21,11 @@ export function ExplorePresetModal({
   const [previewAsset, setPreviewAsset] = useState<{ src?: string; emoji?: string; name: string } | null>(null);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [purchaseStep, setPurchaseStep] = useState<"idle" | "paying" | "selecting">("idle");
+  const { isSaved, downloadStatus, downloadPreset, downloadCount } = useLibrary();
+  const nav = useNavigate();
+  const saved = isSaved(preset.id);
+  const status = downloadStatus[preset.id] ?? "idle";
+  const downloading = status === "downloading";
 
   const variants: ResolutionVariant[] = (preset as any).resolution_variants ?? [];
   const recommendation = useMemo(
@@ -29,10 +36,23 @@ export function ExplorePresetModal({
   const defaultVariant = variants.find((v) => v.is_default) ?? variants[0];
 
   const handlePrimaryClick = () => {
+    if (saved && preset.price === 0) {
+      nav("/library");
+      onClose();
+      return;
+    }
     if (preset.price === 0) setDownloadOpen(true);
     else setPurchaseStep("paying");
   };
   const handlePayComplete = () => setPurchaseStep("selecting");
+
+  const handleConfirmDownload = async (variantId?: string, source: "download" | "purchase" = "download") => {
+    const r = await downloadPreset(preset, { source, variantId });
+    if (r.ok) {
+      setDownloadOpen(false);
+      setPurchaseStep("idle");
+    }
+  };
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -75,7 +95,7 @@ export function ExplorePresetModal({
                   <span>({preset.reviews.toLocaleString()} 리뷰)</span>
                 </span>
                 <span>·</span>
-                <span className="flex items-center gap-1"><Download className="h-4 w-4" />{preset.downloads.toLocaleString()}회 다운로드</span>
+                <span className="flex items-center gap-1"><Download className="h-4 w-4" />{downloadCount(preset).toLocaleString()}회 다운로드</span>
               </div>
             </div>
             <p className="text-sm text-foreground/80 leading-relaxed">{preset.description}</p>
@@ -94,9 +114,34 @@ export function ExplorePresetModal({
             <div className="text-2xl font-bold">
               {preset.price === 0 ? "무료" : `₩${preset.price.toLocaleString()}`}
             </div>
-            <Button onClick={handlePrimaryClick} className="w-full h-11 bg-gradient-primary text-primary-foreground hover:opacity-90">
-              {preset.price === 0 ? <><Download className="h-4 w-4 mr-2" />다운로드</> : <><ShoppingCart className="h-4 w-4 mr-2" />구매하기</>}
+            <Button
+              onClick={handlePrimaryClick}
+              disabled={downloading}
+              className={cn(
+                "w-full h-11 hover:opacity-90",
+                saved && preset.price === 0
+                  ? "bg-primary/15 text-primary hover:bg-primary/20 border border-primary/30"
+                  : "bg-gradient-primary text-primary-foreground",
+              )}
+            >
+              {downloading ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />다운로드 중…</>
+              ) : saved && preset.price === 0 ? (
+                <><Check className="h-4 w-4 mr-2" />보관함에 저장됨</>
+              ) : preset.price === 0 ? (
+                <><Download className="h-4 w-4 mr-2" />다운로드</>
+              ) : (
+                <><ShoppingCart className="h-4 w-4 mr-2" />구매하기</>
+              )}
             </Button>
+            {saved && (
+              <button
+                onClick={() => { nav("/library"); onClose(); }}
+                className="text-[11px] text-primary hover:underline block text-center w-full"
+              >
+                보관함에서 보기 →
+              </button>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" onClick={onWishlist}>
                 <Heart className={`h-4 w-4 mr-2 ${wishlisted ? "fill-destructive text-destructive" : ""}`} />찜
@@ -239,6 +284,8 @@ export function ExplorePresetModal({
         onClose={() => setDownloadOpen(false)}
         variants={variants}
         recommendation={recommendation}
+        busy={downloading}
+        onConfirm={(vid) => handleConfirmDownload(vid, "download")}
       />
 
       {/* Purchase placeholder modal */}
@@ -265,6 +312,8 @@ export function ExplorePresetModal({
         variants={variants}
         recommendation={recommendation}
         title="구매 완료 · 다운로드할 해상도 선택"
+        busy={downloading}
+        onConfirm={(vid) => handleConfirmDownload(vid, "purchase")}
       />
     </Dialog>
   );
