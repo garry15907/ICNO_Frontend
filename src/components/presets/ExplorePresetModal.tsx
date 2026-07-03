@@ -411,12 +411,16 @@ function ResolutionDownloadModal({
   variants,
   recommendation,
   title = "다운로드할 해상도 선택",
+  busy = false,
+  onConfirm,
 }: {
   open: boolean;
   onClose: () => void;
   variants: ResolutionVariant[];
   recommendation: ReturnType<typeof pickRecommendedVariant>;
   title?: string;
+  busy?: boolean;
+  onConfirm?: (variantId: string) => void;
 }) {
   const [selected, setSelected] = useState<string>(recommendation?.variant.variant_id ?? variants[0]?.variant_id ?? "");
   const exact = recommendation?.exact ?? false;
@@ -480,9 +484,17 @@ function ResolutionDownloadModal({
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button variant="outline" className="flex-1" onClick={onClose}>취소</Button>
-            <Button className="flex-1 bg-gradient-primary text-primary-foreground" onClick={onClose}>
-              {exact ? "선택한 버전 다운로드" : "자동 보정 후 다운로드"}
+            <Button variant="outline" className="flex-1" onClick={onClose} disabled={busy}>취소</Button>
+            <Button
+              className="flex-1 bg-gradient-primary text-primary-foreground"
+              disabled={busy}
+              onClick={() => (onConfirm ? onConfirm(selected) : onClose())}
+            >
+              {busy
+                ? "저장 중…"
+                : exact
+                ? "선택한 버전 다운로드"
+                : "자동 보정 후 다운로드"}
             </Button>
           </div>
         </div>
