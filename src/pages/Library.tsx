@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft } from "lucide-react";
-import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus } from "@/data/mockData";
+import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft, Play, Compass } from "lucide-react";
+import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
+import { useLibrary } from "@/lib/library";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,36 @@ export default function Library() {
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [presets, setPresets] = useState(libraryPresets);
+  const { savedPresets, requestApply } = useLibrary();
+
+  // Merge library seed with runtime-saved presets.
+  const savedFromContext = savedPresets
+    .filter((s) => !presets.some((p) => p.sourceMarketId === s.presetId))
+    .map((s) => {
+      const mp = marketplacePresets.find((m) => m.id === s.presetId);
+      if (!mp) return null;
+      return {
+        id: `lib-saved-${s.id}`,
+        sourceMarketId: mp.id,
+        name: mp.name,
+        thumbnail: mp.thumbnail,
+        iconCount: mp.icons.length,
+        mappedCount: 0,
+        status: (s.source === "purchase" ? "구매함" : "다운로드됨") as LibraryStatus,
+        lastModified: s.savedAt.slice(0, 10),
+        description: mp.description,
+        tags: mp.tags,
+        icons: mp.icons,
+        _creator: mp.creator.name,
+        _savedAt: s.savedAt.slice(0, 10),
+      } as any;
+    })
+    .filter(Boolean) as any[];
+
+  const savedAtMap = new Map(
+    savedPresets.map((s) => [s.presetId, s.savedAt.slice(0, 10)] as const),
+  );
+  const creatorMap = new Map(marketplacePresets.map((m) => [m.id, m.creator.name] as const));
 
   // Pull saved/draft wallpaper thumbnails from localStorage so newly-edited
   // presets show their actual background in the library cards.
@@ -65,7 +96,8 @@ export default function Library() {
   const togglePin = (id: string) =>
     setPinned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
-  const sortedPresets = [...presets].sort(
+  const merged = [...savedFromContext, ...presets];
+  const sortedPresets = [...merged].sort(
     (a, b) => (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0),
   );
 
@@ -77,7 +109,7 @@ export default function Library() {
           <p className="text-muted-foreground mt-1">내 프리셋과 아이콘 자산을 관리하고 적용하세요.</p>
         </div>
         <div className="text-sm text-muted-foreground">
-          프리셋 {presets.length} · 아이콘 {libraryIcons.length + libraryIconPacks.length}
+          프리셋 {merged.length} · 아이콘 {libraryIcons.length + libraryIconPacks.length}
         </div>
       </div>
 
@@ -88,6 +120,18 @@ export default function Library() {
         </TabsList>
 
         <TabsContent value="presets" className="mt-0">
+          {merged.length === 0 ? (
+            <div className="border border-dashed border-border rounded-2xl p-16 text-center space-y-3">
+              <div className="mx-auto h-12 w-12 rounded-xl bg-primary/10 grid place-items-center text-primary">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div className="text-base font-semibold">아직 보관함에 저장된 프리셋이 없습니다.</div>
+              <div className="text-sm text-muted-foreground">탐색에서 마음에 드는 프리셋을 다운로드해보세요.</div>
+              <Button className="bg-gradient-primary text-primary-foreground" onClick={() => nav("/explore")}>
+                <Compass className="h-4 w-4 mr-1.5" />탐색하러 가기
+              </Button>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {/* Create card */}
         <button
@@ -132,6 +176,14 @@ export default function Library() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="text-sm font-semibold truncate">{p.name}</h3>
+                  {(p as any)._creator || (p.sourceMarketId && creatorMap.get(p.sourceMarketId)) ? (
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      @{(p as any)._creator ?? creatorMap.get(p.sourceMarketId!)}
+                      {savedAtMap.get(p.sourceMarketId ?? "") && (
+                        <> · 저장 {savedAtMap.get(p.sourceMarketId!)}</>
+                      )}
+                    </p>
+                  ) : null}
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -193,10 +245,23 @@ export default function Library() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full mt-3 h-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  requestApply(p.sourceMarketId ?? p.id);
+                }}
+              >
+                <Play className="h-3.5 w-3.5 mr-1.5" />
+                적용하기
+              </Button>
             </div>
           </div>
         ))}
           </div>
+          )}
         </TabsContent>
 
         <TabsContent value="icons" className="mt-0 space-y-5">

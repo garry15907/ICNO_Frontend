@@ -8,6 +8,7 @@ import { SidebarModeProvider } from "@/lib/sidebar-mode";
 import { ProfileProvider } from "@/lib/profile";
 import { WishlistProvider } from "@/lib/wishlist";
 import { NotificationsProvider } from "@/lib/notifications";
+import { LibraryProvider } from "@/lib/library";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Explore from "./pages/Explore";
@@ -34,6 +35,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <LibraryProvider>
           <AppLayout>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -54,6 +56,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
+          </LibraryProvider>
         </BrowserRouter>
       </TooltipProvider>
       </NotificationsProvider>
