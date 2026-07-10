@@ -46,8 +46,8 @@ const Index = () => {
           </div>
           <h2 className="text-4xl font-bold tracking-tight mb-3">{current.name}</h2>
           <div className="flex gap-3 mt-6">
-            <Button onClick={() => nav(`/library/${current.id}`)} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
-              프리셋 관리
+            <Button onClick={() => nav(`/library?open=${current.id}`)} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
+              프리셋 상세
             </Button>
             <Button variant="outline" onClick={() => nav("/library")}>보관함 열기</Button>
           </div>
