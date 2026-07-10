@@ -1098,6 +1098,8 @@ function FullscreenEditor({
           onAddToCanvas={addToCanvas}
           onImportLayout={importLayout}
           openFilePicker={safeOpenFilePicker}
+          libraryIcons={userIcons}
+          onPickLibraryIcon={pickLibraryIcon}
           onClose={() => setAssetOpen(false)}
         />
       )}
