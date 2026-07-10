@@ -4,6 +4,7 @@ import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, P
 import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
 import { useLibrary } from "@/lib/library";
 import { useIconLibrary } from "@/lib/icon-library";
+import { applyUserIconToPreset, getUserIconAssetById } from "@/services/iconLibraryService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,19 @@ export default function Library() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [presets, setPresets] = useState(libraryPresets);
   const { savedPresets, requestApply } = useLibrary();
+  const {
+    selectedUserIconAssetId,
+    setSelectedUserIconAssetId,
+  } = useIconLibrary();
+  const pickingIcon = selectedUserIconAssetId
+    ? getUserIconAssetById(selectedUserIconAssetId) ?? null
+    : null;
+  const [slotPickTarget, setSlotPickTarget] = useState<null | {
+    presetId: string;
+    name: string;
+    icons: { id: string; label: string; emoji?: string; imageUrl?: string }[];
+  }>(null);
+  const [chosenSlotId, setChosenSlotId] = useState<string | null>(null);
 
   // Merge library seed with runtime-saved presets.
   const savedFromContext = savedPresets
@@ -111,7 +125,59 @@ export default function Library() {
     (a, b) => (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0),
   );
 
-  const openPresetById = (id: string) => nav(`/upload?preset=${id}`);
+  const openPresetById = (id: string) => {
+    // If the user is in "pick a preset for this icon" mode, intercept the
+    // click and open the slot picker instead of navigating to the editor.
+    if (pickingIcon) {
+      const p = merged.find((x) => x.id === id);
+      if (!p) return;
+      setSlotPickTarget({
+        presetId: p.id,
+        name: p.name,
+        icons: (p.icons ?? []).map((ic: any) => ({
+          id: ic.id,
+          label: ic.label ?? ic.name ?? "아이콘",
+          emoji: ic.emoji,
+          imageUrl: ic.imageUrl,
+        })),
+      });
+      setChosenSlotId(null);
+      return;
+    }
+    nav(`/upload?preset=${id}`);
+  };
+
+  const confirmApplyIconToSlot = () => {
+    if (!slotPickTarget || !chosenSlotId || !pickingIcon) return;
+    // Persist icon mapping into preset-saved:<id> so opening the editor
+    // reflects the change and the "적용 중" state is visible.
+    const storageKey = `preset-saved:${slotPickTarget.presetId}`;
+    let saved: any = {};
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) saved = JSON.parse(raw);
+    } catch {}
+    const base = merged.find((p) => p.id === slotPickTarget.presetId);
+    const baseIcons = (saved.icons ?? base?.icons ?? []) as any[];
+    saved.icons = baseIcons.map((ic) =>
+      ic.id === chosenSlotId
+        ? { ...ic, imageUrl: pickingIcon.imageUrl || pickingIcon.thumbnailUrl || undefined, userIconAssetId: pickingIcon.id }
+        : ic,
+    );
+    saved.name = saved.name ?? base?.name;
+    saved.wallpaper = saved.wallpaper ?? base?.thumbnail;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(saved));
+    } catch {}
+    applyUserIconToPreset(slotPickTarget.presetId, chosenSlotId, pickingIcon.id);
+    toast({
+      title: "아이콘이 프리셋에 적용되었습니다.",
+      description: `${slotPickTarget.name} · ${pickingIcon.title}`,
+    });
+    setSlotPickTarget(null);
+    setChosenSlotId(null);
+    setSelectedUserIconAssetId(null);
+  };
 
   useEffect(() => {
     const openId = searchParams.get("open");
