@@ -1071,8 +1071,6 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
 
       {/* 아이콘 공유 다이얼로그 */}
       <Dialog open={!!iconShareTarget} onOpenChange={(o) => !o && setIconShareTarget(null)}>
-        <></>
-      </Dialog>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
