@@ -585,6 +585,71 @@ export default function Library() {
         </DialogContent>
       </Dialog>
 
+      {/* 다운로드한 아이콘 상세 보기 */}
+      <Dialog open={!!userIconDetail} onOpenChange={(o) => !o && setUserIconDetailId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{userIconDetail?.title}</DialogTitle>
+            <DialogDescription>아이콘 상세 정보</DialogDescription>
+          </DialogHeader>
+          {userIconDetail && (
+            <div className="space-y-4">
+              <div
+                className="aspect-square rounded-xl grid place-items-center text-7xl overflow-hidden"
+                style={{
+                  background: userIconDetail.hasTransparentBackground
+                    ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 20px 20px"
+                    : "hsl(var(--muted) / 0.5)",
+                }}
+              >
+                {userIconDetail.imageUrl ? (
+                  <img src={userIconDetail.imageUrl} alt={userIconDetail.title} className="max-w-full max-h-full object-contain" />
+                ) : (
+                  <span>{userIconDetail.emoji ?? "🖼️"}</span>
+                )}
+              </div>
+              <dl className="grid grid-cols-3 gap-y-2 text-xs">
+                <dt className="text-muted-foreground">제작자</dt>
+                <dd className="col-span-2 font-medium">{userIconDetail.creatorName}</dd>
+                <dt className="text-muted-foreground">파일 형식</dt>
+                <dd className="col-span-2 font-medium">{userIconDetail.fileFormat}</dd>
+                <dt className="text-muted-foreground">크기</dt>
+                <dd className="col-span-2 font-medium">{userIconDetail.width} × {userIconDetail.height}</dd>
+                <dt className="text-muted-foreground">배경</dt>
+                <dd className="col-span-2 font-medium">{userIconDetail.hasTransparentBackground ? "투명" : "불투명"}</dd>
+                <dt className="text-muted-foreground">카테고리</dt>
+                <dd className="col-span-2 font-medium">{userIconDetail.category}</dd>
+                <dt className="text-muted-foreground">라이선스</dt>
+                <dd className="col-span-2 font-medium">{userIconDetail.license}</dd>
+                <dt className="text-muted-foreground">파일명</dt>
+                <dd className="col-span-2 font-medium truncate">{userIconDetail.fileName}</dd>
+                <dt className="text-muted-foreground">저장 일시</dt>
+                <dd className="col-span-2 font-medium">{userIconDetail.downloadedAt.slice(0, 10)}</dd>
+              </dl>
+              {userIconDetail.tags?.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {userIconDetail.tags.map((t) => (
+                    <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">#{t}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUserIconDetailId(null)}>닫기</Button>
+            <Button
+              className="bg-gradient-primary text-primary-foreground"
+              onClick={() => {
+                if (userIconDetail) applyIconToCurrentPreset(userIconDetail.id);
+                setUserIconDetailId(null);
+              }}
+            >
+              <Sparkles className="h-3.5 w-3.5 mr-1" /> 프리셋에 사용
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
