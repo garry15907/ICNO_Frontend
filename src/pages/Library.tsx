@@ -521,6 +521,7 @@ function getPackIconStates(packId: string, overrides: Record<string, PackOverrid
 }
 
 function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f: IconFilter) => void }) {
+  const { userIcons, requestDelete, applyIconToCurrentPreset } = useIconLibrary();
   const filters: { value: IconFilter; label: string }[] = [
     { value: "all", label: "전체" },
     { value: "icon", label: "단품 아이콘" },
