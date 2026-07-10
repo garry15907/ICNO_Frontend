@@ -910,7 +910,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
             </button>
           ))}
         </div>
-        <Button size="sm" onClick={() => fileRef.current?.click()} className="gap-1.5">
+        <Button size="sm" onClick={openUploadDialog} className="gap-1.5">
           <Upload className="h-3.5 w-3.5" /> 아이콘 업로드
         </Button>
         <input
@@ -919,7 +919,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           accept="image/png,image/svg+xml,image/x-icon,image/gif,.ico,.png,.svg,.gif"
           multiple
           className="hidden"
-          onChange={(e) => { handleFiles(e.target.files); if (fileRef.current) fileRef.current.value = ""; }}
+          onChange={(e) => { addPendingFiles(e.target.files); if (fileRef.current) fileRef.current.value = ""; }}
         />
       </div>
 
