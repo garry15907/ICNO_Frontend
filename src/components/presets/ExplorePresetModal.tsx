@@ -4,8 +4,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MarketplacePreset, reviews, toPreset } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import {
-  Flag, Download, Star, ThumbsUp, MessageCircle, Monitor, AlertTriangle, Loader2,
+  Flag, Download, Star, ThumbsUp, MessageCircle, Monitor, AlertTriangle, Loader2, CheckCircle2,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useLibrary } from "@/lib/library";
 import { useCurrentDisplay } from "@/lib/display";
 import {
