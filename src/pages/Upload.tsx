@@ -296,7 +296,6 @@ export default function Upload() {
     { key: "wp", label: "배경화면 선택 완료", done: !!wallpaper },
     { key: "ic", label: "아이콘 파일 추가 완료", done: iconAssets.length > 0 },
     { key: "place", label: "아이콘 배치 완료", done: placed.length > 0 },
-    { key: "layout", label: "배치 정보 생성 완료", done: !!wallpaper && placed.length > 0 },
     { key: "info", label: "프리셋 정보 입력 완료", done: name.trim().length > 0 && category.length > 0 },
     { key: "sale", label: "판매 설정 완료", done: !isPaid || (!!price && Number(price) > 0) },
   ];
@@ -581,7 +580,7 @@ function FullscreenEditor({
   const [items, setItems] = useState<PlacedIcon[]>(placed);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [grid, setGrid] = useState(true);
-  const [assetOpen, setAssetOpen] = useState<false | "wallpaper" | "icons" | "layout">(false);
+  const [assetOpen, setAssetOpen] = useState<false | "wallpaper" | "icons">(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [editIconOpen, setEditIconOpen] = useState(false);
@@ -1127,7 +1126,6 @@ function FullscreenEditor({
           onWallpaper={onWallpaper}
           onAddIcons={onAddIcons}
           onAddToCanvas={addToCanvas}
-          onImportLayout={importLayout}
           openFilePicker={safeOpenFilePicker}
           libraryIcons={userIcons}
           onPickLibraryIcon={pickLibraryIcon}
@@ -1198,7 +1196,6 @@ function AssetModal({
   onWallpaper,
   onAddIcons,
   onAddToCanvas,
-  onImportLayout,
   openFilePicker,
   libraryIcons,
   onPickLibraryIcon,
@@ -1206,13 +1203,12 @@ function AssetModal({
   onPickLibraryWallpaper,
   onClose,
 }: {
-  tab: "wallpaper" | "icons" | "layout";
+  tab: "wallpaper" | "icons";
   wallpaper: { file: File; url: string } | null;
   iconAssets: IconAsset[];
   onWallpaper: (f?: File) => void;
   onAddIcons: (f: FileList | File[]) => void;
   onAddToCanvas: (a: IconAsset) => void;
-  onImportLayout: (f: File) => void;
   openFilePicker: (input: HTMLInputElement | null) => void;
   libraryIcons: UserIconAsset[];
   onPickLibraryIcon: (u: UserIconAsset) => void;
@@ -1223,7 +1219,6 @@ function AssetModal({
   const [active, setActive] = useState<string>(tab);
   const wallpaperInput = useRef<HTMLInputElement>(null);
   const iconsInput = useRef<HTMLInputElement>(null);
-  const layoutInput = useRef<HTMLInputElement>(null);
 
   const dropZone = (handler: (f: File[]) => void) => ({
     onDragOver: (e: DragEvent<HTMLDivElement>) => e.preventDefault(),
@@ -1241,7 +1236,6 @@ function AssetModal({
           <TabsList className="mx-5 mt-4">
             <TabsTrigger value="wallpaper">배경화면</TabsTrigger>
             <TabsTrigger value="icons">아이콘</TabsTrigger>
-            <TabsTrigger value="layout">배치 정보</TabsTrigger>
           </TabsList>
 
           <TabsContent value="wallpaper" className="p-5 space-y-4">
@@ -1393,23 +1387,6 @@ function AssetModal({
                   보관함에 저장된 아이콘이 없습니다. 탐색 화면에서 아이콘을 다운로드해 보세요.
                 </div>
               )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="layout" className="p-5 space-y-4">
-            <input ref={layoutInput} type="file" accept=".json,.jsonc,.c" className="hidden"
-              onChange={(e) => e.target.files?.[0] && onImportLayout(e.target.files[0])} />
-            <div
-              {...dropZone((f) => f[0] && onImportLayout(f[0]))}
-              onClick={() => openFilePicker(layoutInput.current)}
-              className="rounded-xl border border-dashed border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer p-8 text-center"
-            >
-              <AlertCircle className="h-7 w-7 mx-auto text-muted-foreground mb-2" />
-              <div className="text-sm font-medium">기존 배치 정보 파일 업로드</div>
-              <div className="text-xs text-muted-foreground mt-1">.json · .jsonc · .json.c</div>
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              파일에 정의된 아이콘 위치와 크기가 캔버스에 자동 반영됩니다.
             </div>
           </TabsContent>
         </Tabs>
