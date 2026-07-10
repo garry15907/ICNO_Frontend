@@ -4,6 +4,7 @@ import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, P
 import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
 import { useLibrary } from "@/lib/library";
 import { useIconLibrary } from "@/lib/icon-library";
+import { applyUserIconToPreset, getUserIconAssetById } from "@/services/iconLibraryService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,19 @@ export default function Library() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [presets, setPresets] = useState(libraryPresets);
   const { savedPresets, requestApply } = useLibrary();
+  const {
+    selectedUserIconAssetId,
+    setSelectedUserIconAssetId,
+  } = useIconLibrary();
+  const pickingIcon = selectedUserIconAssetId
+    ? getUserIconAssetById(selectedUserIconAssetId) ?? null
+    : null;
+  const [slotPickTarget, setSlotPickTarget] = useState<null | {
+    presetId: string;
+    name: string;
+    icons: { id: string; label: string; emoji?: string; imageUrl?: string }[];
+  }>(null);
+  const [chosenSlotId, setChosenSlotId] = useState<string | null>(null);
 
   // Merge library seed with runtime-saved presets.
   const savedFromContext = savedPresets
@@ -111,7 +125,59 @@ export default function Library() {
     (a, b) => (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0),
   );
 
-  const openPresetById = (id: string) => nav(`/upload?preset=${id}`);
+  const openPresetById = (id: string) => {
+    // If the user is in "pick a preset for this icon" mode, intercept the
+    // click and open the slot picker instead of navigating to the editor.
+    if (pickingIcon) {
+      const p = merged.find((x) => x.id === id);
+      if (!p) return;
+      setSlotPickTarget({
+        presetId: p.id,
+        name: p.name,
+        icons: (p.icons ?? []).map((ic: any) => ({
+          id: ic.id,
+          label: ic.label ?? ic.name ?? "아이콘",
+          emoji: ic.emoji,
+          imageUrl: ic.imageUrl,
+        })),
+      });
+      setChosenSlotId(null);
+      return;
+    }
+    nav(`/upload?preset=${id}`);
+  };
+
+  const confirmApplyIconToSlot = () => {
+    if (!slotPickTarget || !chosenSlotId || !pickingIcon) return;
+    // Persist icon mapping into preset-saved:<id> so opening the editor
+    // reflects the change and the "적용 중" state is visible.
+    const storageKey = `preset-saved:${slotPickTarget.presetId}`;
+    let saved: any = {};
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) saved = JSON.parse(raw);
+    } catch {}
+    const base = merged.find((p) => p.id === slotPickTarget.presetId);
+    const baseIcons = (saved.icons ?? base?.icons ?? []) as any[];
+    saved.icons = baseIcons.map((ic) =>
+      ic.id === chosenSlotId
+        ? { ...ic, imageUrl: pickingIcon.imageUrl || pickingIcon.thumbnailUrl || undefined, userIconAssetId: pickingIcon.id }
+        : ic,
+    );
+    saved.name = saved.name ?? base?.name;
+    saved.wallpaper = saved.wallpaper ?? base?.thumbnail;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(saved));
+    } catch {}
+    applyUserIconToPreset(slotPickTarget.presetId, chosenSlotId, pickingIcon.id);
+    toast({
+      title: "아이콘이 프리셋에 적용되었습니다.",
+      description: `${slotPickTarget.name} · ${pickingIcon.title}`,
+    });
+    setSlotPickTarget(null);
+    setChosenSlotId(null);
+    setSelectedUserIconAssetId(null);
+  };
 
   useEffect(() => {
     const openId = searchParams.get("open");
@@ -125,6 +191,32 @@ export default function Library() {
 
   return (
     <div className="space-y-6">
+      {pickingIcon && (
+        <div className="sticky top-0 z-30 -mx-4 sm:mx-0 rounded-none sm:rounded-2xl border border-primary/40 bg-primary/10 backdrop-blur px-4 py-3 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-background/60 grid place-items-center overflow-hidden shrink-0">
+            {pickingIcon.imageUrl ? (
+              <img src={pickingIcon.imageUrl} alt="" className="max-w-full max-h-full object-contain" />
+            ) : (
+              <span className="text-xl">{pickingIcon.emoji ?? "🖼️"}</span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold truncate">
+              &ldquo;{pickingIcon.title}&rdquo; 을(를) 적용할 프리셋을 선택하세요
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              프리셋 카드를 클릭하면 해당 프리셋의 아이콘 슬롯을 고를 수 있어요.
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedUserIconAssetId(null)}
+          >
+            <X className="h-3.5 w-3.5 mr-1" />취소
+          </Button>
+        </div>
+      )}
       <div className="flex items-end justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">보관함</h2>
@@ -436,6 +528,58 @@ export default function Library() {
               }}
             >
               삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 아이콘 슬롯 선택 모달 */}
+      <Dialog open={!!slotPickTarget} onOpenChange={(o) => { if (!o) { setSlotPickTarget(null); setChosenSlotId(null); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>어느 아이콘 슬롯에 적용할까요?</DialogTitle>
+            <DialogDescription>
+              {slotPickTarget?.name} · &ldquo;{pickingIcon?.title}&rdquo;로 교체할 슬롯을 선택하세요.
+            </DialogDescription>
+          </DialogHeader>
+          {slotPickTarget && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-[50vh] overflow-y-auto pt-1">
+              {slotPickTarget.icons.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setChosenSlotId(s.id)}
+                  className={cn(
+                    "aspect-square rounded-lg border p-2 flex flex-col items-center justify-center gap-1 transition",
+                    chosenSlotId === s.id
+                      ? "border-primary ring-2 ring-primary/40 bg-primary/5"
+                      : "border-border hover:border-primary/50",
+                  )}
+                >
+                  <div className="h-10 w-10 grid place-items-center text-2xl">
+                    {s.imageUrl ? (
+                      <img src={s.imageUrl} alt="" className="max-w-full max-h-full object-contain" />
+                    ) : (
+                      <span>{s.emoji ?? "🖼️"}</span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground truncate w-full text-center">{s.label}</div>
+                </button>
+              ))}
+              {slotPickTarget.icons.length === 0 && (
+                <div className="col-span-full text-center text-sm text-muted-foreground py-8">
+                  이 프리셋에는 아이콘 슬롯이 없습니다.
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setSlotPickTarget(null); setChosenSlotId(null); }}>취소</Button>
+            <Button
+              className="bg-gradient-primary text-primary-foreground"
+              disabled={!chosenSlotId}
+              onClick={confirmApplyIconToSlot}
+            >
+              <Check className="h-4 w-4 mr-1.5" />적용
             </Button>
           </DialogFooter>
         </DialogContent>
