@@ -191,6 +191,32 @@ export default function Library() {
 
   return (
     <div className="space-y-6">
+      {pickingIcon && (
+        <div className="sticky top-0 z-30 -mx-4 sm:mx-0 rounded-none sm:rounded-2xl border border-primary/40 bg-primary/10 backdrop-blur px-4 py-3 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-background/60 grid place-items-center overflow-hidden shrink-0">
+            {pickingIcon.imageUrl ? (
+              <img src={pickingIcon.imageUrl} alt="" className="max-w-full max-h-full object-contain" />
+            ) : (
+              <span className="text-xl">{pickingIcon.emoji ?? "🖼️"}</span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold truncate">
+              &ldquo;{pickingIcon.title}&rdquo; 을(를) 적용할 프리셋을 선택하세요
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              프리셋 카드를 클릭하면 해당 프리셋의 아이콘 슬롯을 고를 수 있어요.
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedUserIconAssetId(null)}
+          >
+            <X className="h-3.5 w-3.5 mr-1" />취소
+          </Button>
+        </div>
+      )}
       <div className="flex items-end justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">보관함</h2>
