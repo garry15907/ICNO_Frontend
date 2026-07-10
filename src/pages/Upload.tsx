@@ -554,6 +554,7 @@ function FullscreenEditor({
   placed,
   onWallpaper,
   onAddIcons,
+  onAddIconAssets,
   onClose,
   onSave,
 }: {
@@ -562,6 +563,7 @@ function FullscreenEditor({
   placed: PlacedIcon[];
   onWallpaper: (f?: File) => void;
   onAddIcons: (f: FileList | File[]) => void;
+  onAddIconAssets: (assets: IconAsset[]) => void;
   onClose: () => void;
   onSave: (next: PlacedIcon[]) => void;
 }) {
