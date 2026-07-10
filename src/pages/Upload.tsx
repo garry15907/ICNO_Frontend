@@ -1236,7 +1236,6 @@ function AssetModal({
           <TabsList className="mx-5 mt-4">
             <TabsTrigger value="wallpaper">배경화면</TabsTrigger>
             <TabsTrigger value="icons">아이콘</TabsTrigger>
-            <TabsTrigger value="layout">배치 정보</TabsTrigger>
           </TabsList>
 
           <TabsContent value="wallpaper" className="p-5 space-y-4">
