@@ -1167,6 +1167,8 @@ function AssetModal({
   onAddToCanvas,
   onImportLayout,
   openFilePicker,
+  libraryIcons,
+  onPickLibraryIcon,
   onClose,
 }: {
   tab: "wallpaper" | "icons" | "layout";
@@ -1177,6 +1179,8 @@ function AssetModal({
   onAddToCanvas: (a: IconAsset) => void;
   onImportLayout: (f: File) => void;
   openFilePicker: (input: HTMLInputElement | null) => void;
+  libraryIcons: UserIconAsset[];
+  onPickLibraryIcon: (u: UserIconAsset) => void;
   onClose: () => void;
 }) {
   const [active, setActive] = useState<string>(tab);
