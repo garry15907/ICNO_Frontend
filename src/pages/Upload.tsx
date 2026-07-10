@@ -225,7 +225,6 @@ export default function Upload() {
 
     if (preset?.name && !name) setName(savedName ?? preset.name);
     if (preset?.description && !description) setDescription(preset.description);
-    setEditorOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetIdParam]);
 
