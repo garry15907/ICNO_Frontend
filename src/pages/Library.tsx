@@ -709,8 +709,9 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
   const [uploadOpen, setUploadOpen] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<UploadedIcon[]>([]);
   const [dragActive, setDragActive] = useState(false);
-  const openFilePicker = () => {
-    fileRef.current?.click();
+  const openUploadDialog = () => {
+    setPendingUploads([]);
+    setUploadOpen(true);
   };
   const addPendingFiles = async (files: FileList | File[] | null) => {
     if (!files) return;
@@ -909,7 +910,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
             </button>
           ))}
         </div>
-        <Button size="sm" onClick={openFilePicker} className="gap-1.5">
+        <Button size="sm" onClick={openUploadDialog} className="gap-1.5">
           <Upload className="h-3.5 w-3.5" /> 아이콘 업로드
         </Button>
         <input
@@ -918,13 +919,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           accept="image/png,image/svg+xml,image/x-icon,image/gif,.ico,.png,.svg,.gif"
           multiple
           className="hidden"
-          onChange={async (e) => {
-            const files = e.target.files;
-            if (fileRef.current) fileRef.current.value = "";
-            if (!files || files.length === 0) return;
-            await addPendingFiles(files);
-            setUploadOpen(true);
-          }}
+          onChange={(e) => { addPendingFiles(e.target.files); if (fileRef.current) fileRef.current.value = ""; }}
         />
       </div>
 
