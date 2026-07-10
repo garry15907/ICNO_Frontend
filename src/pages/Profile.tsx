@@ -336,7 +336,7 @@ export function Wishlist() {
     { key: "icon", label: "아이콘" },
     { key: "iconpack", label: "아이콘 팩" },
   ];
-  const typeLabel = (t: MarketItemLike["type"]) =>
+  const typeLabel = (t: "preset" | "icon" | "iconpack") =>
     t === "preset" ? "프리셋" : t === "icon" ? "아이콘" : "아이콘 팩";
   return (
     <ProfileList title="찜 목록" subtitle="찜한 프리셋 · 아이콘 · 아이콘 팩을 모아봅니다.">
