@@ -34,10 +34,20 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { libraryPresets } from "@/data/mockData";
+import { libraryPresets, marketplacePresets } from "@/data/mockData";
 import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutionType } from "@/data/mockData";
 import { useIconLibrary } from "@/lib/icon-library";
 import type { UserIconAsset } from "@/services/iconLibraryService";
+import { useLibrary } from "@/lib/library";
+
+type LibraryWallpaper = { id: string; name: string; url: string; fileName: string };
+
+async function urlToFile(url: string, fileName: string): Promise<File> {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const type = blob.type || "image/jpeg";
+  return new File([blob], fileName, { type });
+}
 
 // Build an IconAsset from a saved user-library icon (emoji stand-in).
 function synthesizeAssetFromLibrary(u: UserIconAsset): IconAsset {
