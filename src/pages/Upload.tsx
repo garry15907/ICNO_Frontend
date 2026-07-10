@@ -712,6 +712,27 @@ function FullscreenEditor({
   };
 
   const { userIcons } = useIconLibrary();
+  const { savedPresets } = useLibrary();
+  const libraryWallpapers = useMemo<LibraryWallpaper[]>(() => {
+    const seen = new Set<string>();
+    const out: LibraryWallpaper[] = [];
+    for (const sv of savedPresets) {
+      const mp = marketplacePresets.find((m) => m.id === sv.presetId);
+      if (!mp || seen.has(mp.id)) continue;
+      seen.add(mp.id);
+      out.push({ id: mp.id, name: mp.name, url: mp.thumbnail, fileName: mp.wallpaperName });
+    }
+    return out;
+  }, [savedPresets]);
+  const pickLibraryWallpaper = async (w: LibraryWallpaper) => {
+    try {
+      const file = await urlToFile(w.url, w.fileName || `${w.id}.jpg`);
+      onWallpaper(file);
+    } catch {
+      toast({ title: "배경화면을 불러오지 못했습니다." });
+    }
+  };
+
   const pickLibraryIcon = (u: UserIconAsset) => {
     const stableId = `lib-${u.id}`;
     const existing = iconAssets.find((a) => a.id === stableId);
