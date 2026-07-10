@@ -1,11 +1,15 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { MarketplacePreset, reviews, currentDisplayResolution, pickRecommendedVariant, ResolutionVariant } from "@/data/mockData";
+import { MarketplacePreset, reviews } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
-import { Heart, Share2, Flag, Download, ShoppingCart, Star, ChevronRight, ThumbsUp, MessageCircle, Monitor, CheckCircle2, AlertTriangle, Check, Loader2 } from "lucide-react";
+import {
+  Heart, Share2, Flag, Download, ShoppingCart, Star, ChevronRight,
+  ThumbsUp, MessageCircle, Monitor, CheckCircle2, AlertTriangle, Check, Loader2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLibrary } from "@/lib/library";
+import { useCurrentDisplay } from "@/lib/display";
 
 export function ExplorePresetModal({
   preset,
@@ -19,21 +23,29 @@ export function ExplorePresetModal({
   onClose: () => void;
 }) {
   const [previewAsset, setPreviewAsset] = useState<{ src?: string; emoji?: string; name: string } | null>(null);
-  const [downloadOpen, setDownloadOpen] = useState(false);
-  const [purchaseStep, setPurchaseStep] = useState<"idle" | "paying" | "selecting">("idle");
-  const { isSaved, downloadStatus, downloadPreset, downloadCount } = useLibrary();
+  const [mismatchOpen, setMismatchOpen] = useState<null | "download" | "apply">(null);
+  const [purchaseStep, setPurchaseStep] = useState<"idle" | "paying">("idle");
+  const { isSaved, downloadStatus, downloadPreset, downloadCount, requestApply } = useLibrary();
   const nav = useNavigate();
+  const display = useCurrentDisplay();
   const saved = isSaved(preset.id);
   const status = downloadStatus[preset.id] ?? "idle";
   const downloading = status === "downloading";
 
-  const variants: ResolutionVariant[] = (preset as any).resolution_variants ?? [];
-  const recommendation = useMemo(
-    () => pickRecommendedVariant(variants, currentDisplayResolution),
-    [variants],
+  const match = useMemo(
+    () =>
+      preset.creatorResolutionWidth === display.width &&
+      preset.creatorResolutionHeight === display.height,
+    [preset, display],
   );
-  const variantLabels = variants.map((v) => v.label).join(", ");
-  const defaultVariant = variants.find((v) => v.is_default) ?? variants[0];
+
+  const doDownload = async () => {
+    const r = await downloadPreset(preset, { source: preset.price === 0 ? "download" : "purchase" });
+    if (r.ok) {
+      setMismatchOpen(null);
+      setPurchaseStep("idle");
+    }
+  };
 
   const handlePrimaryClick = () => {
     if (saved && preset.price === 0) {
@@ -41,17 +53,17 @@ export function ExplorePresetModal({
       onClose();
       return;
     }
-    if (preset.price === 0) setDownloadOpen(true);
-    else setPurchaseStep("paying");
-  };
-  const handlePayComplete = () => setPurchaseStep("selecting");
-
-  const handleConfirmDownload = async (variantId?: string, source: "download" | "purchase" = "download") => {
-    const r = await downloadPreset(preset, { source, variantId });
-    if (r.ok) {
-      setDownloadOpen(false);
-      setPurchaseStep("idle");
+    if (preset.price !== 0) {
+      setPurchaseStep("paying");
+      return;
     }
+    if (!match) setMismatchOpen("download");
+    else void doDownload();
+  };
+
+  const handleApply = () => {
+    if (!match) setMismatchOpen("apply");
+    else requestApply(preset.id);
   };
 
   return (
@@ -73,11 +85,15 @@ export function ExplorePresetModal({
         <div className="px-6 pt-6">
           <div className="relative rounded-2xl overflow-hidden border border-border shadow-card">
             <img src={preset.thumbnail} alt={preset.name} className="w-full aspect-[16/9] object-cover" />
-            <div className="absolute top-4 left-4">
+            <div className="absolute top-4 left-4 flex gap-2">
               <span className={`text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-md ${
                 preset.price === 0 ? "bg-success text-white" : "bg-primary text-primary-foreground"
               }`}>
                 {preset.price === 0 ? "무료" : `₩${preset.price.toLocaleString()}`}
+              </span>
+              <span className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-md bg-background/80 backdrop-blur border border-border inline-flex items-center gap-1">
+                <Monitor className="h-3 w-3" />
+                {preset.creatorResolutionType}
               </span>
             </div>
           </div>
@@ -114,6 +130,10 @@ export function ExplorePresetModal({
             <div className="text-2xl font-bold">
               {preset.price === 0 ? "무료" : `₩${preset.price.toLocaleString()}`}
             </div>
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+              <Monitor className="h-3 w-3 text-primary" />
+              제작 해상도: {preset.creatorResolutionLabel}
+            </div>
             <Button
               onClick={handlePrimaryClick}
               disabled={downloading}
@@ -135,12 +155,17 @@ export function ExplorePresetModal({
               )}
             </Button>
             {saved && (
-              <button
-                onClick={() => { nav("/library"); onClose(); }}
-                className="text-[11px] text-primary hover:underline block text-center w-full"
-              >
-                보관함에서 보기 →
-              </button>
+              <>
+                <Button variant="outline" className="w-full" onClick={handleApply}>
+                  적용하기
+                </Button>
+                <button
+                  onClick={() => { nav("/library"); onClose(); }}
+                  className="text-[11px] text-primary hover:underline block text-center w-full"
+                >
+                  보관함에서 보기 →
+                </button>
+              </>
             )}
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" onClick={onWishlist}>
@@ -154,16 +179,10 @@ export function ExplorePresetModal({
           </div>
         </div>
 
-        {/* Included files */}
+        {/* Content sections */}
         <div className="px-6 pb-6 space-y-6">
-          {/* 해상도 정보 섹션 */}
-          {variants.length > 0 && (
-            <ResolutionInfoSection
-              variants={variants}
-              recommendation={recommendation}
-              defaultVariant={defaultVariant}
-            />
-          )}
+          {/* 해상도 정보 */}
+          <ResolutionInfoSection preset={preset} match={match} display={display} />
 
           <div>
             <h3 className="text-base font-bold mb-3">포함된 파일 · 배경화면</h3>
@@ -174,15 +193,10 @@ export function ExplorePresetModal({
               <img src={preset.thumbnail} className="h-14 w-24 object-cover rounded-md" alt="" />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium truncate">{preset.wallpaperName}</div>
-                <div className="text-xs text-muted-foreground">{preset.resolution} · PNG</div>
+                <div className="text-xs text-muted-foreground">{preset.creatorResolutionLabel} · PNG</div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
-            {variants.length > 0 && (
-              <div className="mt-2 text-[11px] text-muted-foreground pl-1">
-                레이아웃 버전: {variantLabels}
-              </div>
-            )}
           </div>
 
           <div>
@@ -232,10 +246,6 @@ export function ExplorePresetModal({
             <h3 className="text-base font-bold">리뷰 ({preset.reviews.toLocaleString()})</h3>
             <Button variant="outline" size="sm"><MessageCircle className="h-4 w-4 mr-1.5" />리뷰 작성</Button>
           </div>
-          <div className="flex items-center gap-1 text-sm">
-            <span className="text-muted-foreground mr-2">내 평점:</span>
-            {[1,2,3,4,5].map(n => <Star key={n} className="h-5 w-5 text-muted-foreground hover:text-warning hover:fill-warning cursor-pointer" />)}
-          </div>
           <div className="space-y-3">
             {reviews.map((r) => (
               <div key={r.id} className="rounded-xl border border-border p-4 bg-card/50">
@@ -263,7 +273,7 @@ export function ExplorePresetModal({
         </div>
       </DialogContent>
 
-      {/* Asset preview popup */}
+      {/* Asset preview */}
       <Dialog open={!!previewAsset} onOpenChange={(o) => !o && setPreviewAsset(null)}>
         <DialogContent className="max-w-2xl">
           {previewAsset && (
@@ -278,17 +288,7 @@ export function ExplorePresetModal({
         </DialogContent>
       </Dialog>
 
-      {/* Resolution download modal */}
-      <ResolutionDownloadModal
-        open={downloadOpen}
-        onClose={() => setDownloadOpen(false)}
-        variants={variants}
-        recommendation={recommendation}
-        busy={downloading}
-        onConfirm={(vid) => handleConfirmDownload(vid, "download")}
-      />
-
-      {/* Purchase placeholder modal */}
+      {/* Purchase placeholder */}
       <Dialog open={purchaseStep === "paying"} onOpenChange={(o) => !o && setPurchaseStep("idle")}>
         <DialogContent className="max-w-md">
           <div className="space-y-4">
@@ -296,37 +296,59 @@ export function ExplorePresetModal({
             <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm space-y-2">
               <div className="flex justify-between"><span className="text-muted-foreground">상품</span><span className="font-medium">{preset.name}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">금액</span><span className="font-bold">₩{preset.price.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">제작 해상도</span><span className="font-medium">{preset.creatorResolutionLabel}</span></div>
             </div>
             <p className="text-xs text-muted-foreground">결제 UI placeholder · 실제 결제는 진행되지 않습니다.</p>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setPurchaseStep("idle")}>취소</Button>
-              <Button className="flex-1 bg-gradient-primary text-primary-foreground" onClick={handlePayComplete}>결제 완료</Button>
+              <Button className="flex-1 bg-gradient-primary text-primary-foreground" onClick={() => { setPurchaseStep("idle"); if (!match) setMismatchOpen("download"); else void doDownload(); }}>결제 완료</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <ResolutionDownloadModal
-        open={purchaseStep === "selecting"}
-        onClose={() => setPurchaseStep("idle")}
-        variants={variants}
-        recommendation={recommendation}
-        title="구매 완료 · 다운로드할 해상도 선택"
-        busy={downloading}
-        onConfirm={(vid) => handleConfirmDownload(vid, "purchase")}
-      />
+      {/* Mismatch warning */}
+      <Dialog open={!!mismatchOpen} onOpenChange={(o) => !o && setMismatchOpen(null)}>
+        <DialogContent className="max-w-md">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-base font-bold">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              해상도가 다릅니다
+            </div>
+            <div className="rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm text-foreground/90">
+              이 프리셋은 <span className="font-semibold">{preset.creatorResolutionLabel}</span> 환경에서 제작되었습니다.
+              현재 화면 해상도({display.label})와 다를 경우 아이콘 위치와 전체 배치가 제작자의 의도와 다르게 보일 수 있습니다.
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setMismatchOpen(null)}>취소</Button>
+              <Button
+                className="flex-1 bg-gradient-primary text-primary-foreground"
+                disabled={downloading}
+                onClick={() => {
+                  const kind = mismatchOpen;
+                  setMismatchOpen(null);
+                  if (kind === "apply") requestApply(preset.id);
+                  else void doDownload();
+                }}
+              >
+                그래도 {mismatchOpen === "apply" ? "적용" : "저장"}하기
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
 
 function ResolutionInfoSection({
-  variants,
-  recommendation,
-  defaultVariant,
+  preset,
+  match,
+  display,
 }: {
-  variants: ResolutionVariant[];
-  recommendation: ReturnType<typeof pickRecommendedVariant>;
-  defaultVariant?: ResolutionVariant;
+  preset: MarketplacePreset;
+  match: boolean;
+  display: { width: number; height: number; label: string };
 }) {
   return (
     <div>
@@ -337,168 +359,38 @@ function ResolutionInfoSection({
       <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
         <div className="grid sm:grid-cols-2 gap-3">
           <div className="rounded-lg bg-muted/40 p-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">제작 기준 해상도</div>
-            <div className="text-sm font-semibold mt-1">
-              {defaultVariant ? `${defaultVariant.label} ${defaultVariant.width} × ${defaultVariant.height}` : "—"}
-            </div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">제작 해상도</div>
+            <div className="text-sm font-semibold mt-1">{preset.creatorResolutionLabel}</div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              이 프리셋은 {preset.creatorResolutionLabel} 환경에서 제작되었습니다.
+            </p>
           </div>
           <div className="rounded-lg bg-muted/40 p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">현재 내 화면</div>
-            <div className="text-sm font-semibold mt-1">
-              {currentDisplayResolution.label} {currentDisplayResolution.width} × {currentDisplayResolution.height}
-            </div>
+            <div className="text-sm font-semibold mt-1">{display.label}</div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              현재 내 화면은 {display.label}입니다.
+            </p>
           </div>
         </div>
-        <div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">지원 버전</div>
-          <div className="flex flex-wrap gap-2">
-            {variants.map((v) => {
-              const isRec = recommendation?.variant.variant_id === v.variant_id;
-              return (
-                <span
-                  key={v.variant_id}
-                  className={cn(
-                    "text-xs font-medium px-3 py-1.5 rounded-full border inline-flex items-center gap-1.5",
-                    isRec
-                      ? "bg-primary/15 border-primary/40 text-primary"
-                      : "bg-muted border-border text-muted-foreground",
-                  )}
-                >
-                  {v.label} {v.width} × {v.height}
-                  {isRec && (
-                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-primary text-primary-foreground">
-                      추천
-                    </span>
-                  )}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-        {recommendation && (
-          <div className={cn(
+        <div
+          className={cn(
             "rounded-lg p-3 text-sm flex items-start gap-2",
-            recommendation.exact ? "bg-success/10 text-success-foreground" : "bg-warning/10",
-          )}>
-            {recommendation.exact ? (
-              <CheckCircle2 className="h-4 w-4 mt-0.5 text-success shrink-0" />
-            ) : (
-              <AlertTriangle className="h-4 w-4 mt-0.5 text-warning shrink-0" />
-            )}
-            <div className="space-y-1">
-              {recommendation.exact ? (
-                <p className="text-foreground/90"><span className="font-semibold">{recommendation.variant.label}</span> 버전이 현재 해상도와 일치합니다.</p>
-              ) : (
-                <>
-                  <p className="text-foreground/90">현재 해상도와 정확히 일치하는 버전이 없습니다.</p>
-                  <p className="text-foreground/80 text-xs">
-                    가장 가까운 <span className="font-semibold">{recommendation.variant.label}</span> 버전을 자동 보정하여 다운로드할 수 있습니다.
-                    적용 후 보관함에서 아이콘 위치를 직접 수정할 수 있습니다.
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+            match ? "bg-success/10" : "bg-warning/10",
+          )}
+        >
+          {match ? (
+            <CheckCircle2 className="h-4 w-4 mt-0.5 text-success shrink-0" />
+          ) : (
+            <AlertTriangle className="h-4 w-4 mt-0.5 text-warning shrink-0" />
+          )}
+          <p className="text-foreground/90">
+            {match
+              ? "현재 화면 해상도와 일치합니다."
+              : "현재 화면 해상도와 다릅니다. 아이콘 배치가 제작자의 의도와 다르게 보일 수 있습니다."}
+          </p>
+        </div>
       </div>
     </div>
-  );
-}
-
-function ResolutionDownloadModal({
-  open,
-  onClose,
-  variants,
-  recommendation,
-  title = "다운로드할 해상도 선택",
-  busy = false,
-  onConfirm,
-}: {
-  open: boolean;
-  onClose: () => void;
-  variants: ResolutionVariant[];
-  recommendation: ReturnType<typeof pickRecommendedVariant>;
-  title?: string;
-  busy?: boolean;
-  onConfirm?: (variantId: string) => void;
-}) {
-  const [selected, setSelected] = useState<string>(recommendation?.variant.variant_id ?? variants[0]?.variant_id ?? "");
-  const exact = recommendation?.exact ?? false;
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
-        <div className="space-y-4">
-          <div>
-            <div className="text-base font-bold">{title}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              현재 화면 해상도: {currentDisplayResolution.width} × {currentDisplayResolution.height}
-            </div>
-          </div>
-
-          {!exact && recommendation && (
-            <div className="rounded-lg bg-warning/10 p-3 text-xs space-y-1">
-              <div className="flex items-center gap-1.5 font-semibold">
-                <AlertTriangle className="h-3.5 w-3.5 text-warning" />
-                정확히 일치하는 해상도 버전이 없습니다.
-              </div>
-              <p className="text-muted-foreground">
-                가장 가까운 <span className="font-semibold text-foreground">{recommendation.variant.label} {recommendation.variant.width} × {recommendation.variant.height}</span> 버전을 자동 보정하여 다운로드합니다. 보관함에서 아이콘 위치를 자유롭게 수정할 수 있습니다.
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            {variants.map((v) => {
-              const isRec = recommendation?.variant.variant_id === v.variant_id;
-              const isSelected = selected === v.variant_id;
-              return (
-                <label
-                  key={v.variant_id}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition",
-                    isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/40",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="resolution-variant"
-                    checked={isSelected}
-                    onChange={() => setSelected(v.variant_id)}
-                    className="accent-primary"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium">{v.label} {v.width} × {v.height}</div>
-                  </div>
-                  <div className="flex gap-1">
-                    {isRec && (
-                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-primary text-primary-foreground">추천</span>
-                    )}
-                    {isRec && !exact && (
-                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning text-white">자동 보정</span>
-                    )}
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-
-          <div className="flex gap-2 pt-2">
-            <Button variant="outline" className="flex-1" onClick={onClose} disabled={busy}>취소</Button>
-            <Button
-              className="flex-1 bg-gradient-primary text-primary-foreground"
-              disabled={busy}
-              onClick={() => (onConfirm ? onConfirm(selected) : onClose())}
-            >
-              {busy
-                ? "저장 중…"
-                : exact
-                ? "선택한 버전 다운로드"
-                : "자동 보정 후 다운로드"}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }

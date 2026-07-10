@@ -37,23 +37,41 @@ export type MarketplacePreset = {
   icons: IconAsset[];
   hoverIcons: { id: string; fileName: string; label: string; emoji: string }[];
   license: string;
-  default_resolution?: string;
-  resolution_variants?: ResolutionVariant[];
+  // 크리에이터가 이 프리셋을 제작한 해상도. 사용자 필터/안내의 기준값.
+  creatorResolutionType: CreatorResolutionType;
+  creatorResolutionWidth: number;
+  creatorResolutionHeight: number;
+  creatorResolutionLabel: string;
 };
 
-export type ResolutionVariant = {
-  variant_id: string;
-  label: string; // FHD / QHD / UHD / Ultrawide / Laptop / Custom
-  width: number;
-  height: number;
-  is_default?: boolean;
-  is_recommended?: boolean;
-};
+export type CreatorResolutionType = "FHD" | "QHD" | "UHD" | "CUSTOM";
+
+export function classifyResolutionType(w: number, h: number): CreatorResolutionType {
+  if (w === 1920 && h === 1080) return "FHD";
+  if (w === 2560 && h === 1440) return "QHD";
+  if (w === 3840 && h === 2160) return "UHD";
+  return "CUSTOM";
+}
+
+export function creatorResolutionLabelOf(type: CreatorResolutionType, w: number, h: number): string {
+  if (type === "CUSTOM") return `Custom ${w} × ${h}`;
+  return `${type} ${w} × ${h}`;
+}
+
+function makeCreatorResolution(width: number, height: number) {
+  const type = classifyResolutionType(width, height);
+  return {
+    creatorResolutionType: type,
+    creatorResolutionWidth: width,
+    creatorResolutionHeight: height,
+    creatorResolutionLabel: creatorResolutionLabelOf(type, width, height),
+  };
+}
 
 export const currentDisplayResolution = {
   width: 2560,
   height: 1440,
-  label: "QHD",
+  label: "QHD" as CreatorResolutionType,
 };
 
 /** 해상도 라벨 헬퍼 */
@@ -119,6 +137,7 @@ export const marketplacePresets: MarketplacePreset[] = [
       { id: "h-music", fileName: "music_hover.gif", label: "음악", emoji: "🎶" },
     ],
     license: "개인 사용 가능 · 재배포 금지",
+    ...makeCreatorResolution(1920, 1080),
   },
   {
     id: "mp-002",
@@ -137,6 +156,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 사용 · 비상업적",
+    ...makeCreatorResolution(1920, 1080),
   },
   {
     id: "mp-003",
@@ -155,6 +175,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 사용 가능",
+    ...makeCreatorResolution(2560, 1440),
   },
   {
     id: "mp-004",
@@ -173,6 +194,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 사용 가능",
+    ...makeCreatorResolution(1920, 1080),
   },
   {
     id: "mp-005",
@@ -193,6 +215,7 @@ export const marketplacePresets: MarketplacePreset[] = [
       { id: "h-steam", fileName: "steam_hover.gif", label: "스팀", emoji: "💥" },
     ],
     license: "개인 · 상업 사용 가능",
+    ...makeCreatorResolution(1920, 1080),
   },
   {
     id: "mp-006",
@@ -211,6 +234,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 사용 가능",
+    ...makeCreatorResolution(2560, 1600),
   },
   {
     id: "mp-007",
@@ -229,6 +253,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 사용 가능",
+    ...makeCreatorResolution(1920, 1080),
   },
   {
     id: "mp-008",
@@ -247,6 +272,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 · 상업 사용 가능",
+    ...makeCreatorResolution(2560, 1440),
   },
 ];
 
@@ -471,71 +497,10 @@ export const marketItems: MarketItem[] = [
   ...marketplacePresets.map((p) => ({
     ...p,
     type: "preset" as const,
-    default_resolution: p.default_resolution ?? p.resolution.replace(/\s/g, ""),
-    resolution_variants: p.resolution_variants ?? defaultVariantsFor(p.id),
   })),
   ...marketIcons,
   ...marketIconPacks,
 ];
-
-/** 프리셋 id별 해상도 변형 mock 매핑 */
-function defaultVariantsFor(id: string): ResolutionVariant[] {
-  const sets: Record<string, ResolutionVariant[]> = {
-    "mp-001": [
-      { variant_id: "mp-001-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
-      { variant_id: "mp-001-qhd", label: "QHD", width: 2560, height: 1440 },
-      { variant_id: "mp-001-uhd", label: "UHD", width: 3840, height: 2160 },
-    ],
-    "mp-002": [
-      { variant_id: "mp-002-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
-      { variant_id: "mp-002-qhd", label: "QHD", width: 2560, height: 1440 },
-    ],
-    "mp-003": [
-      { variant_id: "mp-003-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
-    ],
-    "mp-004": [
-      { variant_id: "mp-004-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
-      { variant_id: "mp-004-qhd", label: "QHD", width: 2560, height: 1440 },
-      { variant_id: "mp-004-uhd", label: "UHD", width: 3840, height: 2160 },
-      { variant_id: "mp-004-uw", label: "Ultrawide", width: 3440, height: 1440 },
-    ],
-    "mp-005": [
-      { variant_id: "mp-005-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
-      { variant_id: "mp-005-qhd", label: "QHD", width: 2560, height: 1440 },
-    ],
-    "mp-006": [
-      { variant_id: "mp-006-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
-      { variant_id: "mp-006-lap", label: "노트북", width: 2560, height: 1600 },
-    ],
-    "mp-007": [
-      { variant_id: "mp-007-fhd", label: "FHD", width: 1920, height: 1080, is_default: true },
-      { variant_id: "mp-007-qhd", label: "QHD", width: 2560, height: 1440 },
-      { variant_id: "mp-007-uhd", label: "UHD", width: 3840, height: 2160 },
-    ],
-    "mp-008": [
-      { variant_id: "mp-008-qhd", label: "QHD", width: 2560, height: 1440, is_default: true },
-      { variant_id: "mp-008-uhd", label: "UHD", width: 3840, height: 2160 },
-      { variant_id: "mp-008-uw", label: "Ultrawide", width: 3440, height: 1440 },
-    ],
-  };
-  return sets[id] ?? [{ variant_id: `${id}-fhd`, label: "FHD", width: 1920, height: 1080, is_default: true }];
-}
-
-/** 추천 변형 계산: 정확 일치 우선, 없으면 면적 가까운 순 */
-export function pickRecommendedVariant(
-  variants: ResolutionVariant[],
-  display: { width: number; height: number },
-): { variant: ResolutionVariant; exact: boolean } | null {
-  if (!variants?.length) return null;
-  const exact = variants.find((v) => v.width === display.width && v.height === display.height);
-  if (exact) return { variant: exact, exact: true };
-  const sorted = [...variants].sort((a, b) => {
-    const da = Math.abs(a.width * a.height - display.width * display.height);
-    const db = Math.abs(b.width * b.height - display.width * display.height);
-    return da - db;
-  });
-  return { variant: sorted[0], exact: false };
-}
 
 // =====================================================
 // 사용자 아이콘 보관함

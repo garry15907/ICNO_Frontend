@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { libraryPresets } from "@/data/mockData";
+import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutionType } from "@/data/mockData";
 
 type IconAsset = { id: string; file: File; previewUrl: string };
 // Matches icons_config.json spec. `assetId`/`fileName` are internal-only fields
@@ -174,6 +175,20 @@ export default function Upload() {
   const [allowRatings, setAllowRatings] = useState(true);
 
   const [editorOpen, setEditorOpen] = useState(false);
+
+  // 제작 해상도 (크리에이터가 이 프리셋을 만든 화면 해상도)
+  const [creatorResType, setCreatorResType] = useState<CreatorResolutionType>("FHD");
+  const [customResW, setCustomResW] = useState<string>("1920");
+  const [customResH, setCustomResH] = useState<string>("1080");
+  const creatorResPresets: { type: CreatorResolutionType; width: number; height: number; label: string }[] = [
+    { type: "FHD", width: 1920, height: 1080, label: "FHD 1920 × 1080" },
+    { type: "QHD", width: 2560, height: 1440, label: "QHD 2560 × 1440" },
+    { type: "UHD", width: 3840, height: 2160, label: "UHD 3840 × 2160" },
+  ];
+  const creatorResLabel =
+    creatorResType === "CUSTOM"
+      ? creatorResolutionLabelOf("CUSTOM", Number(customResW) || 0, Number(customResH) || 0)
+      : creatorResPresets.find((r) => r.type === creatorResType)?.label ?? "";
 
   // Load a library preset into the editor when `?preset=<id>` is present, so
   // every library card and the "새 프리셋 만들기" flow share the same
@@ -401,6 +416,72 @@ export default function Upload() {
               <span>배치된 아이콘 {placed.length}개</span>
             </div>
           </section>
+
+      <section className="rounded-2xl border border-border/60 bg-card/50 p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <Monitor className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">제작 해상도</h2>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">
+          이 프리셋이 제작된 화면 해상도를 선택해주세요. 사용자는 이 정보를 기준으로 자신의 화면에 맞는 프리셋을 찾을 수 있습니다.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {creatorResPresets.map((r) => {
+            const active = creatorResType === r.type;
+            return (
+              <button
+                key={r.type}
+                type="button"
+                onClick={() => {
+                  setCreatorResType(r.type);
+                  setCustomResW(String(r.width));
+                  setCustomResH(String(r.height));
+                }}
+                className={cn(
+                  "text-xs font-medium px-3 py-1.5 rounded-full border transition",
+                  active
+                    ? "bg-primary text-primary-foreground border-primary shadow-glow"
+                    : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-primary/40",
+                )}
+              >
+                {r.label}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setCreatorResType("CUSTOM")}
+            className={cn(
+              "text-xs font-medium px-3 py-1.5 rounded-full border transition",
+              creatorResType === "CUSTOM"
+                ? "bg-primary text-primary-foreground border-primary shadow-glow"
+                : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-primary/40",
+            )}
+          >
+            직접 입력
+          </button>
+        </div>
+        {creatorResType === "CUSTOM" && (
+          <div className="mt-3 flex items-end gap-2 p-3 rounded-lg bg-muted/40 border border-border max-w-md">
+            <div className="flex-1">
+              <label className="text-[10px] text-muted-foreground">가로 (px)</label>
+              <Input value={customResW} onChange={(e) => setCustomResW(e.target.value)} placeholder="2880" className="h-8 text-xs mt-1" />
+            </div>
+            <div className="flex-1">
+              <label className="text-[10px] text-muted-foreground">세로 (px)</label>
+              <Input value={customResH} onChange={(e) => setCustomResH(e.target.value)} placeholder="1800" className="h-8 text-xs mt-1" />
+            </div>
+          </div>
+        )}
+        <div className="mt-3 text-[11px] text-muted-foreground">
+          선택된 제작 해상도 · <span className="text-foreground font-medium">{creatorResLabel || "—"}</span>
+          {creatorResType === "CUSTOM" && Number(customResW) > 0 && Number(customResH) > 0 && (
+            <span className="ml-2 text-primary">
+              (분류: {classifyResolutionType(Number(customResW), Number(customResH))})
+            </span>
+          )}
+        </div>
+      </section>
 
       {editorOpen && (
         <FullscreenEditor
