@@ -580,7 +580,7 @@ function FullscreenEditor({
   const [items, setItems] = useState<PlacedIcon[]>(placed);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [grid, setGrid] = useState(true);
-  const [assetOpen, setAssetOpen] = useState<false | "wallpaper" | "icons" | "layout">(false);
+  const [assetOpen, setAssetOpen] = useState<false | "wallpaper" | "icons">(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [editIconOpen, setEditIconOpen] = useState(false);
