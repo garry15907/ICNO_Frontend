@@ -103,6 +103,7 @@ export default function LibraryDetail() {
   const [iconListOpen, setIconListOpen] = useState(false);
   const [presetInfoOpen, setPresetInfoOpen] = useState(false);
   const [addIconOpen, setAddIconOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
