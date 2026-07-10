@@ -1,21 +1,35 @@
 import { useNavigate } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { libraryPresets, marketplacePresets, marketItems, downloadedIds } from "@/data/mockData";
+import { libraryPresets, marketplacePresets, marketItems, downloadedIds, LibraryStatus } from "@/data/mockData";
 import { MarketItemCard } from "@/components/presets/PresetCard";
 import { useToast } from "@/hooks/use-toast";
 import { useWishlist } from "@/lib/wishlist";
+import { useLibrary } from "@/lib/library";
+import { cn } from "@/lib/utils";
+
+const statusStyles: Record<LibraryStatus, string> = {
+  "현재 적용 중": "bg-success text-success-foreground border-success",
+  "매핑 필요": "bg-warning text-background border-warning",
+  "로컬 수정됨": "bg-primary/15 text-primary border-primary/30",
+  "다운로드됨": "bg-muted text-muted-foreground border-border",
+  "구매함": "bg-accent text-accent-foreground border-border",
+  "내가 만든 프리셋": "bg-primary/15 text-primary border-primary/30",
+};
+const visibleStatuses: LibraryStatus[] = ["현재 적용 중", "매핑 필요"];
 
 const Index = () => {
   const nav = useNavigate();
   const { toast } = useToast();
   const { isWishlisted, toggle } = useWishlist();
+  const { requestApply } = useLibrary();
   const toggleWish = (id: string) => {
     const added = toggle(id);
     toast({ title: added ? "찜 추가" : "찜 해제", description: added ? "찜 목록에 추가했어요." : "찜 목록에서 제거했어요." });
   };
   const current = libraryPresets.find((p) => p.status === "현재 적용 중")!;
   const recent = libraryPresets.slice(0, 3);
+  const creatorMap = new Map(marketplacePresets.map((m) => [m.id, m.creator.name] as const));
   const presetItems = marketItems.filter((i) => i.type === "preset");
   const recentDownloads = presetItems.filter((p) => downloadedIds.includes(p.id)).slice(0, 4);
   const popular = [...presetItems].sort((a: any, b: any) => b.downloads - a.downloads).slice(0, 4);
@@ -42,21 +56,47 @@ const Index = () => {
 
       <Section title="최근 사용한 프리셋">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-          {recent.map((lp) => (
-            <button
-              key={lp.id}
-              onClick={() => nav(`/library/${lp.id}`)}
-              className="group card-hover-surface rounded-2xl overflow-hidden border border-border bg-card shadow-card hover:shadow-glow will-change-transform transition-[transform,box-shadow,border-color] duration-300 text-left"
-            >
-              <div className="aspect-[16/10] overflow-hidden">
-                <img src={lp.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+          {recent.map((lp) => {
+            const creator = (lp as any)._creator ?? (lp.sourceMarketId ? creatorMap.get(lp.sourceMarketId) : undefined);
+            return (
+              <div
+                key={lp.id}
+                className="group relative rounded-2xl overflow-hidden bg-card border border-border shadow-card hover:shadow-glow transition-all"
+              >
+                <div
+                  className="relative aspect-[16/10] overflow-hidden cursor-pointer"
+                  onClick={() => nav(`/upload?preset=${lp.id}`)}
+                >
+                  <img src={lp.thumbnail} alt={lp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  {visibleStatuses.includes(lp.status) && (
+                    <span className={cn("absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md border shadow-card", statusStyles[lp.status])}>
+                      {lp.status}
+                    </span>
+                  )}
+                </div>
+                <div className="p-4">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold truncate">{lp.name}</h3>
+                    {creator && (
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">@{creator}</p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full mt-3 h-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      requestApply(lp.sourceMarketId ?? lp.id);
+                    }}
+                  >
+                    <Play className="h-3.5 w-3.5 mr-1.5" />
+                    적용하기
+                  </Button>
+                </div>
               </div>
-              <div className="p-4">
-                <div className="font-semibold text-sm">{lp.name}</div>
-                <div className="text-xs text-muted-foreground">매핑 {lp.mappedCount} / {lp.iconCount} · {lp.status}</div>
-              </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
       </Section>
 
