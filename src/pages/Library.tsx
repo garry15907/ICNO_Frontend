@@ -1070,6 +1070,69 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         onDeletePack={(id) => { deleteItem(id); setOpenPackId(null); toast({ title: "그룹이 삭제되었습니다" }); }}
       />
 
+      {/* 아이콘 공유 다이얼로그 */}
+      <Dialog open={!!iconShareTarget} onOpenChange={(o) => !o && setIconShareTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-4 w-4 text-primary" /> 아이콘 공유
+            </DialogTitle>
+            <DialogDescription>
+              {iconShareTarget?.name} 의 공유 링크를 복사하여 다른 사람에게 전달하세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Input
+              readOnly
+              value={iconShareTarget ? `${window.location.origin}/library?icon=${iconShareTarget.id}` : ""}
+            />
+            <Button
+              onClick={() => {
+                if (!iconShareTarget) return;
+                const link = `${window.location.origin}/library?icon=${iconShareTarget.id}`;
+                navigator.clipboard?.writeText(link);
+                toast({ title: "링크가 복사되었습니다." });
+              }}
+            >
+              <LinkIcon className="h-3.5 w-3.5 mr-1" /> 복사
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIconShareTarget(null)}>닫기</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 아이콘 이름 변경 다이얼로그 */}
+      <Dialog open={!!iconRenameTarget} onOpenChange={(o) => !o && setIconRenameTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-4 w-4 text-primary" /> 아이콘 이름 변경
+            </DialogTitle>
+            <DialogDescription>새 이름을 입력하세요.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={iconRenameValue}
+            onChange={(e) => setIconRenameValue(e.target.value)}
+            placeholder="아이콘 이름"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIconRenameTarget(null)}>취소</Button>
+            <Button
+              className="bg-gradient-primary text-primary-foreground"
+              onClick={() => {
+                if (iconRenameTarget) renameIcon(iconRenameTarget.id, iconRenameValue);
+                setIconRenameTarget(null);
+              }}
+            >
+              <Check className="h-3.5 w-3.5 mr-1" /> 변경
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
