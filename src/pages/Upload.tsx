@@ -417,6 +417,7 @@ export default function Upload() {
             </div>
           </section>
 
+      {!presetIdParam ? (
       <section className="rounded-2xl border border-border/60 bg-card/50 p-5">
         <div className="flex items-center gap-2 mb-2">
           <Monitor className="h-4 w-4 text-primary" />
@@ -482,6 +483,15 @@ export default function Upload() {
           )}
         </div>
       </section>
+      ) : (
+        <section className="rounded-2xl border border-border/60 bg-card/50 p-4 flex items-center gap-3">
+          <Monitor className="h-4 w-4 text-primary shrink-0" />
+          <div className="min-w-0">
+            <div className="text-[11px] text-muted-foreground">제작 해상도 (원본 메타데이터 · 수정 불가)</div>
+            <div className="text-sm font-medium truncate">{creatorResLabel || "—"}</div>
+          </div>
+        </section>
+      )}
 
       {editorOpen && (
         <FullscreenEditor

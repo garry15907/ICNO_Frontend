@@ -51,6 +51,36 @@ export type MarketplacePreset = {
 
 export type CreatorResolutionType = "FHD" | "QHD" | "UHD" | "CUSTOM";
 
+// =====================================================
+// 공통 Preset 타입 (탐색·보관함 공용)
+// =====================================================
+
+export type LibraryMeta = {
+  libraryId: string;
+  originalPresetId: string;
+  savedAt: string;
+  updatedAt: string;
+  isApplied: boolean;
+  lastAppliedAt: string | null;
+  isModified: boolean;
+};
+
+/**
+ * 공통 Preset — 탐색과 보관함이 동일한 구조를 사용한다.
+ * MarketplacePreset을 확장하며, 보관함에 저장된 프리셋에만 libraryMeta가 붙는다.
+ * 어디서 렌더링되든 같은 필드로 접근 가능하다.
+ */
+export type Preset = MarketplacePreset & {
+  libraryMeta?: LibraryMeta;
+};
+
+/** MarketplacePreset을 공통 Preset으로 정규화 (필요 시 libraryMeta 부착) */
+export function toPreset(mp: MarketplacePreset, meta?: LibraryMeta): Preset {
+  return meta ? { ...mp, libraryMeta: meta } : { ...mp };
+}
+
+export const isLibraryPresetView = (p: Pick<Preset, "libraryMeta">) => !!p.libraryMeta;
+
 export function classifyResolutionType(w: number, h: number): CreatorResolutionType {
   if (w === 1920 && h === 1080) return "FHD";
   if (w === 2560 && h === 1440) return "QHD";
