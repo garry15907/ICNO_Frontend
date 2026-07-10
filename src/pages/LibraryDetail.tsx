@@ -6,7 +6,8 @@ import {
   History, RotateCcw, Trash2, Download, FileText, Magnet, AlignJustify,
   Package, Store, Upload as UploadIcon, X, Sparkles, Maximize2,
 } from "lucide-react";
-import { libraryPresets, marketIcons, marketIconPacks, IconAsset } from "@/data/mockData";
+import { libraryPresets, marketIcons, marketIconPacks, IconAsset, marketplacePresets } from "@/data/mockData";
+import { useLibrary } from "@/lib/library";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -59,7 +60,33 @@ const RES_H = 1080;
 export default function LibraryDetail() {
   const { id } = useParams();
   const nav = useNavigate();
-  const preset = libraryPresets.find((p) => p.id === id) ?? libraryPresets[0];
+  const { savedPresets } = useLibrary();
+  const resolvedPreset = useMemo(() => {
+    const direct = libraryPresets.find((p) => p.id === id);
+    if (direct) return direct;
+    if (id?.startsWith("lib-saved-")) {
+      const svId = id.replace(/^lib-saved-/, "");
+      const sv = savedPresets.find((s) => s.id === svId);
+      const mp = sv && marketplacePresets.find((m) => m.id === sv.presetId);
+      if (mp) {
+        return {
+          id,
+          name: mp.name,
+          thumbnail: mp.thumbnail,
+          iconCount: mp.icons.length,
+          mappedCount: 0,
+          status: (sv!.source === "purchase" ? "구매함" : "다운로드됨") as any,
+          lastModified: sv!.savedAt.slice(0, 10),
+          description: mp.description,
+          tags: mp.tags,
+          icons: mp.icons,
+          sourceMarketId: mp.id,
+        } as (typeof libraryPresets)[number];
+      }
+    }
+    return libraryPresets[0];
+  }, [id, savedPresets]);
+  const preset = resolvedPreset;
   const storageId = id ?? preset.id;
 
   const [icons, setIcons] = useState<EditableIcon[]>(() =>

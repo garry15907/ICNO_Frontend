@@ -15,6 +15,7 @@ import {
   MarketplacePreset,
   marketplacePresets,
   downloadedIds as initialDownloadedIds,
+  libraryPresets,
 } from "@/data/mockData";
 
 export type SavedPresetSource = "download" | "purchase" | "manual_save";
@@ -46,6 +47,8 @@ type LibraryContextValue = {
     opts?: { source?: SavedPresetSource; variantId?: string },
   ) => Promise<{ ok: boolean; alreadySaved?: boolean }>;
   requestApply: (presetId: string) => void;
+  /** Returns the library-detail route id for a saved marketplace preset, if any. */
+  getLibraryIdForPreset: (presetId: string) => string | null;
 };
 
 const LibraryCtx = createContext<LibraryContextValue | null>(null);
@@ -79,6 +82,16 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const savedPresetIds = useMemo(() => savedPresets.map((s) => s.presetId), [savedPresets]);
 
   const isSaved = useCallback((pid: string) => savedPresetIds.includes(pid), [savedPresetIds]);
+
+  const getLibraryIdForPreset = useCallback(
+    (presetId: string): string | null => {
+      const sv = savedPresets.find((s) => s.presetId === presetId);
+      if (sv) return `lib-saved-${sv.id}`;
+      const lp = libraryPresets.find((p) => p.sourceMarketId === presetId);
+      return lp?.id ?? null;
+    },
+    [savedPresets],
+  );
 
   const downloadCount = useCallback(
     (preset: MarketplacePreset) => preset.downloads + (downloadBumps[preset.id] ?? 0),
@@ -117,10 +130,10 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         description: preset.name,
         action: (
           <button
-            onClick={() => nav("/library")}
+            onClick={() => nav(`/library/lib-saved-${record.id}`)}
             className="text-xs font-semibold px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:opacity-90"
           >
-            보관함으로 이동
+            보관함에서 열기
           </button>
         ) as any,
       });
@@ -143,6 +156,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       downloadCount,
       downloadPreset,
       requestApply,
+      getLibraryIdForPreset,
     }),
     [
       savedPresets,
@@ -154,6 +168,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       downloadCount,
       downloadPreset,
       requestApply,
+      getLibraryIdForPreset,
     ],
   );
 
