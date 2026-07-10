@@ -591,6 +591,10 @@ function FullscreenEditor({
   const targetInputRef = useRef<HTMLInputElement>(null);
   const [stageScale, setStageScale] = useState(1);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
+  // Preview mode: hides all editor chrome and renders the wallpaper + icons at
+  // full viewport, simulating how the desktop would look after applying the
+  // preset. Non-interactive; exits with the floating button or Escape.
+  const [previewMode, setPreviewMode] = useState(false);
   // Tracks whether we need to re-enter fullscreen after a native file picker
   // closes. Browsers exit fullscreen when <input type=file> opens.
   const shouldRestoreFsRef = useRef(false);
@@ -620,7 +624,7 @@ function FullscreenEditor({
       const w = el.clientWidth;
       const h = el.clientHeight;
       if (w > 0 && h > 0) {
-        const fit = isBrowserFullscreen ? Math.max : Math.min;
+        const fit = (isBrowserFullscreen || previewMode) ? Math.max : Math.min;
         setStageScale(fit(w / CANVAS_W, h / CANVAS_H));
       }
     };
@@ -628,7 +632,7 @@ function FullscreenEditor({
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [isBrowserFullscreen]);
+  }, [isBrowserFullscreen, previewMode]);
 
   const enterBrowserFullscreen = () => {
     const el = rootRef.current;
@@ -640,6 +644,19 @@ function FullscreenEditor({
     if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen().catch(() => {});
     }
+  };
+
+  const enterPreviewMode = () => {
+    setSelectedId(null);
+    setPreviewMode(true);
+    // Try to also enter the browser's own fullscreen so the OS chrome hides.
+    const el = rootRef.current;
+    if (el && !document.fullscreenElement && el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    }
+  };
+  const exitPreviewMode = () => {
+    setPreviewMode(false);
   };
 
   // Open a native file picker while preserving the editor's fullscreen mode.
