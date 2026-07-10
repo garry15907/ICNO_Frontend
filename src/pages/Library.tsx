@@ -889,6 +889,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                 key={ic.id}
                 className="rounded-xl bg-card border border-border p-3 flex flex-col hover:shadow-glow hover:border-primary/40 transition-all"
               >
+                <div className="relative">
                 <div
                   className="aspect-square rounded-lg grid place-items-center text-5xl overflow-hidden mb-2"
                   style={{
@@ -903,7 +904,40 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                     <span>{ic.emoji ?? "🖼️"}</span>
                   )}
                 </div>
-                <div className="text-xs font-semibold truncate">{ic.title}</div>
+                </div>
+                <div className="flex items-start justify-between gap-1">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold truncate">{ic.title}</div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="h-6 w-6 -mr-1 grid place-items-center rounded-md hover:bg-muted shrink-0"
+                        aria-label="더보기"
+                      >
+                        <MoreHorizontal className="h-3.5 w-3.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem onClick={() => applyIconToCurrentPreset(ic.id)}>
+                        <Sparkles className="h-3.5 w-3.5 mr-2" /> 프리셋에 사용
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setIconShareTarget({ id: ic.id, name: ic.title })}>
+                        <Share2 className="h-3.5 w-3.5 mr-2" /> 공유
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setIconRenameTarget({ id: ic.id, name: ic.title }); setIconRenameValue(ic.title); }}>
+                        <Edit className="h-3.5 w-3.5 mr-2" /> 이름 변경
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => requestDelete(ic.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" /> 삭제
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
                 <div className="text-[10px] text-muted-foreground truncate">{ic.creatorName}</div>
                 <div className="text-[10px] text-muted-foreground truncate mt-0.5">
                   {ic.fileFormat} · {ic.width}×{ic.height}
@@ -912,23 +946,13 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                 <div className="text-[10px] text-muted-foreground truncate">
                   저장 {ic.downloadedAt.slice(0, 10)}
                 </div>
-                <div className="grid grid-cols-2 gap-1.5 mt-2">
-                  <Button
-                    size="sm"
-                    className="h-7 text-[11px] bg-gradient-primary text-primary-foreground hover:opacity-90"
-                    onClick={() => applyIconToCurrentPreset(ic.id)}
-                  >
-                    프리셋에 사용
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-[11px] text-destructive hover:text-destructive"
-                    onClick={() => requestDelete(ic.id)}
-                  >
-                    <Trash2 className="h-3 w-3 mr-1" />삭제
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  className="h-7 text-[11px] bg-gradient-primary text-primary-foreground hover:opacity-90 mt-2"
+                  onClick={() => applyIconToCurrentPreset(ic.id)}
+                >
+                  프리셋에 사용
+                </Button>
               </div>
             ))}
           </div>
