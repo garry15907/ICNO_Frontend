@@ -1202,6 +1202,8 @@ function AssetModal({
   openFilePicker,
   libraryIcons,
   onPickLibraryIcon,
+  libraryWallpapers,
+  onPickLibraryWallpaper,
   onClose,
 }: {
   tab: "wallpaper" | "icons" | "layout";
@@ -1214,6 +1216,8 @@ function AssetModal({
   openFilePicker: (input: HTMLInputElement | null) => void;
   libraryIcons: UserIconAsset[];
   onPickLibraryIcon: (u: UserIconAsset) => void;
+  libraryWallpapers: LibraryWallpaper[];
+  onPickLibraryWallpaper: (w: LibraryWallpaper) => void;
   onClose: () => void;
 }) {
   const [active, setActive] = useState<string>(tab);
