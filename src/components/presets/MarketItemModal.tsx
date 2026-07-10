@@ -228,7 +228,7 @@ function IconDetailModal({ item, wishlisted, onWishlist, onClose }: any) {
           saved={saved}
           downloading={status === "downloading"}
           onDownload={() => downloadIcon(item)}
-          onOpenLibrary={() => { nav("/library?tab=icons"); onClose(); }}
+          onOpenLibrary={() => nav("/library?tab=icons")}
         />
       </div>
       <ReviewsSection />
@@ -282,7 +282,7 @@ function IconPackDetailModal({ item, wishlisted, onWishlist, onClose }: any) {
           saved={allSaved}
           downloading={status === "downloading"}
           onDownload={() => downloadPack(item)}
-          onOpenLibrary={() => { nav("/library?tab=icons"); onClose(); }}
+          onOpenLibrary={() => nav("/library?tab=icons")}
           isPack
         />
       </div>
