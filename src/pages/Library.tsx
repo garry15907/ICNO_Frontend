@@ -706,6 +706,49 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
 
   const [uploaded, setUploaded] = useState<UploadedIcon[]>(() => loadUploadedIcons());
   const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState<UploadedIcon[]>([]);
+  const [dragActive, setDragActive] = useState(false);
+  const openUploadDialog = () => {
+    setPendingUploads([]);
+    setUploadOpen(true);
+  };
+  const addPendingFiles = async (files: FileList | File[] | null) => {
+    if (!files) return;
+    const arr = Array.from(files).filter((f) => f.type.startsWith("image/") || /\.(png|svg|ico|gif)$/i.test(f.name));
+    if (arr.length === 0) return;
+    const results: UploadedIcon[] = [];
+    for (const file of arr) {
+      const { dataUrl, resolution, fileType } = await fileToDataUrl(file);
+      results.push({
+        id: `ui-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: file.name.replace(/\.[^.]+$/, ""),
+        dataUrl,
+        fileType,
+        resolution,
+        fileName: file.name,
+        createdAt: Date.now(),
+      });
+    }
+    setPendingUploads((prev) => [...results, ...prev]);
+  };
+  const updatePendingName = (id: string, name: string) => {
+    setPendingUploads((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
+  };
+  const removePending = (id: string) => {
+    setPendingUploads((prev) => prev.filter((p) => p.id !== id));
+  };
+  const confirmUpload = () => {
+    if (pendingUploads.length === 0) {
+      setUploadOpen(false);
+      return;
+    }
+    const cleaned = pendingUploads.map((p) => ({ ...p, name: p.name.trim() || p.fileName.replace(/\.[^.]+$/, "") }));
+    persist([...cleaned, ...uploaded]);
+    toast({ title: "아이콘이 업로드되었습니다", description: `${cleaned.length}개 추가됨` });
+    setPendingUploads([]);
+    setUploadOpen(false);
+  };
   const [iconOverrides, setIconOverrides] = useState<Record<string, IconOverride>>(() => loadJSON(ICON_OVERRIDES_KEY, {}));
   const [packOverrides, setPackOverrides] = useState<Record<string, PackOverride>>(() => loadJSON(PACK_OVERRIDES_KEY, {}));
   const [deletedIds, setDeletedIds] = useState<string[]>(() => loadJSON(DELETED_KEY, []));
