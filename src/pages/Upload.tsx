@@ -352,17 +352,9 @@ export default function Upload() {
       </div>
 
       <section className="rounded-2xl border border-border/60 bg-card/50 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Monitor className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold">데스크탑 미리보기</h2>
-              </div>
-              <button
-                onClick={() => setEditorOpen(true)}
-                className="text-[11px] text-primary hover:underline flex items-center gap-1"
-              >
-                <Maximize2 className="h-3 w-3" /> 전체화면 편집
-              </button>
+            <div className="flex items-center gap-2 mb-4">
+              <Monitor className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold">데스크탑 미리보기</h2>
             </div>
             <button
               ref={previewBoxRef}
