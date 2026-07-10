@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft, Play, Compass, Download as DownloadIcon } from "lucide-react";
-import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
+import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets, libraryPresetToMarketplace, MarketplacePreset } from "@/data/mockData";
+import { ExplorePresetModal } from "@/components/presets/ExplorePresetModal";
 import { useLibrary } from "@/lib/library";
 import { useIconLibrary } from "@/lib/icon-library";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -44,6 +45,7 @@ export default function Library() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [presets, setPresets] = useState(libraryPresets);
   const { savedPresets, requestApply } = useLibrary();
+  const [openPreset, setOpenPreset] = useState<MarketplacePreset | null>(null);
 
   // Merge library seed with runtime-saved presets.
   const savedFromContext = savedPresets
