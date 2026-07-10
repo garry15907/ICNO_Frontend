@@ -130,7 +130,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         description: preset.name,
         action: (
           <button
-            onClick={() => nav(`/library/lib-saved-${record.id}`)}
+            onClick={() => nav(`/library?open=lib-saved-${record.id}`)}
             className="text-xs font-semibold px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:opacity-90"
           >
             보관함에서 열기
