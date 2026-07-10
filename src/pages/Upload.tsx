@@ -502,6 +502,7 @@ export default function Upload() {
           placed={placed}
           onWallpaper={handleWallpaper}
           onAddIcons={handleIcons}
+          onAddIconAssets={(assets) => setIconAssets((prev) => [...prev, ...assets])}
           onClose={() => setEditorOpen(false)}
           onSave={(next) => {
             setPlaced(next);
