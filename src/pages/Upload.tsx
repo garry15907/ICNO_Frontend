@@ -812,15 +812,6 @@ function FullscreenEditor({
           <Pencil className="h-3.5 w-3.5 text-primary" /> 프리셋 편집
         </div>
         <div className="flex-1 flex items-center justify-center gap-2">
-          <div className="relative w-64 max-w-full">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="프리셋 크리에이터 태그 검색"
-              className="h-8 pl-8 text-xs bg-background/60"
-            />
-          </div>
           <ToolbarBtn icon={<ImagePlus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("wallpaper")}>배경화면 변경</ToolbarBtn>
           <ToolbarBtn icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setAssetOpen("icons")}>아이콘 추가</ToolbarBtn>
           <button
