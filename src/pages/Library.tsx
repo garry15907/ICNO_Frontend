@@ -1253,6 +1253,88 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         </DialogContent>
       </Dialog>
 
+      {/* ============= 아이콘 업로드 다이얼로그 ============= */}
+      <Dialog open={uploadOpen} onOpenChange={(o) => { if (!o) { setUploadOpen(false); setPendingUploads([]); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>아이콘 업로드</DialogTitle>
+            <DialogDescription>이미지를 끌어다 놓거나 선택해서 이름을 정리하고 한 번에 추가하세요.</DialogDescription>
+          </DialogHeader>
+
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragActive(false);
+              addPendingFiles(e.dataTransfer.files);
+            }}
+            onClick={() => fileRef.current?.click()}
+            className={cn(
+              "cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors",
+              dragActive ? "border-primary bg-primary/5" : "border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/40",
+            )}
+          >
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Upload className="h-5 w-5" />
+            </div>
+            <div className="text-sm font-medium">이미지를 여기로 드래그하거나 클릭해서 선택</div>
+            <div className="mt-1 text-xs text-muted-foreground">PNG · SVG · ICO · GIF · 여러 개 동시 선택 가능</div>
+          </div>
+
+          {pendingUploads.length > 0 && (
+            <div className="mt-2 max-h-[340px] space-y-2 overflow-y-auto pr-1">
+              {pendingUploads.map((p) => (
+                <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-2.5">
+                  <div
+                    className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border"
+                    style={{ background: "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 12px 12px" }}
+                  >
+                    <img src={p.dataUrl} alt={p.name} className="max-h-full max-w-full object-contain" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <Input
+                      value={p.name}
+                      onChange={(e) => updatePendingName(p.id, e.target.value)}
+                      placeholder="아이콘 이름"
+                      className="h-8 text-sm"
+                    />
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <span className="rounded bg-muted px-1.5 py-0.5 font-medium">{p.fileType}</span>
+                      <span>{p.resolution}</span>
+                      <span className="truncate">· {p.fileName}</span>
+                    </div>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removePending(p.id)}
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                    aria-label="제거"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => { setUploadOpen(false); setPendingUploads([]); }}>
+              취소
+            </Button>
+            <Button
+              onClick={confirmUpload}
+              disabled={pendingUploads.length === 0}
+              className="bg-gradient-primary text-primary-foreground"
+            >
+              <Check className="h-3.5 w-3.5 mr-1" />
+              {pendingUploads.length > 0 ? `${pendingUploads.length}개 업로드` : "업로드"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
