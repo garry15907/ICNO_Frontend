@@ -14,7 +14,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Explore from "./pages/Explore";
 import Library from "./pages/Library";
-import LibraryDetail from "./pages/LibraryDetail";
 import IconMaker from "./pages/IconMaker";
 import Upload from "./pages/Upload";
 import Notifications from "./pages/Notifications";
@@ -43,7 +42,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/library" element={<Library />} />
-              <Route path="/library/:id" element={<LibraryDetail />} />
+              <Route path="/library/:id" element={<LibraryRedirect />} />
               <Route path="/icon-maker" element={<IconMaker />} />
               <Route path="/upload" element={<Upload />} />
               <Route path="/notifications" element={<Notifications />} />
