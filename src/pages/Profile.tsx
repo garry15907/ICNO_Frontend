@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, currentUser, reviews as mockReviews, followedCreators } from "@/data/mockData";
+import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, currentUser, reviews as mockReviews, followedCreators, marketItems } from "@/data/mockData";
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { useWishlist } from "@/lib/wishlist";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export function ProfileMain() {
     setUnfollowTarget(null);
   };
   const quickMenus = [
-    { title: "찜한 프리셋", desc: "관심 있는 프리셋 모아보기", icon: Heart, to: "/profile/wishlist" },
+    { title: "찜 목록", desc: "찜한 프리셋 · 아이콘 · 아이콘 팩", icon: Heart, to: "/profile/wishlist" },
     { title: "다운로드 목록", desc: "원본 재다운로드 및 초기 복원", icon: Download, to: "/profile/downloads" },
     { title: "구매 내역", desc: "구매한 유료 프리셋 확인", icon: Receipt, to: "/profile/purchases" },
     { title: "내 상품 관리", desc: "업로드한 프리셋 관리", icon: Store, to: "/profile/sales" },
