@@ -684,6 +684,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
   const [iconRenameTarget, setIconRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [iconRenameValue, setIconRenameValue] = useState("");
   const [userIconDetailId, setUserIconDetailId] = useState<string | null>(null);
+  const [showIconDetailInfo, setShowIconDetailInfo] = useState(false);
   const userIconDetail = userIconDetailId
     ? userIcons.find((u) => u.id === userIconDetailId) ?? null
     : null;
@@ -1134,11 +1135,11 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
       </Dialog>
 
       {/* 다운로드한 아이콘 상세 보기 */}
-      <Dialog open={!!userIconDetail} onOpenChange={(o) => !o && setUserIconDetailId(null)}>
+      <Dialog open={!!userIconDetail} onOpenChange={(o) => { if (!o) { setUserIconDetailId(null); setShowIconDetailInfo(false); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{userIconDetail?.title}</DialogTitle>
-            <DialogDescription>아이콘 상세 정보</DialogDescription>
+            <DialogDescription>아이콘 미리보기</DialogDescription>
           </DialogHeader>
           {userIconDetail && (
             <div className="space-y-4">
@@ -1156,35 +1157,56 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                   <span>{userIconDetail.emoji ?? "🖼️"}</span>
                 )}
               </div>
-              <dl className="grid grid-cols-3 gap-y-2 text-xs">
-                <dt className="text-muted-foreground">제작자</dt>
-                <dd className="col-span-2 font-medium">{userIconDetail.creatorName}</dd>
-                <dt className="text-muted-foreground">파일 형식</dt>
-                <dd className="col-span-2 font-medium">{userIconDetail.fileFormat}</dd>
-                <dt className="text-muted-foreground">크기</dt>
-                <dd className="col-span-2 font-medium">{userIconDetail.width} × {userIconDetail.height}</dd>
-                <dt className="text-muted-foreground">배경</dt>
-                <dd className="col-span-2 font-medium">{userIconDetail.hasTransparentBackground ? "투명" : "불투명"}</dd>
-                <dt className="text-muted-foreground">카테고리</dt>
-                <dd className="col-span-2 font-medium">{userIconDetail.category}</dd>
-                <dt className="text-muted-foreground">라이선스</dt>
-                <dd className="col-span-2 font-medium">{userIconDetail.license}</dd>
-                <dt className="text-muted-foreground">파일명</dt>
-                <dd className="col-span-2 font-medium truncate">{userIconDetail.fileName}</dd>
-                <dt className="text-muted-foreground">저장 일시</dt>
-                <dd className="col-span-2 font-medium">{userIconDetail.downloadedAt.slice(0, 10)}</dd>
-              </dl>
-              {userIconDetail.tags?.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {userIconDetail.tags.map((t) => (
-                    <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">#{t}</span>
-                  ))}
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs text-muted-foreground truncate">{userIconDetail.creatorName}</div>
+                <button
+                  type="button"
+                  onClick={() => setShowIconDetailInfo((v) => !v)}
+                  className="text-xs font-medium text-primary hover:underline shrink-0"
+                >
+                  {showIconDetailInfo ? "간단히 보기" : "자세히 보기"}
+                </button>
+              </div>
+              {showIconDetailInfo && (
+                <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+                  <dl className="grid grid-cols-3 gap-y-2 text-xs">
+                    <dt className="text-muted-foreground">파일 형식</dt>
+                    <dd className="col-span-2 font-medium">{userIconDetail.fileFormat}</dd>
+                    <dt className="text-muted-foreground">크기</dt>
+                    <dd className="col-span-2 font-medium">{userIconDetail.width} × {userIconDetail.height}</dd>
+                    <dt className="text-muted-foreground">배경</dt>
+                    <dd className="col-span-2 font-medium">{userIconDetail.hasTransparentBackground ? "투명" : "불투명"}</dd>
+                    <dt className="text-muted-foreground">카테고리</dt>
+                    <dd className="col-span-2 font-medium">{userIconDetail.category}</dd>
+                    <dt className="text-muted-foreground">라이선스</dt>
+                    <dd className="col-span-2 font-medium">{userIconDetail.license}</dd>
+                    <dt className="text-muted-foreground">파일명</dt>
+                    <dd className="col-span-2 font-medium truncate">{userIconDetail.fileName}</dd>
+                    <dt className="text-muted-foreground">저장 일시</dt>
+                    <dd className="col-span-2 font-medium">{userIconDetail.downloadedAt.slice(0, 10)}</dd>
+                  </dl>
+                  {userIconDetail.tags?.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {userIconDetail.tags.map((t) => (
+                        <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">#{t}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUserIconDetailId(null)}>닫기</Button>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!userIconDetail) return;
+                setIconRenameTarget({ id: userIconDetail.id, name: userIconDetail.title });
+                setIconRenameValue(userIconDetail.title);
+              }}
+            >
+              <Edit className="h-3.5 w-3.5 mr-1" /> 이름 수정
+            </Button>
             <Button
               className="bg-gradient-primary text-primary-foreground"
               onClick={() => {
