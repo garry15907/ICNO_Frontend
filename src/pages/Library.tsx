@@ -682,6 +682,10 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
   const [iconShareTarget, setIconShareTarget] = useState<{ id: string; name: string } | null>(null);
   const [iconRenameTarget, setIconRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [iconRenameValue, setIconRenameValue] = useState("");
+  const [userIconDetailId, setUserIconDetailId] = useState<string | null>(null);
+  const userIconDetail = userIconDetailId
+    ? userIcons.find((u) => u.id === userIconDetailId) ?? null
+    : null;
   const filters: { value: IconFilter; label: string }[] = [
     { value: "all", label: "전체" },
     { value: "icon", label: "단품 아이콘" },
@@ -889,9 +893,10 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                 key={ic.id}
                 className="rounded-xl bg-card border border-border p-3 flex flex-col hover:shadow-glow hover:border-primary/40 transition-all"
               >
-                <div className="relative">
-                <div
-                  className="aspect-square rounded-lg grid place-items-center text-5xl overflow-hidden mb-2"
+                <button
+                  type="button"
+                  onClick={() => setUserIconDetailId(ic.id)}
+                  className="aspect-square rounded-lg grid place-items-center text-5xl overflow-hidden mb-2 cursor-pointer hover:opacity-90 transition"
                   style={{
                     background: ic.hasTransparentBackground
                       ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 16px 16px"
@@ -903,8 +908,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                   ) : (
                     <span>{ic.emoji ?? "🖼️"}</span>
                   )}
-                </div>
-                </div>
+                </button>
                 <div className="flex items-start justify-between gap-1">
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-semibold truncate">{ic.title}</div>
@@ -919,6 +923,9 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem onClick={() => setUserIconDetailId(ic.id)}>
+                        <Pencil className="h-3.5 w-3.5 mr-2" /> 상세 보기
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => applyIconToCurrentPreset(ic.id)}>
                         <Sparkles className="h-3.5 w-3.5 mr-2" /> 프리셋에 사용
                       </DropdownMenuItem>
@@ -937,14 +944,6 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </div>
-                <div className="text-[10px] text-muted-foreground truncate">{ic.creatorName}</div>
-                <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-                  {ic.fileFormat} · {ic.width}×{ic.height}
-                  {ic.hasTransparentBackground ? " · 투명" : ""}
-                </div>
-                <div className="text-[10px] text-muted-foreground truncate">
-                  저장 {ic.downloadedAt.slice(0, 10)}
                 </div>
                 <Button
                   size="sm"
