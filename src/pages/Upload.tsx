@@ -36,6 +36,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { libraryPresets } from "@/data/mockData";
 import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutionType } from "@/data/mockData";
+import { useIconLibrary } from "@/lib/icon-library";
+import type { UserIconAsset } from "@/services/iconLibraryService";
+
+// Build an IconAsset from a saved user-library icon (emoji stand-in).
+function synthesizeAssetFromLibrary(u: UserIconAsset): IconAsset {
+  const emoji = u.emoji ?? "🖼️";
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><text x='50%' y='54%' font-size='96' text-anchor='middle' dominant-baseline='middle'>${emoji}</text></svg>`;
+  const file = new File([svg], `lib-${u.id}-${u.fileName || u.title}.svg`, { type: "image/svg+xml" });
+  const previewUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  return { id: `lib-${u.id}`, file, previewUrl };
+}
 
 type IconAsset = { id: string; file: File; previewUrl: string };
 // Matches icons_config.json spec. `assetId`/`fileName` are internal-only fields
@@ -491,6 +502,7 @@ export default function Upload() {
           placed={placed}
           onWallpaper={handleWallpaper}
           onAddIcons={handleIcons}
+          onAddIconAssets={(assets) => setIconAssets((prev) => [...prev, ...assets])}
           onClose={() => setEditorOpen(false)}
           onSave={(next) => {
             setPlaced(next);
@@ -542,6 +554,7 @@ function FullscreenEditor({
   placed,
   onWallpaper,
   onAddIcons,
+  onAddIconAssets,
   onClose,
   onSave,
 }: {
@@ -550,6 +563,7 @@ function FullscreenEditor({
   placed: PlacedIcon[];
   onWallpaper: (f?: File) => void;
   onAddIcons: (f: FileList | File[]) => void;
+  onAddIconAssets: (assets: IconAsset[]) => void;
   onClose: () => void;
   onSave: (next: PlacedIcon[]) => void;
 }) {
@@ -685,6 +699,19 @@ function FullscreenEditor({
     setItems((a) => [...a, next]);
     setSelectedId(next.id);
     setDirty(true);
+  };
+
+  const { userIcons } = useIconLibrary();
+  const pickLibraryIcon = (u: UserIconAsset) => {
+    const stableId = `lib-${u.id}`;
+    const existing = iconAssets.find((a) => a.id === stableId);
+    if (existing) {
+      addToCanvas(existing);
+      return;
+    }
+    const asset = synthesizeAssetFromLibrary(u);
+    onAddIconAssets([asset]);
+    addToCanvas(asset);
   };
 
   const importLayout = async (file: File) => {
@@ -1071,6 +1098,8 @@ function FullscreenEditor({
           onAddToCanvas={addToCanvas}
           onImportLayout={importLayout}
           openFilePicker={safeOpenFilePicker}
+          libraryIcons={userIcons}
+          onPickLibraryIcon={pickLibraryIcon}
           onClose={() => setAssetOpen(false)}
         />
       )}
@@ -1138,6 +1167,8 @@ function AssetModal({
   onAddToCanvas,
   onImportLayout,
   openFilePicker,
+  libraryIcons,
+  onPickLibraryIcon,
   onClose,
 }: {
   tab: "wallpaper" | "icons" | "layout";
@@ -1148,6 +1179,8 @@ function AssetModal({
   onAddToCanvas: (a: IconAsset) => void;
   onImportLayout: (f: File) => void;
   openFilePicker: (input: HTMLInputElement | null) => void;
+  libraryIcons: UserIconAsset[];
+  onPickLibraryIcon: (u: UserIconAsset) => void;
   onClose: () => void;
 }) {
   const [active, setActive] = useState<string>(tab);
@@ -1227,6 +1260,40 @@ function AssetModal({
             ) : (
               <div className="text-xs text-muted-foreground text-center py-4">업로드된 아이콘이 없습니다.</div>
             )}
+
+            <div className="pt-2 border-t border-border/60">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-foreground/80">
+                  내 아이콘 보관함 <span className="text-muted-foreground font-normal">({libraryIcons.length}개)</span>
+                </div>
+                <div className="text-[10px] text-muted-foreground">클릭하면 캔버스에 추가됩니다</div>
+              </div>
+              {libraryIcons.length > 0 ? (
+                <div className="grid grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1">
+                  {libraryIcons.map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => onPickLibraryIcon(u)}
+                      className="rounded-lg border border-border/60 bg-background/40 hover:border-primary p-2 text-left transition-colors group"
+                      title={u.title}
+                    >
+                      <div className="aspect-square rounded-md bg-muted/40 grid place-items-center overflow-hidden text-3xl">
+                        {u.emoji ?? "🖼️"}
+                      </div>
+                      <div className="mt-1.5 text-[11px] truncate">{u.title}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {u.packId ? "팩" : "개별"} · {u.fileFormat}
+                      </div>
+                      <div className="text-[10px] text-primary opacity-0 group-hover:opacity-100 mt-0.5">+ 캔버스에 추가</div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground text-center py-4">
+                  보관함에 저장된 아이콘이 없습니다. 탐색 화면에서 아이콘을 다운로드해 보세요.
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="layout" className="p-5 space-y-4">
