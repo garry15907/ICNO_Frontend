@@ -1275,23 +1275,53 @@ function AssetModal({
                 <div className="text-[10px] text-muted-foreground">저장한 프리셋에 포함된 배경 이미지</div>
               </div>
               {libraryWallpapers.length > 0 ? (
-                <div className="grid grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
-                  {libraryWallpapers.map((w) => (
-                    <button
-                      key={w.id}
-                      onClick={() => onPickLibraryWallpaper(w)}
-                      className="rounded-lg border border-border/60 bg-background/40 hover:border-primary overflow-hidden text-left transition-colors group"
-                      title={w.name}
-                    >
-                      <div className="aspect-video bg-muted/40 overflow-hidden">
-                        <img src={w.url} alt={w.name} className="h-full w-full object-cover" />
-                      </div>
-                      <div className="px-2 py-1.5">
-                        <div className="text-[11px] truncate">{w.name}</div>
-                        <div className="text-[10px] text-muted-foreground truncate">{w.fileName}</div>
-                      </div>
-                    </button>
-                  ))}
+                <div className="relative group/slider">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const track = document.getElementById("library-wallpaper-slider");
+                      if (track) track.scrollBy({ left: -200, behavior: "smooth" });
+                    }}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-7 w-7 rounded-full bg-background/90 border border-border shadow-sm grid place-items-center opacity-0 group-hover/slider:opacity-100 transition-opacity"
+                    aria-label="이전 배경화면"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                  </button>
+                  <div
+                    id="library-wallpaper-slider"
+                    className="flex gap-3 overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory"
+                    style={{ scrollbarWidth: "thin" }}
+                  >
+                    {libraryWallpapers.map((w) => (
+                      <button
+                        key={w.id}
+                        onClick={() => onPickLibraryWallpaper(w)}
+                        className="flex-shrink-0 w-[180px] snap-start rounded-lg border border-border/60 bg-background/40 hover:border-primary overflow-hidden text-left transition-colors group"
+                        title={w.name}
+                      >
+                        <div className="aspect-video bg-muted/40 overflow-hidden">
+                          <img src={w.url} alt={w.name} className="h-full w-full object-cover" />
+                        </div>
+                        <div className="px-2 py-1.5">
+                          <div className="text-[11px] truncate">{w.name}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">{w.fileName}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const track = document.getElementById("library-wallpaper-slider");
+                      if (track) track.scrollBy({ left: 200, behavior: "smooth" });
+                    }}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-7 w-7 rounded-full bg-background/90 border border-border shadow-sm grid place-items-center opacity-0 group-hover/slider:opacity-100 transition-opacity"
+                    aria-label="다음 배경화면"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                  </button>
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground text-center py-4">
