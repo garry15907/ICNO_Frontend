@@ -36,6 +36,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { libraryPresets } from "@/data/mockData";
 import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutionType } from "@/data/mockData";
+import { useIconLibrary } from "@/lib/icon-library";
+import type { UserIconAsset } from "@/services/iconLibraryService";
+
+// Build an IconAsset from a saved user-library icon (emoji stand-in).
+function synthesizeAssetFromLibrary(u: UserIconAsset): IconAsset {
+  const emoji = u.emoji ?? "🖼️";
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><text x='50%' y='54%' font-size='96' text-anchor='middle' dominant-baseline='middle'>${emoji}</text></svg>`;
+  const file = new File([svg], `lib-${u.id}-${u.fileName || u.title}.svg`, { type: "image/svg+xml" });
+  const previewUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  return { id: `lib-${u.id}`, file, previewUrl };
+}
 
 type IconAsset = { id: string; file: File; previewUrl: string };
 // Matches icons_config.json spec. `assetId`/`fileName` are internal-only fields
