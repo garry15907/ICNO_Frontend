@@ -1260,6 +1260,40 @@ function AssetModal({
             ) : (
               <div className="text-xs text-muted-foreground text-center py-4">업로드된 아이콘이 없습니다.</div>
             )}
+
+            <div className="pt-2 border-t border-border/60">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-foreground/80">
+                  내 아이콘 보관함 <span className="text-muted-foreground font-normal">({libraryIcons.length}개)</span>
+                </div>
+                <div className="text-[10px] text-muted-foreground">클릭하면 캔버스에 추가됩니다</div>
+              </div>
+              {libraryIcons.length > 0 ? (
+                <div className="grid grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1">
+                  {libraryIcons.map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => onPickLibraryIcon(u)}
+                      className="rounded-lg border border-border/60 bg-background/40 hover:border-primary p-2 text-left transition-colors group"
+                      title={u.title}
+                    >
+                      <div className="aspect-square rounded-md bg-muted/40 grid place-items-center overflow-hidden text-3xl">
+                        {u.emoji ?? "🖼️"}
+                      </div>
+                      <div className="mt-1.5 text-[11px] truncate">{u.title}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {u.packId ? "팩" : "개별"} · {u.fileFormat}
+                      </div>
+                      <div className="text-[10px] text-primary opacity-0 group-hover:opacity-100 mt-0.5">+ 캔버스에 추가</div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground text-center py-4">
+                  보관함에 저장된 아이콘이 없습니다. 탐색 화면에서 아이콘을 다운로드해 보세요.
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="layout" className="p-5 space-y-4">
