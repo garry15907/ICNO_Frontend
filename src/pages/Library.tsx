@@ -1198,16 +1198,6 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           )}
           <DialogFooter className="gap-2 sm:gap-2">
             <Button
-              variant="outline"
-              onClick={() => {
-                if (!userIconDetail) return;
-                setIconRenameTarget({ id: userIconDetail.id, name: userIconDetail.title });
-                setIconRenameValue(userIconDetail.title);
-              }}
-            >
-              <Edit className="h-3.5 w-3.5 mr-1" /> 이름 수정
-            </Button>
-            <Button
               className="bg-gradient-primary text-primary-foreground"
               onClick={() => {
                 if (userIconDetail) applyIconToCurrentPreset(userIconDetail.id);
