@@ -701,6 +701,19 @@ function FullscreenEditor({
     setDirty(true);
   };
 
+  const { userIcons } = useIconLibrary();
+  const pickLibraryIcon = (u: UserIconAsset) => {
+    const stableId = `lib-${u.id}`;
+    const existing = iconAssets.find((a) => a.id === stableId);
+    if (existing) {
+      addToCanvas(existing);
+      return;
+    }
+    const asset = synthesizeAssetFromLibrary(u);
+    onAddIconAssets([asset]);
+    addToCanvas(asset);
+  };
+
   const importLayout = async (file: File) => {
     if (!/\.(jsonc?|json\.c|c)$/i.test(file.name)) {
       toast({ title: "오류", description: "배치 정보 파일 형식이 올바르지 않습니다." });
