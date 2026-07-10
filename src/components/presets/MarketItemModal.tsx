@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MarketItem, reviews } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
-import { Heart, Share2, Flag, Download, ShoppingCart, Star, FolderPlus, ThumbsUp, MessageCircle, Package, Image as ImageIcon, ChevronRight } from "lucide-react";
+import { Heart, Share2, Flag, Download, Star, ThumbsUp, MessageCircle, Package, Image as ImageIcon, CheckCircle2, Loader2, Check } from "lucide-react";
 import { ExplorePresetModal } from "./ExplorePresetModal";
+import { useIconLibrary } from "@/lib/icon-library";
 
 export function MarketItemModal({
   item,
@@ -53,18 +55,66 @@ function ModalShell({
   );
 }
 
-function ActionPanel({
-  price, wishlisted, onWishlist, isIcon,
-}: { price: number; wishlisted?: boolean; onWishlist?: () => void; isIcon?: boolean }) {
+function IconLibraryActionPanel({
+  price,
+  wishlisted,
+  onWishlist,
+  saved,
+  downloading,
+  onDownload,
+  onOpenLibrary,
+  isPack,
+}: {
+  price: number;
+  wishlisted?: boolean;
+  onWishlist?: () => void;
+  saved: boolean;
+  downloading: boolean;
+  onDownload: () => void;
+  onOpenLibrary: () => void;
+  isPack?: boolean;
+}) {
   return (
     <div className="space-y-3 bg-muted/40 rounded-2xl p-5 border border-border h-fit">
       <div className="text-2xl font-bold">{price === 0 ? "무료" : `₩${price.toLocaleString()}`}</div>
-      <Button className="w-full h-11 bg-gradient-primary text-primary-foreground hover:opacity-90">
-        {price === 0 ? <><Download className="h-4 w-4 mr-2" />다운로드</> : <><ShoppingCart className="h-4 w-4 mr-2" />구매하기</>}
-      </Button>
-      {isIcon && (
-        <Button variant="outline" className="w-full"><FolderPlus className="h-4 w-4 mr-2" />내 아이콘 보관함에 저장</Button>
+
+      {saved ? (
+        <div className="rounded-xl border border-primary/40 bg-primary/10 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center">
+              <CheckCircle2 className="h-4 w-4" />
+            </div>
+            <div className="text-sm font-bold text-foreground">
+              내 아이콘 보관함에 저장됨
+            </div>
+          </div>
+          <p className="text-xs text-foreground/75 leading-relaxed">
+            {isPack
+              ? "이 아이콘 팩은 프리셋 수정창에서 사용할 수 있습니다."
+              : "이 아이콘은 프리셋 수정창에서 사용할 수 있습니다."}
+          </p>
+          <Button
+            onClick={onOpenLibrary}
+            className="w-full h-10 bg-gradient-primary text-primary-foreground hover:opacity-90"
+          >
+            <Check className="h-4 w-4 mr-2" />
+            아이콘 보관함에서 열기
+          </Button>
+        </div>
+      ) : (
+        <Button
+          className="w-full h-11 bg-gradient-primary text-primary-foreground hover:opacity-90"
+          disabled={downloading}
+          onClick={onDownload}
+        >
+          {downloading ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />다운로드 중…</>
+          ) : (
+            <><Download className="h-4 w-4 mr-2" />다운로드</>
+          )}
+        </Button>
       )}
+
       <div className="grid grid-cols-2 gap-2">
         <Button variant="outline" onClick={onWishlist}>
           <Heart className={`h-4 w-4 mr-2 ${wishlisted ? "fill-destructive text-destructive" : ""}`} />찜
@@ -127,6 +177,10 @@ function ReviewsSection() {
 }
 
 function IconDetailModal({ item, wishlisted, onWishlist, onClose }: any) {
+  const nav = useNavigate();
+  const { isDownloaded, iconDownloadStatus, downloadIcon } = useIconLibrary();
+  const saved = isDownloaded(item.id);
+  const status = iconDownloadStatus[item.id] ?? "idle";
   return (
     <ModalShell onClose={onClose} creator={item.creator}>
       <div className="px-6 pt-6">
@@ -167,7 +221,15 @@ function IconDetailModal({ item, wishlisted, onWishlist, onClose }: any) {
             ))}
           </div>
         </div>
-        <ActionPanel price={item.price} wishlisted={wishlisted} onWishlist={onWishlist} isIcon />
+        <IconLibraryActionPanel
+          price={item.price}
+          wishlisted={wishlisted}
+          onWishlist={onWishlist}
+          saved={saved}
+          downloading={status === "downloading"}
+          onDownload={() => downloadIcon(item)}
+          onOpenLibrary={() => nav("/library?tab=icons")}
+        />
       </div>
       <ReviewsSection />
     </ModalShell>
@@ -176,6 +238,10 @@ function IconDetailModal({ item, wishlisted, onWishlist, onClose }: any) {
 
 function IconPackDetailModal({ item, wishlisted, onWishlist, onClose }: any) {
   const [preview, setPreview] = useState<{ emoji: string; label: string; fileName: string } | null>(null);
+  const nav = useNavigate();
+  const { isDownloaded, iconDownloadStatus, downloadPack } = useIconLibrary();
+  const allSaved = item.icons.every((i: any) => isDownloaded(i.id));
+  const status = iconDownloadStatus[item.id] ?? "idle";
   return (
     <ModalShell onClose={onClose} creator={item.creator}>
       <div className="px-6 pt-6">
@@ -209,7 +275,16 @@ function IconPackDetailModal({ item, wishlisted, onWishlist, onClose }: any) {
             <span className="font-semibold text-foreground">라이선스</span> · {item.license}
           </div>
         </div>
-        <ActionPanel price={item.price} wishlisted={wishlisted} onWishlist={onWishlist} isIcon />
+        <IconLibraryActionPanel
+          price={item.price}
+          wishlisted={wishlisted}
+          onWishlist={onWishlist}
+          saved={allSaved}
+          downloading={status === "downloading"}
+          onDownload={() => downloadPack(item)}
+          onOpenLibrary={() => nav("/library?tab=icons")}
+          isPack
+        />
       </div>
       <div className="px-6 pb-6">
         <h3 className="text-base font-bold mb-3">포함된 아이콘 ({item.icons.length})</h3>

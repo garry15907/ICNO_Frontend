@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft, Play, Compass } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft, Play, Compass, Download as DownloadIcon } from "lucide-react";
 import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
 import { useLibrary } from "@/lib/library";
+import { useIconLibrary } from "@/lib/icon-library";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,10 +25,19 @@ const visibleStatuses: LibraryStatus[] = ["현재 적용 중", "매핑 필요"];
 
 export default function Library() {
   const nav = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
   const [pinned, setPinned] = useState<string[]>([]);
-  const [tab, setTab] = useState<"presets" | "icons">("presets");
+  const [tab, setTab] = useState<"presets" | "icons">(
+    () => (searchParams.get("tab") === "icons" ? "icons" : "presets"),
+  );
   const [iconFilter, setIconFilter] = useState<"all" | "icon" | "iconpack" | "downloaded" | "purchased" | "mine">("all");
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "icons" && tab !== "icons") setTab("icons");
+    if (t === "presets" && tab !== "presets") setTab("presets");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -113,7 +123,16 @@ export default function Library() {
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-6">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => {
+          setTab(v as any);
+          const next = new URLSearchParams(searchParams);
+          next.set("tab", v);
+          setSearchParams(next, { replace: true });
+        }}
+        className="space-y-6"
+      >
         <TabsList>
           <TabsTrigger value="presets" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />프리셋</TabsTrigger>
           <TabsTrigger value="icons" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" />아이콘</TabsTrigger>
@@ -502,6 +521,7 @@ function getPackIconStates(packId: string, overrides: Record<string, PackOverrid
 }
 
 function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f: IconFilter) => void }) {
+  const { userIcons, requestDelete, applyIconToCurrentPreset } = useIconLibrary();
   const filters: { value: IconFilter; label: string }[] = [
     { value: "all", label: "전체" },
     { value: "icon", label: "단품 아이콘" },
@@ -693,6 +713,67 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           onChange={(e) => { handleFiles(e.target.files); if (fileRef.current) fileRef.current.value = ""; }}
         />
       </div>
+
+      {userIcons.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+              <DownloadIcon className="h-3.5 w-3.5 text-primary" />
+              다운로드한 아이콘
+              <span className="text-muted-foreground font-normal">({userIcons.length})</span>
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {userIcons.map((ic) => (
+              <div
+                key={ic.id}
+                className="rounded-xl bg-card border border-border p-3 flex flex-col hover:shadow-glow hover:border-primary/40 transition-all"
+              >
+                <div
+                  className="aspect-square rounded-lg grid place-items-center text-5xl overflow-hidden mb-2"
+                  style={{
+                    background: ic.hasTransparentBackground
+                      ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 16px 16px"
+                      : "hsl(var(--muted) / 0.5)",
+                  }}
+                >
+                  {ic.imageUrl ? (
+                    <img src={ic.imageUrl} alt={ic.title} className="max-w-full max-h-full object-contain" />
+                  ) : (
+                    <span>{ic.emoji ?? "🖼️"}</span>
+                  )}
+                </div>
+                <div className="text-xs font-semibold truncate">{ic.title}</div>
+                <div className="text-[10px] text-muted-foreground truncate">{ic.creatorName}</div>
+                <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                  {ic.fileFormat} · {ic.width}×{ic.height}
+                  {ic.hasTransparentBackground ? " · 투명" : ""}
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">
+                  저장 {ic.downloadedAt.slice(0, 10)}
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 mt-2">
+                  <Button
+                    size="sm"
+                    className="h-7 text-[11px] bg-gradient-primary text-primary-foreground hover:opacity-90"
+                    onClick={() => applyIconToCurrentPreset(ic.id)}
+                  >
+                    프리셋에 사용
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px] text-destructive hover:text-destructive"
+                    onClick={() => requestDelete(ic.id)}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />삭제
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {groupIcons.length > 0 && (
         <section className="space-y-3">

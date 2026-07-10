@@ -9,6 +9,7 @@ import { ProfileProvider } from "@/lib/profile";
 import { WishlistProvider } from "@/lib/wishlist";
 import { NotificationsProvider } from "@/lib/notifications";
 import { LibraryProvider } from "@/lib/library";
+import { IconLibraryProvider } from "@/lib/icon-library";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Explore from "./pages/Explore";
@@ -36,6 +37,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <LibraryProvider>
+          <IconLibraryProvider>
           <AppLayout>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -56,6 +58,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
+          </IconLibraryProvider>
           </LibraryProvider>
         </BrowserRouter>
       </TooltipProvider>

@@ -22,6 +22,8 @@ import { IconAsset } from "@/data/mockData";
 import { Bold, Italic, FolderOpen, FileIcon, AppWindow, X, ImageIcon, RotateCcw, ChevronRight, Home, HardDrive, ArrowLeft, Search, Check } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useIconLibrary } from "@/lib/icon-library";
+import type { UserIconAsset } from "@/services/iconLibraryService";
 
 const presets = [32, 48, 64, 128, 256, 512];
 
@@ -99,14 +101,27 @@ function findNode(path: string[]): FsNode | null {
   return cur ?? null;
 }
 
-export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?: string }; onClose: () => void }) {
+export function IconEditModal({
+  icon,
+  onClose,
+  onImageChange,
+}: {
+  icon: IconAsset & { mappedTo?: string };
+  onClose: () => void;
+  onImageChange?: (change: { imageUrl?: string; userIconAssetId?: string }) => void;
+}) {
   const [w, setW] = useState(icon.size.w);
   const [h, setH] = useState(icon.size.h);
   const [lock, setLock] = useState(true);
   const [label, setLabel] = useState(icon.label);
   const [showLabel, setShowLabel] = useState(true);
   const [mapping, setMapping] = useState(icon.mappedTo);
-  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [imageSrc, setImageSrc] = useState<string | null>(icon.imageUrl ?? null);
+  const [libraryEmoji, setLibraryEmoji] = useState<string | null>(null);
+  const [pickedUserIconId, setPickedUserIconId] = useState<string | null>(
+    icon.userIconAssetId ?? null,
+  );
+  const { userIcons } = useIconLibrary();
   const [path, setPath] = useState<string[]>(["내 PC"]);
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -179,11 +194,30 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === "string") setImageSrc(reader.result);
+      if (typeof reader.result === "string") {
+        setImageSrc(reader.result);
+        setLibraryEmoji(null);
+        setPickedUserIconId(null);
+        onImageChange?.({ imageUrl: reader.result, userIconAssetId: undefined });
+      }
     };
     reader.readAsDataURL(file);
     // Reset input so selecting the same file again still triggers change
     e.target.value = "";
+  };
+
+  const pickFromLibrary = (asset: UserIconAsset) => {
+    // Real assets would have imageUrl; the prototype uses emoji stand-ins.
+    if (asset.imageUrl) {
+      setImageSrc(asset.imageUrl);
+      setLibraryEmoji(null);
+    } else {
+      setImageSrc(null);
+      setLibraryEmoji(asset.emoji ?? "🖼️");
+    }
+    setPickedUserIconId(asset.id);
+    onImageChange?.({ imageUrl: asset.imageUrl || undefined, userIconAssetId: asset.id });
+    toast({ title: "아이콘이 적용되었습니다", description: asset.title });
   };
 
   const currentNode = findNode(path.slice(1));
@@ -227,6 +261,8 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
                 <div className="mt-2 aspect-square rounded-xl bg-muted grid place-items-center text-7xl border border-border overflow-hidden">
                   {imageSrc ? (
                     <img src={imageSrc} alt={label} className="w-full h-full object-contain" />
+                  ) : libraryEmoji ? (
+                    <span>{libraryEmoji}</span>
                   ) : (
                     <span>{icon.emoji}</span>
                   )}
@@ -238,24 +274,84 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
                   className="hidden"
                   onChange={handleImagePick}
                 />
-                <div className="flex gap-2 mt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <ImageIcon className="h-3.5 w-3.5 mr-1" />변경
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setImageSrc(null)}
-                    aria-label="초기화"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                <Tabs defaultValue="upload" className="mt-3">
+                  <TabsList className="grid grid-cols-2 w-full h-8">
+                    <TabsTrigger value="upload" className="text-xs">파일 업로드</TabsTrigger>
+                    <TabsTrigger value="library" className="text-xs">
+                      내 아이콘 보관함
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="upload" className="pt-2">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <ImageIcon className="h-3.5 w-3.5 mr-1" />파일 변경
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setImageSrc(null);
+                          setLibraryEmoji(null);
+                          setPickedUserIconId(null);
+                          onImageChange?.({ imageUrl: undefined, userIconAssetId: undefined });
+                        }}
+                        aria-label="초기화"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="library" className="pt-2">
+                    {userIcons.length === 0 ? (
+                      <div className="text-xs text-muted-foreground text-center border border-dashed border-border rounded-lg py-6">
+                        내 아이콘 보관함이 비어 있습니다.
+                        <br />탐색에서 아이콘을 다운로드해보세요.
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-40 rounded-lg border border-border">
+                        <div className="grid grid-cols-4 gap-1.5 p-2">
+                          {userIcons.map((asset) => {
+                            const selected = pickedUserIconId === asset.id;
+                            return (
+                              <button
+                                key={asset.id}
+                                type="button"
+                                title={asset.title}
+                                onClick={() => pickFromLibrary(asset)}
+                                className={cn(
+                                  "aspect-square rounded-md grid place-items-center overflow-hidden text-2xl border-2 transition",
+                                  selected
+                                    ? "border-primary ring-2 ring-primary/30"
+                                    : "border-transparent hover:border-primary/40",
+                                )}
+                                style={{
+                                  background: asset.hasTransparentBackground
+                                    ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 10px 10px"
+                                    : "hsl(var(--muted) / 0.5)",
+                                }}
+                              >
+                                {asset.imageUrl ? (
+                                  <img
+                                    src={asset.imageUrl}
+                                    alt={asset.title}
+                                    className="max-w-full max-h-full object-contain"
+                                  />
+                                ) : (
+                                  <span>{asset.emoji ?? "🖼️"}</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </div>
               <div>
                 <Label className="text-xs">호버 이미지</Label>

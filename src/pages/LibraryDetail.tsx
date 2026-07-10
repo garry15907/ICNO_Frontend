@@ -835,6 +835,19 @@ export default function LibraryDetail() {
           <IconEditModal
             icon={icons.find((i) => i.id === editing)!}
             onClose={() => setEditing(null)}
+            onImageChange={(change) => {
+              setIcons((prev) =>
+                prev.map((i) =>
+                  i.id === editing
+                    ? {
+                        ...i,
+                        imageUrl: change.imageUrl,
+                        userIconAssetId: change.userIconAssetId,
+                      }
+                    : i,
+                ),
+              );
+            }}
           />
         )}
 
