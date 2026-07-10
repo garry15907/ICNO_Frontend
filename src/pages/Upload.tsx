@@ -34,10 +34,20 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { libraryPresets } from "@/data/mockData";
+import { libraryPresets, marketplacePresets } from "@/data/mockData";
 import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutionType } from "@/data/mockData";
 import { useIconLibrary } from "@/lib/icon-library";
 import type { UserIconAsset } from "@/services/iconLibraryService";
+import { useLibrary } from "@/lib/library";
+
+type LibraryWallpaper = { id: string; name: string; url: string; fileName: string };
+
+async function urlToFile(url: string, fileName: string): Promise<File> {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const type = blob.type || "image/jpeg";
+  return new File([blob], fileName, { type });
+}
 
 // Build an IconAsset from a saved user-library icon (emoji stand-in).
 function synthesizeAssetFromLibrary(u: UserIconAsset): IconAsset {
@@ -702,6 +712,27 @@ function FullscreenEditor({
   };
 
   const { userIcons } = useIconLibrary();
+  const { savedPresets } = useLibrary();
+  const libraryWallpapers = useMemo<LibraryWallpaper[]>(() => {
+    const seen = new Set<string>();
+    const out: LibraryWallpaper[] = [];
+    for (const sv of savedPresets) {
+      const mp = marketplacePresets.find((m) => m.id === sv.presetId);
+      if (!mp || seen.has(mp.id)) continue;
+      seen.add(mp.id);
+      out.push({ id: mp.id, name: mp.name, url: mp.thumbnail, fileName: mp.wallpaperName });
+    }
+    return out;
+  }, [savedPresets]);
+  const pickLibraryWallpaper = async (w: LibraryWallpaper) => {
+    try {
+      const file = await urlToFile(w.url, w.fileName || `${w.id}.jpg`);
+      onWallpaper(file);
+    } catch {
+      toast({ title: "배경화면을 불러오지 못했습니다." });
+    }
+  };
+
   const pickLibraryIcon = (u: UserIconAsset) => {
     const stableId = `lib-${u.id}`;
     const existing = iconAssets.find((a) => a.id === stableId);
@@ -1100,6 +1131,8 @@ function FullscreenEditor({
           openFilePicker={safeOpenFilePicker}
           libraryIcons={userIcons}
           onPickLibraryIcon={pickLibraryIcon}
+          libraryWallpapers={libraryWallpapers}
+          onPickLibraryWallpaper={pickLibraryWallpaper}
           onClose={() => setAssetOpen(false)}
         />
       )}
@@ -1169,6 +1202,8 @@ function AssetModal({
   openFilePicker,
   libraryIcons,
   onPickLibraryIcon,
+  libraryWallpapers,
+  onPickLibraryWallpaper,
   onClose,
 }: {
   tab: "wallpaper" | "icons" | "layout";
@@ -1181,6 +1216,8 @@ function AssetModal({
   openFilePicker: (input: HTMLInputElement | null) => void;
   libraryIcons: UserIconAsset[];
   onPickLibraryIcon: (u: UserIconAsset) => void;
+  libraryWallpapers: LibraryWallpaper[];
+  onPickLibraryWallpaper: (w: LibraryWallpaper) => void;
   onClose: () => void;
 }) {
   const [active, setActive] = useState<string>(tab);
@@ -1229,6 +1266,39 @@ function AssetModal({
                 <Button size="sm" onClick={onClose}>현재 배경으로 적용</Button>
               </div>
             )}
+
+            <div className="pt-2 border-t border-border/60">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-foreground/80">
+                  내 보관함의 배경화면 <span className="text-muted-foreground font-normal">({libraryWallpapers.length}개)</span>
+                </div>
+                <div className="text-[10px] text-muted-foreground">저장한 프리셋에 포함된 배경 이미지</div>
+              </div>
+              {libraryWallpapers.length > 0 ? (
+                <div className="grid grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
+                  {libraryWallpapers.map((w) => (
+                    <button
+                      key={w.id}
+                      onClick={() => onPickLibraryWallpaper(w)}
+                      className="rounded-lg border border-border/60 bg-background/40 hover:border-primary overflow-hidden text-left transition-colors group"
+                      title={w.name}
+                    >
+                      <div className="aspect-video bg-muted/40 overflow-hidden">
+                        <img src={w.url} alt={w.name} className="h-full w-full object-cover" />
+                      </div>
+                      <div className="px-2 py-1.5">
+                        <div className="text-[11px] truncate">{w.name}</div>
+                        <div className="text-[10px] text-muted-foreground truncate">{w.fileName}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground text-center py-4">
+                  보관함에 저장된 프리셋의 배경화면이 없습니다.
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="icons" className="p-5 space-y-4">
