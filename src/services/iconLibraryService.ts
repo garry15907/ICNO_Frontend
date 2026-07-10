@@ -150,6 +150,13 @@ export function deleteUserIconAsset(id: string): void {
   }
 }
 
+export function renameUserIconAsset(id: string, newTitle: string): void {
+  const next = getUserIconAssets().map((a) =>
+    a.id === id ? { ...a, title: newTitle } : a,
+  );
+  writeAssets(next);
+}
+
 export function applyUserIconToPreset(
   libraryPresetId: string,
   iconMappingId: string,
