@@ -1131,6 +1131,8 @@ function FullscreenEditor({
           openFilePicker={safeOpenFilePicker}
           libraryIcons={userIcons}
           onPickLibraryIcon={pickLibraryIcon}
+          libraryWallpapers={libraryWallpapers}
+          onPickLibraryWallpaper={pickLibraryWallpaper}
           onClose={() => setAssetOpen(false)}
         />
       )}
