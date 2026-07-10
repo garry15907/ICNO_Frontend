@@ -113,6 +113,26 @@ export default function Library() {
     (a, b) => (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0),
   );
 
+  const openPresetById = (id: string) => {
+    const lp = merged.find((p) => p.id === id);
+    if (lp) {
+      setOpenPreset(libraryPresetToMarketplace(lp as any));
+      return;
+    }
+    const mp = marketplacePresets.find((m) => m.id === id);
+    if (mp) setOpenPreset(mp);
+  };
+
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId) return;
+    openPresetById(openId);
+    const next = new URLSearchParams(searchParams);
+    next.delete("open");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between">
@@ -171,7 +191,7 @@ export default function Library() {
             key={p.id}
             className="group relative rounded-2xl overflow-hidden bg-card border border-border shadow-card hover:shadow-glow transition-all"
           >
-            <div className="relative aspect-[16/10] overflow-hidden cursor-pointer" onClick={() => nav(`/library/${p.id}`)}>
+            <div className="relative aspect-[16/10] overflow-hidden cursor-pointer" onClick={() => openPresetById(p.id)}>
               <img src={p.thumbnail} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
               {visibleStatuses.includes(p.status) && (
                 <span className={cn("absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md border shadow-card", statusStyles[p.status])}>
@@ -213,8 +233,8 @@ export default function Library() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem onClick={() => nav(`/library/${p.id}`)}>
-                      <Pencil className="h-3.5 w-3.5 mr-2" /> 수정
+                    <DropdownMenuItem onClick={() => openPresetById(p.id)}>
+                      <Pencil className="h-3.5 w-3.5 mr-2" /> 상세 보기
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShareTarget({ id: p.id, name: p.name })}>
                       <Share2 className="h-3.5 w-3.5 mr-2" /> 공유
