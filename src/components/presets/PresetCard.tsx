@@ -117,12 +117,6 @@ export function MarketItemCard({
         )}
         <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
           {typeBadge}
-          <span className={cn(
-            "text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md backdrop-blur-md",
-            item.price === 0 ? "bg-success/90 text-white" : "bg-primary/90 text-primary-foreground",
-          )}>
-            {item.price === 0 ? "무료" : `₩${item.price.toLocaleString()}`}
-          </span>
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onWishlist?.(); }}
