@@ -678,7 +678,10 @@ function getPackIconStates(packId: string, overrides: Record<string, PackOverrid
 }
 
 function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f: IconFilter) => void }) {
-  const { userIcons, requestDelete, applyIconToCurrentPreset } = useIconLibrary();
+  const { userIcons, requestDelete, applyIconToCurrentPreset, renameIcon } = useIconLibrary();
+  const [iconShareTarget, setIconShareTarget] = useState<{ id: string; name: string } | null>(null);
+  const [iconRenameTarget, setIconRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [iconRenameValue, setIconRenameValue] = useState("");
   const filters: { value: IconFilter; label: string }[] = [
     { value: "all", label: "전체" },
     { value: "icon", label: "단품 아이콘" },
@@ -886,6 +889,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                 key={ic.id}
                 className="rounded-xl bg-card border border-border p-3 flex flex-col hover:shadow-glow hover:border-primary/40 transition-all"
               >
+                <div className="relative">
                 <div
                   className="aspect-square rounded-lg grid place-items-center text-5xl overflow-hidden mb-2"
                   style={{
@@ -900,7 +904,40 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                     <span>{ic.emoji ?? "🖼️"}</span>
                   )}
                 </div>
-                <div className="text-xs font-semibold truncate">{ic.title}</div>
+                </div>
+                <div className="flex items-start justify-between gap-1">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold truncate">{ic.title}</div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="h-6 w-6 -mr-1 grid place-items-center rounded-md hover:bg-muted shrink-0"
+                        aria-label="더보기"
+                      >
+                        <MoreHorizontal className="h-3.5 w-3.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem onClick={() => applyIconToCurrentPreset(ic.id)}>
+                        <Sparkles className="h-3.5 w-3.5 mr-2" /> 프리셋에 사용
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setIconShareTarget({ id: ic.id, name: ic.title })}>
+                        <Share2 className="h-3.5 w-3.5 mr-2" /> 공유
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setIconRenameTarget({ id: ic.id, name: ic.title }); setIconRenameValue(ic.title); }}>
+                        <Edit className="h-3.5 w-3.5 mr-2" /> 이름 변경
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => requestDelete(ic.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" /> 삭제
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
                 <div className="text-[10px] text-muted-foreground truncate">{ic.creatorName}</div>
                 <div className="text-[10px] text-muted-foreground truncate mt-0.5">
                   {ic.fileFormat} · {ic.width}×{ic.height}
@@ -909,23 +946,13 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                 <div className="text-[10px] text-muted-foreground truncate">
                   저장 {ic.downloadedAt.slice(0, 10)}
                 </div>
-                <div className="grid grid-cols-2 gap-1.5 mt-2">
-                  <Button
-                    size="sm"
-                    className="h-7 text-[11px] bg-gradient-primary text-primary-foreground hover:opacity-90"
-                    onClick={() => applyIconToCurrentPreset(ic.id)}
-                  >
-                    프리셋에 사용
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-[11px] text-destructive hover:text-destructive"
-                    onClick={() => requestDelete(ic.id)}
-                  >
-                    <Trash2 className="h-3 w-3 mr-1" />삭제
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  className="h-7 text-[11px] bg-gradient-primary text-primary-foreground hover:opacity-90 mt-2"
+                  onClick={() => applyIconToCurrentPreset(ic.id)}
+                >
+                  프리셋에 사용
+                </Button>
               </div>
             ))}
           </div>
@@ -1042,6 +1069,69 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         onSavePack={(id, patch) => { updatePackOverride(id, patch); toast({ title: "그룹이 저장되었습니다" }); }}
         onDeletePack={(id) => { deleteItem(id); setOpenPackId(null); toast({ title: "그룹이 삭제되었습니다" }); }}
       />
+
+      {/* 아이콘 공유 다이얼로그 */}
+      <Dialog open={!!iconShareTarget} onOpenChange={(o) => !o && setIconShareTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-4 w-4 text-primary" /> 아이콘 공유
+            </DialogTitle>
+            <DialogDescription>
+              {iconShareTarget?.name} 의 공유 링크를 복사하여 다른 사람에게 전달하세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Input
+              readOnly
+              value={iconShareTarget ? `${window.location.origin}/library?icon=${iconShareTarget.id}` : ""}
+            />
+            <Button
+              onClick={() => {
+                if (!iconShareTarget) return;
+                const link = `${window.location.origin}/library?icon=${iconShareTarget.id}`;
+                navigator.clipboard?.writeText(link);
+                toast({ title: "링크가 복사되었습니다." });
+              }}
+            >
+              <LinkIcon className="h-3.5 w-3.5 mr-1" /> 복사
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIconShareTarget(null)}>닫기</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 아이콘 이름 변경 다이얼로그 */}
+      <Dialog open={!!iconRenameTarget} onOpenChange={(o) => !o && setIconRenameTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-4 w-4 text-primary" /> 아이콘 이름 변경
+            </DialogTitle>
+            <DialogDescription>새 이름을 입력하세요.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={iconRenameValue}
+            onChange={(e) => setIconRenameValue(e.target.value)}
+            placeholder="아이콘 이름"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIconRenameTarget(null)}>취소</Button>
+            <Button
+              className="bg-gradient-primary text-primary-foreground"
+              onClick={() => {
+                if (iconRenameTarget) renameIcon(iconRenameTarget.id, iconRenameValue);
+                setIconRenameTarget(null);
+              }}
+            >
+              <Check className="h-3.5 w-3.5 mr-1" /> 변경
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
