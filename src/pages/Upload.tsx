@@ -296,7 +296,6 @@ export default function Upload() {
     { key: "wp", label: "배경화면 선택 완료", done: !!wallpaper },
     { key: "ic", label: "아이콘 파일 추가 완료", done: iconAssets.length > 0 },
     { key: "place", label: "아이콘 배치 완료", done: placed.length > 0 },
-    { key: "layout", label: "배치 정보 생성 완료", done: !!wallpaper && placed.length > 0 },
     { key: "info", label: "프리셋 정보 입력 완료", done: name.trim().length > 0 && category.length > 0 },
     { key: "sale", label: "판매 설정 완료", done: !isPaid || (!!price && Number(price) > 0) },
   ];
