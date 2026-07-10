@@ -884,7 +884,8 @@ function FullscreenEditor({
           e.target.value = "";
         }}
       />
-      {/* Top toolbar */}
+      {/* Top toolbar (hidden while previewing) */}
+      {!previewMode && (
       <div className="h-14 border-b border-border/60 bg-card/80 backdrop-blur flex items-center px-4 gap-3 shrink-0">
         <div className="text-sm font-semibold shrink-0 flex items-center gap-2">
           <Pencil className="h-3.5 w-3.5 text-primary" /> 프리셋 편집
@@ -920,8 +921,9 @@ function FullscreenEditor({
           </Button>
         </div>
       </div>
+      )}
 
-      {!isBrowserFullscreen && (
+      {!isBrowserFullscreen && !previewMode && (
         <div className="px-4 py-2 bg-primary/10 border-b border-primary/20 flex items-center justify-between gap-3 shrink-0">
           <div className="text-xs text-primary/90">
             전체화면이 해제되었습니다. 다시 전체화면으로 편집할 수 있습니다.
