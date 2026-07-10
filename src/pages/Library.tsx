@@ -222,9 +222,6 @@ export default function Library() {
           <h2 className="text-3xl font-bold tracking-tight">보관함</h2>
           <p className="text-muted-foreground mt-1">내 프리셋과 아이콘 자산을 관리하고 적용하세요.</p>
         </div>
-        <div className="text-sm text-muted-foreground">
-          프리셋 {merged.length} · 아이콘 {libraryIcons.length + libraryIconPacks.length}
-        </div>
       </div>
 
       <Tabs
