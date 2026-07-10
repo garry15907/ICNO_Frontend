@@ -1,6 +1,7 @@
 import { Heart, Star, Download, Package, Image as ImageIcon, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MarketplacePreset, MarketItem, currentDisplayResolution, pickRecommendedVariant } from "@/data/mockData";
+import { MarketplacePreset, MarketItem } from "@/data/mockData";
+import { useCurrentDisplay } from "@/lib/display";
 
 export function PresetCard({
   preset,
@@ -81,6 +82,7 @@ export function MarketItemCard({
   onClick?: () => void;
   onWishlist?: () => void;
 }) {
+  const display = useCurrentDisplay();
   const typeLabel = item.type === "preset" ? "프리셋" : item.type === "icon" ? "아이콘" : "아이콘 팩";
   const typeBadge = (
     <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md bg-card/90 backdrop-blur border border-border text-foreground inline-flex items-center gap-1">
@@ -134,17 +136,19 @@ export function MarketItemCard({
           </span>
         )}
         {item.type === "preset" && (() => {
-          const variants = (item as any).resolution_variants ?? [];
-          const rec = pickRecommendedVariant(variants, currentDisplayResolution);
-          if (!rec) return null;
+          const p = item as MarketplacePreset & { type: "preset" };
+          const match =
+            p.creatorResolutionWidth === display.width &&
+            p.creatorResolutionHeight === display.height;
           return (
             <span className={cn(
-              "absolute bottom-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-md backdrop-blur border",
-              rec.exact
-                ? "bg-primary/90 text-primary-foreground border-primary"
-                : "bg-warning/90 text-white border-warning",
+              "absolute bottom-3 left-3 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md backdrop-blur border inline-flex items-center gap-1",
+              match
+                ? "bg-success/90 text-white border-success"
+                : "bg-primary/90 text-primary-foreground border-primary/60",
             )}>
-              {rec.exact ? `해상도 일치 · ${rec.variant.label}` : "자동 보정"}
+              <Monitor className="h-2.5 w-2.5" />
+              {p.creatorResolutionType}
             </span>
           );
         })()}
@@ -154,11 +158,11 @@ export function MarketItemCard({
           <h3 className="text-sm font-semibold truncate">{item.name}</h3>
           <p className="text-xs text-muted-foreground truncate">@{(item as any).creator.name}</p>
         </div>
-        {item.type === "preset" && (item as any).resolution_variants?.length > 0 && (
+        {item.type === "preset" && (
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <Monitor className="h-3 w-3" />
             <span className="truncate">
-              지원: {(item as any).resolution_variants.map((v: any) => v.label).join(" · ")}
+              제작 해상도 · {(item as MarketplacePreset).creatorResolutionLabel}
             </span>
           </div>
         )}
