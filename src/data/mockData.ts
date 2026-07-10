@@ -37,23 +37,41 @@ export type MarketplacePreset = {
   icons: IconAsset[];
   hoverIcons: { id: string; fileName: string; label: string; emoji: string }[];
   license: string;
-  default_resolution?: string;
-  resolution_variants?: ResolutionVariant[];
+  // 크리에이터가 이 프리셋을 제작한 해상도. 사용자 필터/안내의 기준값.
+  creatorResolutionType: CreatorResolutionType;
+  creatorResolutionWidth: number;
+  creatorResolutionHeight: number;
+  creatorResolutionLabel: string;
 };
 
-export type ResolutionVariant = {
-  variant_id: string;
-  label: string; // FHD / QHD / UHD / Ultrawide / Laptop / Custom
-  width: number;
-  height: number;
-  is_default?: boolean;
-  is_recommended?: boolean;
-};
+export type CreatorResolutionType = "FHD" | "QHD" | "UHD" | "CUSTOM";
+
+export function classifyResolutionType(w: number, h: number): CreatorResolutionType {
+  if (w === 1920 && h === 1080) return "FHD";
+  if (w === 2560 && h === 1440) return "QHD";
+  if (w === 3840 && h === 2160) return "UHD";
+  return "CUSTOM";
+}
+
+export function creatorResolutionLabelOf(type: CreatorResolutionType, w: number, h: number): string {
+  if (type === "CUSTOM") return `Custom ${w} × ${h}`;
+  return `${type} ${w} × ${h}`;
+}
+
+function makeCreatorResolution(width: number, height: number) {
+  const type = classifyResolutionType(width, height);
+  return {
+    creatorResolutionType: type,
+    creatorResolutionWidth: width,
+    creatorResolutionHeight: height,
+    creatorResolutionLabel: creatorResolutionLabelOf(type, width, height),
+  };
+}
 
 export const currentDisplayResolution = {
   width: 2560,
   height: 1440,
-  label: "QHD",
+  label: "QHD" as CreatorResolutionType,
 };
 
 /** 해상도 라벨 헬퍼 */
