@@ -706,6 +706,49 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
 
   const [uploaded, setUploaded] = useState<UploadedIcon[]>(() => loadUploadedIcons());
   const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState<UploadedIcon[]>([]);
+  const [dragActive, setDragActive] = useState(false);
+  const openUploadDialog = () => {
+    setPendingUploads([]);
+    setUploadOpen(true);
+  };
+  const addPendingFiles = async (files: FileList | File[] | null) => {
+    if (!files) return;
+    const arr = Array.from(files).filter((f) => f.type.startsWith("image/") || /\.(png|svg|ico|gif)$/i.test(f.name));
+    if (arr.length === 0) return;
+    const results: UploadedIcon[] = [];
+    for (const file of arr) {
+      const { dataUrl, resolution, fileType } = await fileToDataUrl(file);
+      results.push({
+        id: `ui-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: file.name.replace(/\.[^.]+$/, ""),
+        dataUrl,
+        fileType,
+        resolution,
+        fileName: file.name,
+        createdAt: Date.now(),
+      });
+    }
+    setPendingUploads((prev) => [...results, ...prev]);
+  };
+  const updatePendingName = (id: string, name: string) => {
+    setPendingUploads((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
+  };
+  const removePending = (id: string) => {
+    setPendingUploads((prev) => prev.filter((p) => p.id !== id));
+  };
+  const confirmUpload = () => {
+    if (pendingUploads.length === 0) {
+      setUploadOpen(false);
+      return;
+    }
+    const cleaned = pendingUploads.map((p) => ({ ...p, name: p.name.trim() || p.fileName.replace(/\.[^.]+$/, "") }));
+    persist([...cleaned, ...uploaded]);
+    toast({ title: "아이콘이 업로드되었습니다", description: `${cleaned.length}개 추가됨` });
+    setPendingUploads([]);
+    setUploadOpen(false);
+  };
   const [iconOverrides, setIconOverrides] = useState<Record<string, IconOverride>>(() => loadJSON(ICON_OVERRIDES_KEY, {}));
   const [packOverrides, setPackOverrides] = useState<Record<string, PackOverride>>(() => loadJSON(PACK_OVERRIDES_KEY, {}));
   const [deletedIds, setDeletedIds] = useState<string[]>(() => loadJSON(DELETED_KEY, []));
@@ -867,7 +910,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
             </button>
           ))}
         </div>
-        <Button size="sm" onClick={() => fileRef.current?.click()} className="gap-1.5">
+        <Button size="sm" onClick={openUploadDialog} className="gap-1.5">
           <Upload className="h-3.5 w-3.5" /> 아이콘 업로드
         </Button>
         <input
@@ -876,7 +919,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           accept="image/png,image/svg+xml,image/x-icon,image/gif,.ico,.png,.svg,.gif"
           multiple
           className="hidden"
-          onChange={(e) => { handleFiles(e.target.files); if (fileRef.current) fileRef.current.value = ""; }}
+          onChange={(e) => { addPendingFiles(e.target.files); if (fileRef.current) fileRef.current.value = ""; }}
         />
       </div>
 
@@ -1205,6 +1248,88 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
               }}
             >
               <Sparkles className="h-3.5 w-3.5 mr-1" /> 프리셋에 사용
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ============= 아이콘 업로드 다이얼로그 ============= */}
+      <Dialog open={uploadOpen} onOpenChange={(o) => { if (!o) { setUploadOpen(false); setPendingUploads([]); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>아이콘 업로드</DialogTitle>
+            <DialogDescription>이미지를 끌어다 놓거나 선택해서 이름을 정리하고 한 번에 추가하세요.</DialogDescription>
+          </DialogHeader>
+
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragActive(false);
+              addPendingFiles(e.dataTransfer.files);
+            }}
+            onClick={() => fileRef.current?.click()}
+            className={cn(
+              "cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors",
+              dragActive ? "border-primary bg-primary/5" : "border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/40",
+            )}
+          >
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Upload className="h-5 w-5" />
+            </div>
+            <div className="text-sm font-medium">이미지를 여기로 드래그하거나 클릭해서 선택</div>
+            <div className="mt-1 text-xs text-muted-foreground">PNG · SVG · ICO · GIF · 여러 개 동시 선택 가능</div>
+          </div>
+
+          {pendingUploads.length > 0 && (
+            <div className="mt-2 max-h-[340px] space-y-2 overflow-y-auto pr-1">
+              {pendingUploads.map((p) => (
+                <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-2.5">
+                  <div
+                    className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border"
+                    style={{ background: "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 12px 12px" }}
+                  >
+                    <img src={p.dataUrl} alt={p.name} className="max-h-full max-w-full object-contain" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <Input
+                      value={p.name}
+                      onChange={(e) => updatePendingName(p.id, e.target.value)}
+                      placeholder="아이콘 이름"
+                      className="h-8 text-sm"
+                    />
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <span className="rounded bg-muted px-1.5 py-0.5 font-medium">{p.fileType}</span>
+                      <span>{p.resolution}</span>
+                      <span className="truncate">· {p.fileName}</span>
+                    </div>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removePending(p.id)}
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                    aria-label="제거"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => { setUploadOpen(false); setPendingUploads([]); }}>
+              취소
+            </Button>
+            <Button
+              onClick={confirmUpload}
+              disabled={pendingUploads.length === 0}
+              className="bg-gradient-primary text-primary-foreground"
+            >
+              <Check className="h-3.5 w-3.5 mr-1" />
+              {pendingUploads.length > 0 ? `${pendingUploads.length}개 업로드` : "업로드"}
             </Button>
           </DialogFooter>
         </DialogContent>
