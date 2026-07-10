@@ -1196,7 +1196,6 @@ function AssetModal({
   onWallpaper,
   onAddIcons,
   onAddToCanvas,
-  onImportLayout,
   openFilePicker,
   libraryIcons,
   onPickLibraryIcon,
@@ -1204,13 +1203,12 @@ function AssetModal({
   onPickLibraryWallpaper,
   onClose,
 }: {
-  tab: "wallpaper" | "icons" | "layout";
+  tab: "wallpaper" | "icons";
   wallpaper: { file: File; url: string } | null;
   iconAssets: IconAsset[];
   onWallpaper: (f?: File) => void;
   onAddIcons: (f: FileList | File[]) => void;
   onAddToCanvas: (a: IconAsset) => void;
-  onImportLayout: (f: File) => void;
   openFilePicker: (input: HTMLInputElement | null) => void;
   libraryIcons: UserIconAsset[];
   onPickLibraryIcon: (u: UserIconAsset) => void;
@@ -1221,7 +1219,6 @@ function AssetModal({
   const [active, setActive] = useState<string>(tab);
   const wallpaperInput = useRef<HTMLInputElement>(null);
   const iconsInput = useRef<HTMLInputElement>(null);
-  const layoutInput = useRef<HTMLInputElement>(null);
 
   const dropZone = (handler: (f: File[]) => void) => ({
     onDragOver: (e: DragEvent<HTMLDivElement>) => e.preventDefault(),
