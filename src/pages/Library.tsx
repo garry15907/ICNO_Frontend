@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft, Play, Compass } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft, Play, Compass, Download as DownloadIcon } from "lucide-react";
 import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
 import { useLibrary } from "@/lib/library";
+import { useIconLibrary } from "@/lib/icon-library";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,10 +25,19 @@ const visibleStatuses: LibraryStatus[] = ["현재 적용 중", "매핑 필요"];
 
 export default function Library() {
   const nav = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
   const [pinned, setPinned] = useState<string[]>([]);
-  const [tab, setTab] = useState<"presets" | "icons">("presets");
+  const [tab, setTab] = useState<"presets" | "icons">(
+    () => (searchParams.get("tab") === "icons" ? "icons" : "presets"),
+  );
   const [iconFilter, setIconFilter] = useState<"all" | "icon" | "iconpack" | "downloaded" | "purchased" | "mine">("all");
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "icons" && tab !== "icons") setTab("icons");
+    if (t === "presets" && tab !== "presets") setTab("presets");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -113,7 +123,16 @@ export default function Library() {
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-6">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => {
+          setTab(v as any);
+          const next = new URLSearchParams(searchParams);
+          next.set("tab", v);
+          setSearchParams(next, { replace: true });
+        }}
+        className="space-y-6"
+      >
         <TabsList>
           <TabsTrigger value="presets" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />프리셋</TabsTrigger>
           <TabsTrigger value="icons" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" />아이콘</TabsTrigger>
