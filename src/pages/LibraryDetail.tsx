@@ -4,7 +4,7 @@ import {
   ArrowLeft, Play, Save, MoreHorizontal, Plus, ChevronDown, ChevronUp,
   Move, MousePointer2, Info, Image as ImageIcon, Link2,
   History, RotateCcw, Trash2, Download, FileText, Magnet, AlignJustify,
-  Package, Store, Upload as UploadIcon, X, Sparkles, Maximize2,
+  Package, Store, Upload as UploadIcon, X, Sparkles, Maximize2, Pencil,
 } from "lucide-react";
 import { libraryPresets, marketIcons, marketIconPacks, IconAsset, marketplacePresets } from "@/data/mockData";
 import { useLibrary } from "@/lib/library";
