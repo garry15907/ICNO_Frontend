@@ -1126,7 +1126,6 @@ function FullscreenEditor({
           onWallpaper={onWallpaper}
           onAddIcons={onAddIcons}
           onAddToCanvas={addToCanvas}
-          onImportLayout={importLayout}
           openFilePicker={safeOpenFilePicker}
           libraryIcons={userIcons}
           onPickLibraryIcon={pickLibraryIcon}
