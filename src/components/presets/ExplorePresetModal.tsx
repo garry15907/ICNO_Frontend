@@ -25,7 +25,7 @@ export function ExplorePresetModal({
   const [previewAsset, setPreviewAsset] = useState<{ src?: string; emoji?: string; name: string } | null>(null);
   const [mismatchOpen, setMismatchOpen] = useState<null | "download" | "apply">(null);
   const [purchaseStep, setPurchaseStep] = useState<"idle" | "paying">("idle");
-  const { isSaved, downloadStatus, downloadPreset, downloadCount, requestApply } = useLibrary();
+  const { isSaved, downloadStatus, downloadPreset, downloadCount, requestApply, getLibraryIdForPreset } = useLibrary();
   const nav = useNavigate();
   const display = useCurrentDisplay();
   const saved = isSaved(preset.id);
@@ -48,13 +48,20 @@ export function ExplorePresetModal({
   };
 
   const handlePrimaryClick = () => {
-    if (saved && preset.price === 0) {
-      nav("/library");
-      onClose();
+    if (preset.price !== 0) {
+      if (saved) {
+        const libId = getLibraryIdForPreset(preset.id);
+        nav(libId ? `/library/${libId}` : "/library");
+        onClose();
+        return;
+      }
+      setPurchaseStep("paying");
       return;
     }
-    if (preset.price !== 0) {
-      setPurchaseStep("paying");
+    if (saved) {
+      const libId = getLibraryIdForPreset(preset.id);
+      nav(libId ? `/library/${libId}` : "/library");
+      onClose();
       return;
     }
     if (!match) setMismatchOpen("download");
@@ -134,38 +141,46 @@ export function ExplorePresetModal({
               <Monitor className="h-3 w-3 text-primary" />
               제작 해상도: {preset.creatorResolutionLabel}
             </div>
-            <Button
-              onClick={handlePrimaryClick}
-              disabled={downloading}
-              className={cn(
-                "w-full h-11 hover:opacity-90",
-                saved && preset.price === 0
-                  ? "bg-primary/15 text-primary hover:bg-primary/20 border border-primary/30"
-                  : "bg-gradient-primary text-primary-foreground",
-              )}
-            >
-              {downloading ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />다운로드 중…</>
-              ) : saved && preset.price === 0 ? (
-                <><Check className="h-4 w-4 mr-2" />보관함에 저장됨</>
-              ) : preset.price === 0 ? (
-                <><Download className="h-4 w-4 mr-2" />다운로드</>
-              ) : (
-                <><ShoppingCart className="h-4 w-4 mr-2" />구매하기</>
-              )}
-            </Button>
-            {saved && (
-              <>
-                <Button variant="outline" className="w-full" onClick={handleApply}>
+            {saved ? (
+              <div className="rounded-xl border border-primary/40 bg-primary/10 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                  <div className="text-sm font-bold text-foreground">내 보관함에 저장됨</div>
+                </div>
+                <p className="text-xs text-foreground/75 leading-relaxed">
+                  이 프리셋은 보관함에서 수정하거나 데스크탑에 적용할 수 있습니다.
+                </p>
+                <Button
+                  onClick={() => {
+                    const libId = getLibraryIdForPreset(preset.id);
+                    nav(libId ? `/library/${libId}` : "/library");
+                    onClose();
+                  }}
+                  className="w-full h-10 bg-gradient-primary text-primary-foreground hover:opacity-90"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  보관함에서 열기
+                </Button>
+                <Button variant="outline" className="w-full h-9" onClick={handleApply}>
                   적용하기
                 </Button>
-                <button
-                  onClick={() => { nav("/library"); onClose(); }}
-                  className="text-[11px] text-primary hover:underline block text-center w-full"
-                >
-                  보관함에서 보기 →
-                </button>
-              </>
+              </div>
+            ) : (
+              <Button
+                onClick={handlePrimaryClick}
+                disabled={downloading}
+                className="w-full h-11 hover:opacity-90 bg-gradient-primary text-primary-foreground"
+              >
+                {downloading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />다운로드 중…</>
+                ) : preset.price === 0 ? (
+                  <><Download className="h-4 w-4 mr-2" />다운로드</>
+                ) : (
+                  <><ShoppingCart className="h-4 w-4 mr-2" />구매하기</>
+                )}
+              </Button>
             )}
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" onClick={onWishlist}>
