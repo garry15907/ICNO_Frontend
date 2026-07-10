@@ -22,6 +22,8 @@ import { IconAsset } from "@/data/mockData";
 import { Bold, Italic, FolderOpen, FileIcon, AppWindow, X, ImageIcon, RotateCcw, ChevronRight, Home, HardDrive, ArrowLeft, Search, Check } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useIconLibrary } from "@/lib/icon-library";
+import type { UserIconAsset } from "@/services/iconLibraryService";
 
 const presets = [32, 48, 64, 128, 256, 512];
 
@@ -99,14 +101,27 @@ function findNode(path: string[]): FsNode | null {
   return cur ?? null;
 }
 
-export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?: string }; onClose: () => void }) {
+export function IconEditModal({
+  icon,
+  onClose,
+  onImageChange,
+}: {
+  icon: IconAsset & { mappedTo?: string };
+  onClose: () => void;
+  onImageChange?: (change: { imageUrl?: string; userIconAssetId?: string }) => void;
+}) {
   const [w, setW] = useState(icon.size.w);
   const [h, setH] = useState(icon.size.h);
   const [lock, setLock] = useState(true);
   const [label, setLabel] = useState(icon.label);
   const [showLabel, setShowLabel] = useState(true);
   const [mapping, setMapping] = useState(icon.mappedTo);
-  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [imageSrc, setImageSrc] = useState<string | null>(icon.imageUrl ?? null);
+  const [libraryEmoji, setLibraryEmoji] = useState<string | null>(null);
+  const [pickedUserIconId, setPickedUserIconId] = useState<string | null>(
+    icon.userIconAssetId ?? null,
+  );
+  const { userIcons } = useIconLibrary();
   const [path, setPath] = useState<string[]>(["내 PC"]);
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -179,11 +194,30 @@ export function IconEditModal({ icon, onClose }: { icon: IconAsset & { mappedTo?
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === "string") setImageSrc(reader.result);
+      if (typeof reader.result === "string") {
+        setImageSrc(reader.result);
+        setLibraryEmoji(null);
+        setPickedUserIconId(null);
+        onImageChange?.({ imageUrl: reader.result, userIconAssetId: undefined });
+      }
     };
     reader.readAsDataURL(file);
     // Reset input so selecting the same file again still triggers change
     e.target.value = "";
+  };
+
+  const pickFromLibrary = (asset: UserIconAsset) => {
+    // Real assets would have imageUrl; the prototype uses emoji stand-ins.
+    if (asset.imageUrl) {
+      setImageSrc(asset.imageUrl);
+      setLibraryEmoji(null);
+    } else {
+      setImageSrc(null);
+      setLibraryEmoji(asset.emoji ?? "🖼️");
+    }
+    setPickedUserIconId(asset.id);
+    onImageChange?.({ imageUrl: asset.imageUrl || undefined, userIconAssetId: asset.id });
+    toast({ title: "아이콘이 적용되었습니다", description: asset.title });
   };
 
   const currentNode = findNode(path.slice(1));
