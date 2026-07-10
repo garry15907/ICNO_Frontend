@@ -924,7 +924,18 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           accept="image/png,image/svg+xml,image/x-icon,image/gif,.ico,.png,.svg,.gif"
           multiple
           className="hidden"
-          onChange={(e) => { addPendingFiles(e.target.files); if (fileRef.current) fileRef.current.value = ""; }}
+          onChange={(e) => {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+              if (replaceTargetId) {
+                replacePendingImage(replaceTargetId, files[0]);
+                setReplaceTargetId(null);
+              } else {
+                addPendingFiles(files);
+              }
+            }
+            if (fileRef.current) fileRef.current.value = "";
+          }}
         />
       </div>
 
