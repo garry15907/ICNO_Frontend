@@ -533,6 +533,58 @@ export default function Library() {
         </DialogContent>
       </Dialog>
 
+      {/* 아이콘 슬롯 선택 모달 */}
+      <Dialog open={!!slotPickTarget} onOpenChange={(o) => { if (!o) { setSlotPickTarget(null); setChosenSlotId(null); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>어느 아이콘 슬롯에 적용할까요?</DialogTitle>
+            <DialogDescription>
+              {slotPickTarget?.name} · &ldquo;{pickingIcon?.title}&rdquo;로 교체할 슬롯을 선택하세요.
+            </DialogDescription>
+          </DialogHeader>
+          {slotPickTarget && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-[50vh] overflow-y-auto pt-1">
+              {slotPickTarget.icons.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setChosenSlotId(s.id)}
+                  className={cn(
+                    "aspect-square rounded-lg border p-2 flex flex-col items-center justify-center gap-1 transition",
+                    chosenSlotId === s.id
+                      ? "border-primary ring-2 ring-primary/40 bg-primary/5"
+                      : "border-border hover:border-primary/50",
+                  )}
+                >
+                  <div className="h-10 w-10 grid place-items-center text-2xl">
+                    {s.imageUrl ? (
+                      <img src={s.imageUrl} alt="" className="max-w-full max-h-full object-contain" />
+                    ) : (
+                      <span>{s.emoji ?? "🖼️"}</span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground truncate w-full text-center">{s.label}</div>
+                </button>
+              ))}
+              {slotPickTarget.icons.length === 0 && (
+                <div className="col-span-full text-center text-sm text-muted-foreground py-8">
+                  이 프리셋에는 아이콘 슬롯이 없습니다.
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setSlotPickTarget(null); setChosenSlotId(null); }}>취소</Button>
+            <Button
+              className="bg-gradient-primary text-primary-foreground"
+              disabled={!chosenSlotId}
+              onClick={confirmApplyIconToSlot}
+            >
+              <Check className="h-4 w-4 mr-1.5" />적용
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
