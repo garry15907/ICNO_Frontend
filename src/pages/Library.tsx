@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft, Play, Compass, Download as DownloadIcon } from "lucide-react";
-import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets, libraryPresetToMarketplace, MarketplacePreset } from "@/data/mockData";
-import { ExplorePresetModal } from "@/components/presets/ExplorePresetModal";
+import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
 import { useLibrary } from "@/lib/library";
 import { useIconLibrary } from "@/lib/icon-library";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -45,7 +44,6 @@ export default function Library() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [presets, setPresets] = useState(libraryPresets);
   const { savedPresets, requestApply } = useLibrary();
-  const [openPreset, setOpenPreset] = useState<MarketplacePreset | null>(null);
 
   // Merge library seed with runtime-saved presets.
   const savedFromContext = savedPresets
@@ -113,23 +111,15 @@ export default function Library() {
     (a, b) => (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0),
   );
 
-  const openPresetById = (id: string) => {
-    const lp = merged.find((p) => p.id === id);
-    if (lp) {
-      setOpenPreset(libraryPresetToMarketplace(lp as any));
-      return;
-    }
-    const mp = marketplacePresets.find((m) => m.id === id);
-    if (mp) setOpenPreset(mp);
-  };
+  const openPresetById = (id: string) => nav(`/upload?preset=${id}`);
 
   useEffect(() => {
     const openId = searchParams.get("open");
     if (!openId) return;
-    openPresetById(openId);
     const next = new URLSearchParams(searchParams);
     next.delete("open");
     setSearchParams(next, { replace: true });
+    nav(`/upload?preset=${openId}`, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -451,9 +441,6 @@ export default function Library() {
         </DialogContent>
       </Dialog>
 
-      {openPreset && (
-        <ExplorePresetModal preset={openPreset} onClose={() => setOpenPreset(null)} />
-      )}
     </div>
   );
 }
