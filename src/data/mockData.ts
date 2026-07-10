@@ -421,7 +421,7 @@ export const libraryPresets: LibraryPreset[] = [
   },
 ];
 
-export const wishlistIds = ["mp-002", "mp-008"];
+export const wishlistIds = ["mp-002", "mp-008", "ic-002", "ic-003", "pk-001"];
 export const downloadedIds = ["mp-001", "mp-003", "mp-005"];
 export const purchasedIds = ["mp-002", "mp-005", "mp-008"];
 

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, currentUser, reviews as mockReviews, followedCreators } from "@/data/mockData";
+import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, currentUser, reviews as mockReviews, followedCreators, marketItems } from "@/data/mockData";
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { useWishlist } from "@/lib/wishlist";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export function ProfileMain() {
     setUnfollowTarget(null);
   };
   const quickMenus = [
-    { title: "찜한 프리셋", desc: "관심 있는 프리셋 모아보기", icon: Heart, to: "/profile/wishlist" },
+    { title: "찜 목록", desc: "찜한 프리셋 · 아이콘 · 아이콘 팩", icon: Heart, to: "/profile/wishlist" },
     { title: "다운로드 목록", desc: "원본 재다운로드 및 초기 복원", icon: Download, to: "/profile/downloads" },
     { title: "구매 내역", desc: "구매한 유료 프리셋 확인", icon: Receipt, to: "/profile/purchases" },
     { title: "내 상품 관리", desc: "업로드한 프리셋 관리", icon: Store, to: "/profile/sales" },
@@ -315,35 +315,105 @@ export function Wishlist() {
   const nav = useNavigate();
   const { wishlist, toggle } = useWishlist();
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string } | null>(null);
-  const items = marketplacePresets.filter((p) => wishlist.includes(p.id));
+  const [filter, setFilter] = useState<"all" | "preset" | "icon" | "iconpack">("all");
+  const allItems = marketItems.filter((it) => wishlist.includes(it.id));
+  const counts = {
+    all: allItems.length,
+    preset: allItems.filter((i) => i.type === "preset").length,
+    icon: allItems.filter((i) => i.type === "icon").length,
+    iconpack: allItems.filter((i) => i.type === "iconpack").length,
+  };
+  const items = filter === "all" ? allItems : allItems.filter((i) => i.type === filter);
   const handleUnlike = () => {
     if (!confirmTarget) return;
     toggle(confirmTarget.id);
     toast({ title: "찜 해제됨", description: `${confirmTarget.name}을(를) 찜 목록에서 제거했습니다.` });
     setConfirmTarget(null);
   };
+  const tabs: { key: typeof filter; label: string }[] = [
+    { key: "all", label: "전체" },
+    { key: "preset", label: "프리셋" },
+    { key: "icon", label: "아이콘" },
+    { key: "iconpack", label: "아이콘 팩" },
+  ];
+  const typeLabel = (t: "preset" | "icon" | "iconpack") =>
+    t === "preset" ? "프리셋" : t === "icon" ? "아이콘" : "아이콘 팩";
   return (
-    <ProfileList title="찜한 프리셋" subtitle="저장해 둔 마켓 프리셋입니다.">
-      {items.length === 0 ? <Empty text="찜한 프리셋이 없습니다." /> : items.map((p) => (
-        <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition">
-          <img src={p.thumbnail} className="h-16 w-24 object-cover rounded-md" alt="" />
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-sm truncate">{p.name}</div>
-            <div className="text-xs text-muted-foreground">@{p.creator.name} · ★{p.rating} · {p.downloads.toLocaleString()} 다운로드</div>
-          </div>
-          <span className="text-sm font-semibold">{p.price === 0 ? "무료" : `₩${p.price.toLocaleString()}`}</span>
-          <Button size="sm" className="bg-gradient-primary text-primary-foreground" onClick={() => nav(`/explore?preset=${p.id}`)}>{p.price === 0 ? "다운로드" : "구매"}</Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label="찜 해제"
-            title="찜 해제"
-            onClick={() => setConfirmTarget({ id: p.id, name: p.name })}
-          >
-            <Heart className="h-4 w-4 fill-destructive text-destructive" />
-          </Button>
-        </div>
-      ))}
+    <ProfileList title="찜 목록" subtitle="찜한 프리셋 · 아이콘 · 아이콘 팩을 모아봅니다.">
+      <div className="flex flex-wrap gap-2 mb-2">
+        {tabs.map((t) => {
+          const active = filter === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setFilter(t.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                active
+                  ? "bg-gradient-primary text-primary-foreground border-transparent shadow-glow"
+                  : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
+              }`}
+            >
+              {t.label}
+              <span className={`ml-1.5 ${active ? "opacity-90" : "opacity-60"}`}>{counts[t.key]}</span>
+            </button>
+          );
+        })}
+      </div>
+      {items.length === 0 ? (
+        <Empty text="찜한 항목이 없습니다." />
+      ) : (
+        items.map((it) => {
+          const isPreset = it.type === "preset";
+          const isIcon = it.type === "icon";
+          const isPack = it.type === "iconpack";
+          const meta = isPreset
+            ? `@${it.creator.name} · ★${it.rating} · ${it.downloads.toLocaleString()} 다운로드`
+            : isIcon
+              ? `@${it.creator.name} · ${it.fileType} · ${it.resolution}`
+              : `@${it.creator.name} · ${it.icons.length}종 · ★${it.rating}`;
+          const nameForAction = isPreset ? "다운로드" : "구매";
+          const primaryLabel = it.price === 0 ? "다운로드" : nameForAction === "구매" ? "구매" : "구매";
+          return (
+            <div key={it.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition">
+              {isPreset ? (
+                <img src={it.thumbnail} className="h-16 w-24 object-cover rounded-md shrink-0" alt="" />
+              ) : isIcon ? (
+                <div className="h-16 w-24 rounded-md bg-muted grid place-items-center text-4xl shrink-0">{it.emoji}</div>
+              ) : (
+                <div className="h-16 w-24 rounded-md bg-muted grid grid-cols-3 gap-0.5 p-1 shrink-0">
+                  {it.thumbnailEmojis.slice(0, 6).map((e, i) => (
+                    <div key={i} className="grid place-items-center text-base">{e}</div>
+                  ))}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-[10px]">{typeLabel(it.type)}</Badge>
+                  <div className="font-semibold text-sm truncate">{it.name}</div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1 truncate">{meta}</div>
+              </div>
+              <span className="text-sm font-semibold whitespace-nowrap">{it.price === 0 ? "무료" : `₩${it.price.toLocaleString()}`}</span>
+              <Button
+                size="sm"
+                className="bg-gradient-primary text-primary-foreground"
+                onClick={() => nav(`/explore?item=${it.id}`)}
+              >
+                {it.price === 0 ? "다운로드" : "구매"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label="찜 해제"
+                title="찜 해제"
+                onClick={() => setConfirmTarget({ id: it.id, name: it.name })}
+              >
+                <Heart className="h-4 w-4 fill-destructive text-destructive" />
+              </Button>
+            </div>
+          );
+        })
+      )}
       <AlertDialog open={!!confirmTarget} onOpenChange={(o) => !o && setConfirmTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
