@@ -90,8 +90,8 @@ function IconLibraryActionPanel({
           </div>
           <p className="text-xs text-foreground/75 leading-relaxed">
             {isPack
-              ? "이 아이콘 팩은 프리셋 수정창에서 사용할 수 있습니다."
-              : "이 아이콘은 프리셋 수정창에서 사용할 수 있습니다."}
+              ? "이 아이콘 팩은 프리셋 편집 화면에서 사용할 수 있습니다."
+              : "이 아이콘은 프리셋 편집 화면에서 사용할 수 있습니다."}
           </p>
           <Button
             onClick={onOpenLibrary}
