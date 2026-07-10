@@ -81,6 +81,37 @@ export function toPreset(mp: MarketplacePreset, meta?: LibraryMeta): Preset {
 
 export const isLibraryPresetView = (p: Pick<Preset, "libraryMeta">) => !!p.libraryMeta;
 
+/**
+ * LibraryPreset → MarketplacePreset 어댑터.
+ * 보관함에서도 탐색과 동일한 상세 모달을 보여주기 위해 사용.
+ * sourceMarketId가 있으면 원본 마켓 프리셋을 그대로 반환, 없으면 shim을 만든다.
+ */
+export function libraryPresetToMarketplace(lp: LibraryPreset): MarketplacePreset {
+  if (lp.sourceMarketId) {
+    const mp = marketplacePresets.find((m) => m.id === lp.sourceMarketId);
+    if (mp) return mp;
+  }
+  return {
+    id: lp.id,
+    name: lp.name,
+    creator: { name: "나", role: "내가 만든 프리셋", avatar: "👤" },
+    thumbnail: lp.thumbnail,
+    wallpaperName: "wallpaper.jpg",
+    resolution: "1920 × 1080",
+    price: 0,
+    rating: 0,
+    reviews: 0,
+    downloads: 0,
+    tags: lp.tags,
+    category: "내 프리셋",
+    description: lp.description,
+    icons: lp.icons,
+    hoverIcons: [],
+    license: "개인 사용",
+    ...makeCreatorResolution(1920, 1080),
+  };
+}
+
 export function classifyResolutionType(w: number, h: number): CreatorResolutionType {
   if (w === 1920 && h === 1080) return "FHD";
   if (w === 2560 && h === 1440) return "QHD";
