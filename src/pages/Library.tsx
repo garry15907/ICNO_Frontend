@@ -714,6 +714,67 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         />
       </div>
 
+      {userIcons.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+              <DownloadIcon className="h-3.5 w-3.5 text-primary" />
+              다운로드한 아이콘
+              <span className="text-muted-foreground font-normal">({userIcons.length})</span>
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {userIcons.map((ic) => (
+              <div
+                key={ic.id}
+                className="rounded-xl bg-card border border-border p-3 flex flex-col hover:shadow-glow hover:border-primary/40 transition-all"
+              >
+                <div
+                  className="aspect-square rounded-lg grid place-items-center text-5xl overflow-hidden mb-2"
+                  style={{
+                    background: ic.hasTransparentBackground
+                      ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 16px 16px"
+                      : "hsl(var(--muted) / 0.5)",
+                  }}
+                >
+                  {ic.imageUrl ? (
+                    <img src={ic.imageUrl} alt={ic.title} className="max-w-full max-h-full object-contain" />
+                  ) : (
+                    <span>{ic.emoji ?? "🖼️"}</span>
+                  )}
+                </div>
+                <div className="text-xs font-semibold truncate">{ic.title}</div>
+                <div className="text-[10px] text-muted-foreground truncate">{ic.creatorName}</div>
+                <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                  {ic.fileFormat} · {ic.width}×{ic.height}
+                  {ic.hasTransparentBackground ? " · 투명" : ""}
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">
+                  저장 {ic.downloadedAt.slice(0, 10)}
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 mt-2">
+                  <Button
+                    size="sm"
+                    className="h-7 text-[11px] bg-gradient-primary text-primary-foreground hover:opacity-90"
+                    onClick={() => applyIconToCurrentPreset(ic.id)}
+                  >
+                    프리셋에 사용
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px] text-destructive hover:text-destructive"
+                    onClick={() => requestDelete(ic.id)}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />삭제
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {groupIcons.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
