@@ -52,7 +52,6 @@ export function ExplorePresetModal({
       if (saved) {
         const libId = getLibraryIdForPreset(preset.id);
         nav(libId ? `/library/${libId}` : "/library");
-        onClose();
         return;
       }
       setPurchaseStep("paying");
@@ -61,7 +60,6 @@ export function ExplorePresetModal({
     if (saved) {
       const libId = getLibraryIdForPreset(preset.id);
       nav(libId ? `/library/${libId}` : "/library");
-      onClose();
       return;
     }
     if (!match) setMismatchOpen("download");
@@ -156,7 +154,6 @@ export function ExplorePresetModal({
                   onClick={() => {
                     const libId = getLibraryIdForPreset(preset.id);
                     nav(libId ? `/library/${libId}` : "/library");
-                    onClose();
                   }}
                   className="w-full h-10 bg-gradient-primary text-primary-foreground hover:opacity-90"
                 >
