@@ -460,14 +460,22 @@ export default function LibraryDetail() {
               </Tooltip>
             </p>
           </div>
-          <Button size="lg" variant="outline" onClick={saveDraftNow}>
-            <FileText className="h-4 w-4 mr-2" />임시 저장
-          </Button>
           <Button size="lg" variant="default" onClick={savePresetNow}>
-            <Save className="h-4 w-4 mr-2" />저장
+            <Pencil className="h-4 w-4 mr-2" />수정하기
           </Button>
           <Button size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow">
-            <Play className="h-4 w-4 mr-2" />바탕화면 적용
+            <Play className="h-4 w-4 mr-2" />적용하기
+          </Button>
+          <Button size="lg" variant="outline" onClick={() => nav(`/upload?preset=${storageId}`)}>
+            <Maximize2 className="h-4 w-4 mr-2" />전체화면 편집
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />보관함에서 삭제
           </Button>
         </div>
 
