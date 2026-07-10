@@ -18,6 +18,11 @@ export type IconAsset = {
   position: { x: number; y: number };
   emoji: string; // visual stand-in for icon image in the prototype
   hover?: boolean;
+  /** URL/data URL for a user-selected icon image, when the user swapped
+   * the default emoji stand-in for a real asset. */
+  imageUrl?: string;
+  /** Reference back to the user icon library asset that supplied the image. */
+  userIconAssetId?: string;
 };
 
 export type MarketplacePreset = {
