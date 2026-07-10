@@ -1273,80 +1273,123 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
       <Dialog open={uploadOpen} onOpenChange={(o) => { if (!o) { setUploadOpen(false); setPendingUploads([]); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>아이콘 업로드</DialogTitle>
-            <DialogDescription>이미지를 끌어다 놓거나 선택해서 이름을 정리하고 한 번에 추가하세요.</DialogDescription>
+            <DialogTitle>{pendingUploads.length > 0 ? "아이콘 정보" : "아이콘 업로드"}</DialogTitle>
+            <DialogDescription>
+              {pendingUploads.length > 0
+                ? "아이콘 이미지와 이름을 수정할 수 있습니다."
+                : "이미지를 끌어다 놓거나 클릭해서 선택하세요."}
+            </DialogDescription>
           </DialogHeader>
 
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-            onDragLeave={() => setDragActive(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragActive(false);
-              addPendingFiles(e.dataTransfer.files);
-            }}
-            onClick={() => fileRef.current?.click()}
-            className={cn(
-              "cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors",
-              dragActive ? "border-primary bg-primary/5" : "border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/40",
-            )}
-          >
-            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Upload className="h-5 w-5" />
+          {pendingUploads.length === 0 ? (
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragActive(false);
+                addPendingFiles(e.dataTransfer.files);
+              }}
+              onClick={() => { setReplaceTargetId(null); fileRef.current?.click(); }}
+              className={cn(
+                "cursor-pointer rounded-xl border-2 border-dashed p-10 text-center transition-colors",
+                dragActive ? "border-primary bg-primary/5" : "border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/40",
+              )}
+            >
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Upload className="h-6 w-6" />
+              </div>
+              <div className="text-sm font-medium">이미지를 여기로 드래그하거나 클릭해서 선택</div>
+              <div className="mt-1 text-xs text-muted-foreground">PNG · SVG · ICO · GIF · 여러 개 동시 선택 가능</div>
             </div>
-            <div className="text-sm font-medium">이미지를 여기로 드래그하거나 클릭해서 선택</div>
-            <div className="mt-1 text-xs text-muted-foreground">PNG · SVG · ICO · GIF · 여러 개 동시 선택 가능</div>
-          </div>
-
-          {pendingUploads.length > 0 && (
-            <div className="mt-2 max-h-[340px] space-y-2 overflow-y-auto pr-1">
+          ) : (
+            <div className="max-h-[540px] space-y-4 overflow-y-auto pr-1">
               {pendingUploads.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-2.5">
-                  <div
-                    className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border"
-                    style={{ background: "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 12px 12px" }}
-                  >
-                    <img src={p.dataUrl} alt={p.name} className="max-h-full max-w-full object-contain" />
+                <div key={p.id} className="rounded-xl border border-border bg-card/50 p-5">
+                  <div className="flex flex-col items-center gap-3">
+                    <div
+                      className="flex h-40 w-40 items-center justify-center overflow-hidden rounded-xl border border-border"
+                      style={{ background: "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 16px 16px" }}
+                    >
+                      <img src={p.dataUrl} alt={p.name} className="max-h-full max-w-full object-contain" />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setReplaceTargetId(p.id); fileRef.current?.click(); }}
+                      className="gap-1.5"
+                    >
+                      <Replace className="h-3.5 w-3.5" /> 이미지 파일 변경
+                    </Button>
                   </div>
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <Input
-                      value={p.name}
-                      onChange={(e) => updatePendingName(p.id, e.target.value)}
-                      placeholder="아이콘 이름"
-                      className="h-8 text-sm"
-                    />
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <span className="rounded bg-muted px-1.5 py-0.5 font-medium">{p.fileType}</span>
-                      <span>{p.resolution}</span>
-                      <span className="truncate">· {p.fileName}</span>
+
+                  <div className="mt-5 space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-muted-foreground">이름</label>
+                      <Input
+                        value={p.name}
+                        onChange={(e) => updatePendingName(p.id, e.target.value)}
+                        placeholder="아이콘 이름"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <div className="text-xs text-muted-foreground">해상도</div>
+                        <div className="mt-0.5 font-medium">{p.resolution}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">파일 형식</div>
+                        <div className="mt-0.5 font-medium">{p.fileType}</div>
+                      </div>
+                      <div className="col-span-2">
+                        <div className="text-xs text-muted-foreground">상태</div>
+                        <div className="mt-0.5 font-medium">내가 만든 아이콘</div>
+                      </div>
                     </div>
                   </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => removePending(p.id)}
-                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                    aria-label="제거"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+
+                  {pendingUploads.length > 1 && (
+                    <div className="mt-4 flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removePending(p.id)}
+                        className="gap-1.5 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> 삭제
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => { setUploadOpen(false); setPendingUploads([]); }}>
-              취소
-            </Button>
-            <Button
-              onClick={confirmUpload}
-              disabled={pendingUploads.length === 0}
-              className="bg-gradient-primary text-primary-foreground"
-            >
-              <Check className="h-3.5 w-3.5 mr-1" />
-              {pendingUploads.length > 0 ? `${pendingUploads.length}개 업로드` : "업로드"}
-            </Button>
+          <DialogFooter className="gap-2 sm:justify-between">
+            {pendingUploads.length === 1 ? (
+              <Button
+                variant="outline"
+                onClick={() => removePending(pendingUploads[0].id)}
+                className="gap-1.5 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> 삭제
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => { setUploadOpen(false); setPendingUploads([]); }}>
+                취소
+              </Button>
+              <Button
+                onClick={confirmUpload}
+                disabled={pendingUploads.length === 0}
+                className="bg-gradient-primary text-primary-foreground gap-1.5"
+              >
+                <Check className="h-3.5 w-3.5" />
+                저장{pendingUploads.length > 1 ? ` (${pendingUploads.length})` : ""}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
