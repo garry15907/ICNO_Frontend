@@ -684,6 +684,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
   const [iconRenameTarget, setIconRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [iconRenameValue, setIconRenameValue] = useState("");
   const [userIconDetailId, setUserIconDetailId] = useState<string | null>(null);
+  const [showIconDetailInfo, setShowIconDetailInfo] = useState(false);
   const userIconDetail = userIconDetailId
     ? userIcons.find((u) => u.id === userIconDetailId) ?? null
     : null;
