@@ -242,7 +242,7 @@ export function IconLibraryProvider({ children }: { children: ReactNode }) {
               className="bg-gradient-primary text-primary-foreground"
               onClick={() => {
                 setNeedsPresetOpen(false);
-                nav("/library");
+                nav("/library?tab=presets");
               }}
             >
               <CheckCircle2 className="h-4 w-4 mr-1.5" />
