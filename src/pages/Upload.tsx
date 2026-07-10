@@ -841,6 +841,10 @@ function FullscreenEditor({
       }
       if (e.key === "Escape") {
         e.preventDefault();
+        if (previewMode) {
+          setPreviewMode(false);
+          return;
+        }
         if (confirmCancel) {
           setConfirmCancel(false);
           return;
@@ -856,7 +860,7 @@ function FullscreenEditor({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedId, dirty, editIconOpen, assetOpen, confirmCancel, onClose]);
+  }, [selectedId, dirty, editIconOpen, assetOpen, confirmCancel, onClose, previewMode]);
 
   const tryClose = () => {
     if (dirty) setConfirmCancel(true);
