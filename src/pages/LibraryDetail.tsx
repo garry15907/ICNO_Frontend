@@ -882,6 +882,35 @@ export default function LibraryDetail() {
           }}
         />
       </div>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-4 w-4" />보관함에서 삭제
+            </DialogTitle>
+            <DialogDescription>
+              "{preset.name}"을(를) 보관함에서 삭제할까요? 저장한 편집 내용도 함께 사라집니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>취소</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                try {
+                  localStorage.removeItem(draftKey(storageId));
+                  localStorage.removeItem(savedKey(storageId));
+                } catch {}
+                setDeleteOpen(false);
+                toast.success("보관함에서 삭제했습니다.");
+                nav("/library");
+              }}
+            >
+              삭제
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }
