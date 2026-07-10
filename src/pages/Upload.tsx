@@ -1038,7 +1038,8 @@ function FullscreenEditor({
           </div>
         </div>
 
-        {/* Right inspector — separate column, opaque, never overlaps the preview. */}
+        {/* Right inspector — hidden while previewing. */}
+        {!previewMode && (
         <aside className="w-72 shrink-0 border-l border-border bg-card p-4 overflow-y-auto">
           <div className="text-sm font-semibold mb-3">아이콘 설정</div>
           {!selected ? (
@@ -1139,7 +1140,22 @@ function FullscreenEditor({
             </div>
           )}
         </aside>
+        )}
       </div>
+
+      {previewMode && (
+        <div className="absolute top-4 right-4 z-[110] flex items-center gap-2">
+          <div className="h-8 px-3 rounded-md text-[11px] flex items-center gap-1.5 bg-black/60 text-white/90 backdrop-blur border border-white/10">
+            <Eye className="h-3 w-3" /> 미리보기 모드
+          </div>
+          <button
+            onClick={exitPreviewMode}
+            className="h-8 px-3 rounded-md text-xs flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+          >
+            미리보기 종료 (Esc)
+          </button>
+        </div>
+      )}
 
       {assetOpen && (
         <AssetModal
