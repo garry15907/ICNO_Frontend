@@ -21,6 +21,7 @@ import {
   getIconUsage,
   getUserIconAssets,
   isIconDownloaded as svcIsDownloaded,
+  renameUserIconAsset as svcRename,
 } from "@/services/iconLibraryService";
 
 export type IconDownloadStatus = "idle" | "downloading" | "success" | "failed";
@@ -43,6 +44,7 @@ type Ctx = {
   downloadIcon: (icon: MarketIcon) => Promise<UserIconAsset | null>;
   downloadPack: (pack: MarketIconPack) => Promise<{ added: number; skipped: number }>;
   requestDelete: (id: string) => void;
+  renameIcon: (id: string, newTitle: string) => void;
 
   // Editing session (used by "프리셋에 사용" flow)
   editingContext: EditingContext;
