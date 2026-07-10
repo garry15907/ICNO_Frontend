@@ -901,7 +901,7 @@ function FullscreenEditor({
           >
             <Grid3x3 className="h-3.5 w-3.5" /> 그리드 스냅 {grid ? "ON" : "OFF"}
           </button>
-          <ToolbarBtn icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setSelectedId(null)}>미리보기</ToolbarBtn>
+          <ToolbarBtn icon={<Eye className="h-3.5 w-3.5" />} onClick={enterPreviewMode}>미리보기</ToolbarBtn>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {isBrowserFullscreen ? (
