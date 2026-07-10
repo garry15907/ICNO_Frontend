@@ -709,6 +709,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
   const [uploadOpen, setUploadOpen] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<UploadedIcon[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
   const openUploadDialog = () => {
     setPendingUploads([]);
     setUploadOpen(true);
@@ -731,6 +732,10 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
       });
     }
     setPendingUploads((prev) => [...results, ...prev]);
+  };
+  const replacePendingImage = async (id: string, file: File) => {
+    const { dataUrl, resolution, fileType } = await fileToDataUrl(file);
+    setPendingUploads((prev) => prev.map((p) => (p.id === id ? { ...p, dataUrl, resolution, fileType, fileName: file.name } : p)));
   };
   const updatePendingName = (id: string, name: string) => {
     setPendingUploads((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
