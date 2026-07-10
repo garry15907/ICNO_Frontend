@@ -1389,23 +1389,6 @@ function AssetModal({
               )}
             </div>
           </TabsContent>
-
-          <TabsContent value="layout" className="p-5 space-y-4">
-            <input ref={layoutInput} type="file" accept=".json,.jsonc,.c" className="hidden"
-              onChange={(e) => e.target.files?.[0] && onImportLayout(e.target.files[0])} />
-            <div
-              {...dropZone((f) => f[0] && onImportLayout(f[0]))}
-              onClick={() => openFilePicker(layoutInput.current)}
-              className="rounded-xl border border-dashed border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer p-8 text-center"
-            >
-              <AlertCircle className="h-7 w-7 mx-auto text-muted-foreground mb-2" />
-              <div className="text-sm font-medium">기존 배치 정보 파일 업로드</div>
-              <div className="text-xs text-muted-foreground mt-1">.json · .jsonc · .json.c</div>
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              파일에 정의된 아이콘 위치와 크기가 캔버스에 자동 반영됩니다.
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
     </div>
