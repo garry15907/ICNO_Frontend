@@ -450,6 +450,10 @@ export default function Library() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {openPreset && (
+        <ExplorePresetModal preset={openPreset} onClose={() => setOpenPreset(null)} />
+      )}
     </div>
   );
 }
