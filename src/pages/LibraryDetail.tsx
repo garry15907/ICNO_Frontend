@@ -4,7 +4,7 @@ import {
   ArrowLeft, Play, Save, MoreHorizontal, Plus, ChevronDown, ChevronUp,
   Move, MousePointer2, Info, Image as ImageIcon, Link2,
   History, RotateCcw, Trash2, Download, FileText, Magnet, AlignJustify,
-  Package, Store, Upload as UploadIcon, X, Sparkles, Maximize2,
+  Package, Store, Upload as UploadIcon, X, Sparkles, Maximize2, Pencil,
 } from "lucide-react";
 import { libraryPresets, marketIcons, marketIconPacks, IconAsset, marketplacePresets } from "@/data/mockData";
 import { useLibrary } from "@/lib/library";
@@ -103,6 +103,7 @@ export default function LibraryDetail() {
   const [iconListOpen, setIconListOpen] = useState(false);
   const [presetInfoOpen, setPresetInfoOpen] = useState(false);
   const [addIconOpen, setAddIconOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
@@ -460,14 +461,22 @@ export default function LibraryDetail() {
               </Tooltip>
             </p>
           </div>
-          <Button size="lg" variant="outline" onClick={saveDraftNow}>
-            <FileText className="h-4 w-4 mr-2" />임시 저장
-          </Button>
           <Button size="lg" variant="default" onClick={savePresetNow}>
-            <Save className="h-4 w-4 mr-2" />저장
+            <Pencil className="h-4 w-4 mr-2" />수정하기
           </Button>
           <Button size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow">
-            <Play className="h-4 w-4 mr-2" />바탕화면 적용
+            <Play className="h-4 w-4 mr-2" />적용하기
+          </Button>
+          <Button size="lg" variant="outline" onClick={() => nav(`/upload?preset=${storageId}`)}>
+            <Maximize2 className="h-4 w-4 mr-2" />전체화면 편집
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />보관함에서 삭제
           </Button>
         </div>
 
@@ -873,6 +882,35 @@ export default function LibraryDetail() {
           }}
         />
       </div>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-4 w-4" />보관함에서 삭제
+            </DialogTitle>
+            <DialogDescription>
+              "{preset.name}"을(를) 보관함에서 삭제할까요? 저장한 편집 내용도 함께 사라집니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>취소</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                try {
+                  localStorage.removeItem(draftKey(storageId));
+                  localStorage.removeItem(savedKey(storageId));
+                } catch {}
+                setDeleteOpen(false);
+                toast.success("보관함에서 삭제했습니다.");
+                nav("/library");
+              }}
+            >
+              삭제
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }
