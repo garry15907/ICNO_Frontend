@@ -35,7 +35,15 @@ export function DesktopPreview({
               "desktopIconImageBox rounded-xl bg-background/80 backdrop-blur text-2xl shadow-card",
               selectedId === ic.id && "ring-2 ring-primary",
             )}>
-              {ic.emoji}
+              {ic.imageUrl ? (
+                <img
+                  src={ic.imageUrl}
+                  alt={ic.label}
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : (
+                ic.emoji
+              )}
             </div>
             {showLabels && (
               <span className="desktopIconLabel text-[10px] font-medium text-white drop-shadow-lg px-1">
