@@ -591,6 +591,10 @@ function FullscreenEditor({
   const targetInputRef = useRef<HTMLInputElement>(null);
   const [stageScale, setStageScale] = useState(1);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
+  // Preview mode: hides all editor chrome and renders the wallpaper + icons at
+  // full viewport, simulating how the desktop would look after applying the
+  // preset. Non-interactive; exits with the floating button or Escape.
+  const [previewMode, setPreviewMode] = useState(false);
   // Tracks whether we need to re-enter fullscreen after a native file picker
   // closes. Browsers exit fullscreen when <input type=file> opens.
   const shouldRestoreFsRef = useRef(false);
@@ -620,7 +624,7 @@ function FullscreenEditor({
       const w = el.clientWidth;
       const h = el.clientHeight;
       if (w > 0 && h > 0) {
-        const fit = isBrowserFullscreen ? Math.max : Math.min;
+        const fit = (isBrowserFullscreen || previewMode) ? Math.max : Math.min;
         setStageScale(fit(w / CANVAS_W, h / CANVAS_H));
       }
     };
@@ -628,7 +632,7 @@ function FullscreenEditor({
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [isBrowserFullscreen]);
+  }, [isBrowserFullscreen, previewMode]);
 
   const enterBrowserFullscreen = () => {
     const el = rootRef.current;
@@ -640,6 +644,19 @@ function FullscreenEditor({
     if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen().catch(() => {});
     }
+  };
+
+  const enterPreviewMode = () => {
+    setSelectedId(null);
+    setPreviewMode(true);
+    // Try to also enter the browser's own fullscreen so the OS chrome hides.
+    const el = rootRef.current;
+    if (el && !document.fullscreenElement && el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    }
+  };
+  const exitPreviewMode = () => {
+    setPreviewMode(false);
   };
 
   // Open a native file picker while preserving the editor's fullscreen mode.
@@ -824,6 +841,10 @@ function FullscreenEditor({
       }
       if (e.key === "Escape") {
         e.preventDefault();
+        if (previewMode) {
+          setPreviewMode(false);
+          return;
+        }
         if (confirmCancel) {
           setConfirmCancel(false);
           return;
@@ -839,7 +860,7 @@ function FullscreenEditor({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedId, dirty, editIconOpen, assetOpen, confirmCancel, onClose]);
+  }, [selectedId, dirty, editIconOpen, assetOpen, confirmCancel, onClose, previewMode]);
 
   const tryClose = () => {
     if (dirty) setConfirmCancel(true);
@@ -863,7 +884,8 @@ function FullscreenEditor({
           e.target.value = "";
         }}
       />
-      {/* Top toolbar */}
+      {/* Top toolbar (hidden while previewing) */}
+      {!previewMode && (
       <div className="h-14 border-b border-border/60 bg-card/80 backdrop-blur flex items-center px-4 gap-3 shrink-0">
         <div className="text-sm font-semibold shrink-0 flex items-center gap-2">
           <Pencil className="h-3.5 w-3.5 text-primary" /> 프리셋 편집
@@ -880,7 +902,7 @@ function FullscreenEditor({
           >
             <Grid3x3 className="h-3.5 w-3.5" /> 그리드 스냅 {grid ? "ON" : "OFF"}
           </button>
-          <ToolbarBtn icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setSelectedId(null)}>미리보기</ToolbarBtn>
+          <ToolbarBtn icon={<Eye className="h-3.5 w-3.5" />} onClick={enterPreviewMode}>미리보기</ToolbarBtn>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {isBrowserFullscreen ? (
@@ -899,8 +921,9 @@ function FullscreenEditor({
           </Button>
         </div>
       </div>
+      )}
 
-      {!isBrowserFullscreen && (
+      {!isBrowserFullscreen && !previewMode && (
         <div className="px-4 py-2 bg-primary/10 border-b border-primary/20 flex items-center justify-between gap-3 shrink-0">
           <div className="text-xs text-primary/90">
             전체화면이 해제되었습니다. 다시 전체화면으로 편집할 수 있습니다.
@@ -972,10 +995,13 @@ function FullscreenEditor({
                 return (
                     <div
                       key={ic.id}
-                      onPointerDown={(e) => onPointerDown(e, ic)}
+                      onPointerDown={(e) => { if (!previewMode) onPointerDown(e, ic); }}
                       onClick={(e) => e.stopPropagation()}
                       style={{ left: `${ic.x}px`, top: `${ic.y}px`, "--desktop-icon-size": `${ic.size}px` } as CSSProperties}
-                      className="absolute desktopIconWrapper cursor-grab active:cursor-grabbing select-none"
+                      className={cn(
+                        "absolute desktopIconWrapper select-none",
+                        previewMode ? "cursor-default" : "cursor-grab active:cursor-grabbing",
+                      )}
                     >
                       <div className="desktopIconImageBox">
                         {a ? (
@@ -1015,7 +1041,8 @@ function FullscreenEditor({
           </div>
         </div>
 
-        {/* Right inspector — separate column, opaque, never overlaps the preview. */}
+        {/* Right inspector — hidden while previewing. */}
+        {!previewMode && (
         <aside className="w-72 shrink-0 border-l border-border bg-card p-4 overflow-y-auto">
           <div className="text-sm font-semibold mb-3">아이콘 설정</div>
           {!selected ? (
@@ -1116,7 +1143,22 @@ function FullscreenEditor({
             </div>
           )}
         </aside>
+        )}
       </div>
+
+      {previewMode && (
+        <div className="absolute top-4 right-4 z-[110] flex items-center gap-2">
+          <div className="h-8 px-3 rounded-md text-[11px] flex items-center gap-1.5 bg-black/60 text-white/90 backdrop-blur border border-white/10">
+            <Eye className="h-3 w-3" /> 미리보기 모드
+          </div>
+          <button
+            onClick={exitPreviewMode}
+            className="h-8 px-3 rounded-md text-xs flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+          >
+            미리보기 종료 (Esc)
+          </button>
+        </div>
+      )}
 
       {assetOpen && (
         <AssetModal
