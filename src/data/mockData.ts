@@ -137,6 +137,7 @@ export const marketplacePresets: MarketplacePreset[] = [
       { id: "h-music", fileName: "music_hover.gif", label: "음악", emoji: "🎶" },
     ],
     license: "개인 사용 가능 · 재배포 금지",
+    ...makeCreatorResolution(1920, 1080),
   },
   {
     id: "mp-002",
@@ -155,6 +156,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 사용 · 비상업적",
+    ...makeCreatorResolution(1920, 1080),
   },
   {
     id: "mp-003",
@@ -173,6 +175,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 사용 가능",
+    ...makeCreatorResolution(2560, 1440),
   },
   {
     id: "mp-004",
@@ -191,6 +194,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 사용 가능",
+    ...makeCreatorResolution(1920, 1080),
   },
   {
     id: "mp-005",
@@ -211,6 +215,7 @@ export const marketplacePresets: MarketplacePreset[] = [
       { id: "h-steam", fileName: "steam_hover.gif", label: "스팀", emoji: "💥" },
     ],
     license: "개인 · 상업 사용 가능",
+    ...makeCreatorResolution(1920, 1080),
   },
   {
     id: "mp-006",
@@ -229,6 +234,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 사용 가능",
+    ...makeCreatorResolution(2560, 1600),
   },
   {
     id: "mp-007",
@@ -247,6 +253,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 사용 가능",
+    ...makeCreatorResolution(1920, 1080),
   },
   {
     id: "mp-008",
@@ -265,6 +272,7 @@ export const marketplacePresets: MarketplacePreset[] = [
     icons: baseIcons,
     hoverIcons: [],
     license: "개인 · 상업 사용 가능",
+    ...makeCreatorResolution(2560, 1440),
   },
 ];
 
