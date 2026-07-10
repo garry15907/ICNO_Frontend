@@ -336,6 +336,13 @@ export default function Upload() {
             <Save className="h-4 w-4" /> 저장하기
           </Button>
           <Button
+            variant="secondary"
+            className="rounded-lg h-10 px-5 font-semibold"
+            onClick={() => setEditorOpen(true)}
+          >
+            <Maximize2 className="h-4 w-4" /> 프리셋 편집
+          </Button>
+          <Button
             onClick={handlePublish}
             className="rounded-lg h-10 px-5 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow"
           >
