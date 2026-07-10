@@ -995,10 +995,13 @@ function FullscreenEditor({
                 return (
                     <div
                       key={ic.id}
-                      onPointerDown={(e) => onPointerDown(e, ic)}
+                      onPointerDown={(e) => { if (!previewMode) onPointerDown(e, ic); }}
                       onClick={(e) => e.stopPropagation()}
                       style={{ left: `${ic.x}px`, top: `${ic.y}px`, "--desktop-icon-size": `${ic.size}px` } as CSSProperties}
-                      className="absolute desktopIconWrapper cursor-grab active:cursor-grabbing select-none"
+                      className={cn(
+                        "absolute desktopIconWrapper select-none",
+                        previewMode ? "cursor-default" : "cursor-grab active:cursor-grabbing",
+                      )}
                     >
                       <div className="desktopIconImageBox">
                         {a ? (
