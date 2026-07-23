@@ -38,6 +38,8 @@ import { libraryPresets, marketplacePresets } from "@/data/mockData";
 import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutionType } from "@/data/mockData";
 import { useIconLibrary } from "@/lib/icon-library";
 import type { UserIconAsset } from "@/services/iconLibraryService";
+import { groupUserIconAssets } from "@/services/iconLibraryService";
+import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
 import { Loader2 } from "lucide-react";
 
@@ -67,6 +69,17 @@ type PlacedIcon = {
   // internal binding to uploaded File preview
   assetId: string;
   fileName: string;
+  /**
+   * Where this icon originated. Persisted so the editor can restore the
+   * exact source (library / iconpack / user upload) after a reload and
+   * so the future apply-local flow knows how to resolve the image.
+   */
+  asset_source: IconAssetSource;
+  /** UserIconAsset.id when `asset_source` is `library` or `iconpack`. */
+  library_asset_id?: string;
+  /** Preview URL captured at pick time — survives reloads so a missing
+   *  in-memory File doesn't blank out the canvas. */
+  preview_url?: string;
   // ===== icons_config.json fields =====
   name: string;
   image_path: string;
@@ -87,6 +100,9 @@ type PlacedIcon = {
 };
 
 const DEFAULT_ICON: Omit<PlacedIcon, "id" | "assetId" | "fileName" | "name" | "x" | "y"> = {
+  asset_source: "user-upload",
+  library_asset_id: undefined,
+  preview_url: undefined,
   image_path: "",
   target_path: "",
   size: 72,
@@ -106,6 +122,9 @@ function normalizeIcon(raw: any, i = 0): PlacedIcon {
     id: raw?.id ?? uid(),
     assetId: raw?.assetId ?? "",
     fileName: raw?.fileName ?? raw?.file ?? "",
+    asset_source: (raw?.asset_source as IconAssetSource) ?? "user-upload",
+    library_asset_id: raw?.library_asset_id ?? undefined,
+    preview_url: raw?.preview_url ?? undefined,
     name: raw?.name ?? raw?.label ?? `아이콘 ${i + 1}`,
     image_path: raw?.image_path ?? "",
     target_path: raw?.target_path ?? "",
@@ -732,11 +751,21 @@ function FullscreenEditor({
     const cellH = 160;
     const x = 80 + (n % cols) * cellW;
     const y = 80 + Math.floor(n / cols) * cellH;
+    // `asset.id === "lib-<UserIconAsset.id>"` marks library-sourced picks;
+    // see `synthesizeAssetFromLibrary`. Everything else is a direct upload.
+    const libId = asset.id.startsWith("lib-") ? asset.id.slice(4) : undefined;
+    const libAsset = libId ? userIcons.find((u) => u.id === libId) : undefined;
+    const asset_source: IconAssetSource = libAsset
+      ? (libAsset.packId ? "iconpack" : "library")
+      : "user-upload";
     const next: PlacedIcon = normalizeIcon({
       assetId: asset.id,
       fileName: asset.file.name,
       name: asset.file.name.replace(/\.[^.]+$/, ""),
       image_path: asset.file.name, // internal-only — UI never shows this
+      asset_source,
+      library_asset_id: libAsset?.id,
+      preview_url: asset.previewUrl,
       x, y,
     });
     setItems((a) => [...a, next]);
@@ -746,6 +775,36 @@ function FullscreenEditor({
 
   const { userIcons } = useIconLibrary();
   const { savedPresets } = useLibrary();
+
+  // Rehydrate library-sourced icons after a reload. Saved presets keep
+  // `library_asset_id`, so we can reconstruct the missing IconAsset entry
+  // (with a fresh preview) from the current icon library. Purely additive —
+  // never overwrites user-uploaded assets that already exist.
+  useEffect(() => {
+    if (!userIcons.length) return;
+    const missing: IconAsset[] = [];
+    for (const it of items) {
+      if (!it.library_asset_id) continue;
+      const stableId = `lib-${it.library_asset_id}`;
+      if (iconAssets.some((a) => a.id === stableId)) continue;
+      const u = userIcons.find((x) => x.id === it.library_asset_id);
+      if (!u) continue; // library asset was deleted — placeholder path handles UI
+      missing.push(synthesizeAssetFromLibrary(u));
+    }
+    if (missing.length) {
+      onAddIconAssets(missing);
+      // Re-bind assetId so previews connect to the freshly created entries.
+      setItems((arr) =>
+        arr.map((it) => {
+          if (!it.library_asset_id) return it;
+          const stableId = `lib-${it.library_asset_id}`;
+          return it.assetId === stableId ? it : { ...it, assetId: stableId };
+        }),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [userIcons, items.length]);
+
   const libraryWallpapers = useMemo<LibraryWallpaper[]>(() => {
     const seen = new Set<string>();
     const out: LibraryWallpaper[] = [];
@@ -1224,7 +1283,27 @@ function FullscreenEditor({
           icon={selected}
           asset={iconAssets.find((x) => x.id === selected.assetId) ?? null}
           iconAssets={iconAssets}
+          libraryIcons={userIcons}
           onPickAsset={(assetId) => update(selected.id, { assetId })}
+          onPickLibraryIcon={(u) => {
+            // Reuse the outer helper — it de-dupes on `lib-<id>` and
+            // appends the synthesized IconAsset via `onAddIconAssets`
+            // so both the modal and the canvas share previews.
+            const stableId = `lib-${u.id}`;
+            if (!iconAssets.some((a) => a.id === stableId)) {
+              onAddIconAssets([synthesizeAssetFromLibrary(u)]);
+            }
+            update(selected.id, {
+              assetId: stableId,
+              asset_source: u.packId ? "iconpack" : "library",
+              library_asset_id: u.id,
+              preview_url: u.imageUrl || undefined,
+            });
+          }}
+          onRemoveIcon={() => {
+            setItems((a) => a.filter((i) => i.id !== selected.id));
+            setEditIconOpen(false);
+          }}
           onAddIcons={onAddIcons}
           openFilePicker={safeOpenFilePicker}
           onSave={(patch) => { update(selected.id, patch); setEditIconOpen(false); }}
@@ -1472,7 +1551,10 @@ function IconDetailEditModal({
   icon,
   asset,
   iconAssets,
+  libraryIcons,
   onPickAsset,
+  onPickLibraryIcon,
+  onRemoveIcon,
   onAddIcons,
   openFilePicker,
   onSave,
@@ -1481,7 +1563,10 @@ function IconDetailEditModal({
   icon: PlacedIcon;
   asset: IconAsset | null;
   iconAssets: IconAsset[];
+  libraryIcons: UserIconAsset[];
   onPickAsset: (assetId: string) => void;
+  onPickLibraryIcon: (u: UserIconAsset) => void;
+  onRemoveIcon: () => void;
   onAddIcons: (f: FileList | File[]) => void;
   openFilePicker: (input: HTMLInputElement | null) => void;
   onSave: (patch: Partial<PlacedIcon>) => void;
@@ -1498,6 +1583,19 @@ function IconDetailEditModal({
   const [textColor, setTextColor] = useState(icon.font_color);
   const [strokeColor, setStrokeColor] = useState(icon.outline_color);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Library-sourced icons keep a `library_asset_id`. If that asset is no
+  // longer present (deleted, storage cleared, etc.) the preview would be
+  // blank — surface a recovery banner instead of failing silently.
+  const isMissingLibraryAsset =
+    !!icon.library_asset_id &&
+    !libraryIcons.some((u) => u.id === icon.library_asset_id) &&
+    !iconAssets.some((a) => a.id === `lib-${icon.library_asset_id}`);
+
+  const groupedLibrary = useMemo(() => groupUserIconAssets(libraryIcons), [libraryIcons]);
+  const [pickerTab, setPickerTab] = useState<"upload" | "library" | "packs">(
+    icon.asset_source === "iconpack" ? "packs" : icon.asset_source === "library" ? "library" : "upload",
+  );
 
   const previewAsset = iconAssets.find((a) => a.id === assetId) ?? asset;
 
@@ -1537,7 +1635,7 @@ function IconDetailEditModal({
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <Label className="text-xs">커스텀 이미지 선택</Label>
+                <Label className="text-xs">이미지 선택</Label>
                 <input
                   ref={fileInput}
                   type="file"
@@ -1547,29 +1645,139 @@ function IconDetailEditModal({
                   onChange={(e) => e.target.files && onAddIcons(e.target.files)}
                 />
                 <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openFilePicker(fileInput.current)}>
-                  <UploadIcon className="h-3 w-3" /> 업로드
+                  <UploadIcon className="h-3 w-3" /> 새 이미지 업로드
                 </Button>
               </div>
-              {iconAssets.length > 0 ? (
-                <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1">
-                  {iconAssets.map((a) => (
-                    <button
-                      key={a.id}
-                      onClick={() => setAssetId(a.id)}
-                      className={cn(
-                        "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden transition-all",
-                        assetId === a.id ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
-                      )}
-                    >
-                      <img src={a.previewUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
-                  업로드된 이미지가 없습니다.
+
+              {isMissingLibraryAsset && (
+                <div className="mb-2 rounded-lg border border-warning/40 bg-warning/10 p-2.5 text-[11px] text-foreground/85 space-y-1.5">
+                  <div className="font-medium">보관함 아이콘 파일을 찾을 수 없습니다.</div>
+                  <div className="text-muted-foreground">
+                    이 아이콘의 원본 자산이 삭제되었거나 이동되었습니다. 아래에서 다른 아이콘으로 교체하거나 새 이미지를 업로드해 주세요.
+                  </div>
+                  <div className="flex gap-1.5 pt-1">
+                    <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => openFilePicker(fileInput.current)}>
+                      새 이미지 업로드
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-[11px] text-destructive hover:text-destructive" onClick={onRemoveIcon}>
+                      이 아이콘 제거
+                    </Button>
+                  </div>
                 </div>
               )}
+
+              <Tabs value={pickerTab} onValueChange={(v) => setPickerTab(v as typeof pickerTab)} className="w-full">
+                <TabsList className="grid grid-cols-3 w-full h-8">
+                  <TabsTrigger value="upload" className="text-[11px]">
+                    사용자 업로드 ({iconAssets.filter((a) => !a.id.startsWith("lib-")).length})
+                  </TabsTrigger>
+                  <TabsTrigger value="library" className="text-[11px]">
+                    내 보관함 ({groupedLibrary.standalone.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="packs" className="text-[11px]">
+                    아이콘 팩 ({groupedLibrary.packs.reduce((n, p) => n + p.items.length, 0)})
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="upload" className="pt-2">
+                  {iconAssets.filter((a) => !a.id.startsWith("lib-")).length > 0 ? (
+                    <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1">
+                      {iconAssets
+                        .filter((a) => !a.id.startsWith("lib-"))
+                        .map((a) => (
+                          <button
+                            key={a.id}
+                            onClick={() => setAssetId(a.id)}
+                            title={a.file.name}
+                            className={cn(
+                              "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden transition-all",
+                              assetId === a.id ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
+                            )}
+                          >
+                            <img src={a.previewUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
+                          </button>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
+                      업로드된 이미지가 없습니다.
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="library" className="pt-2">
+                  {groupedLibrary.standalone.length > 0 ? (
+                    <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1">
+                      {groupedLibrary.standalone.map((u) => {
+                        const stableId = `lib-${u.id}`;
+                        const selected = assetId === stableId || icon.library_asset_id === u.id;
+                        return (
+                          <button
+                            key={u.id}
+                            onClick={() => { onPickLibraryIcon(u); setAssetId(stableId); }}
+                            title={u.title}
+                            className={cn(
+                              "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden text-2xl transition-all",
+                              selected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
+                            )}
+                          >
+                            {u.imageUrl ? (
+                              <img src={u.imageUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
+                            ) : (
+                              <span>{u.emoji ?? "🖼️"}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
+                      내 아이콘 보관함이 비어 있습니다. 탐색에서 아이콘을 다운로드해 보세요.
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="packs" className="pt-2">
+                  {groupedLibrary.packs.length > 0 ? (
+                    <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
+                      {groupedLibrary.packs.map((pack) => (
+                        <div key={pack.packId}>
+                          <div className="text-[10px] font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+                            팩 · {pack.items[0]?.creatorName ?? pack.packId} ({pack.items.length})
+                          </div>
+                          <div className="grid grid-cols-5 gap-2">
+                            {pack.items.map((u) => {
+                              const stableId = `lib-${u.id}`;
+                              const selected = assetId === stableId || icon.library_asset_id === u.id;
+                              return (
+                                <button
+                                  key={u.id}
+                                  onClick={() => { onPickLibraryIcon(u); setAssetId(stableId); }}
+                                  title={u.title}
+                                  className={cn(
+                                    "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden text-2xl transition-all",
+                                    selected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
+                                  )}
+                                >
+                                  {u.imageUrl ? (
+                                    <img src={u.imageUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
+                                  ) : (
+                                    <span>{u.emoji ?? "🖼️"}</span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
+                      다운로드한 아이콘 팩이 없습니다.
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
 
             <div>
