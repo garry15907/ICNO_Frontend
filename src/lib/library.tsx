@@ -47,7 +47,7 @@ type LibraryContextValue = {
     preset: MarketplacePreset,
     opts?: { source?: SavedPresetSource; variantId?: string },
   ) => Promise<{ ok: boolean; alreadySaved?: boolean }>;
-  requestApply: (presetId: string) => void;
+  requestApply: (presetId: string) => Promise<void> | void;
   /** Returns the library-detail route id for a saved marketplace preset, if any. */
   getLibraryIdForPreset: (presetId: string) => string | null;
 };
