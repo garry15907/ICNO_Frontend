@@ -1283,7 +1283,27 @@ function FullscreenEditor({
           icon={selected}
           asset={iconAssets.find((x) => x.id === selected.assetId) ?? null}
           iconAssets={iconAssets}
+          libraryIcons={userIcons}
           onPickAsset={(assetId) => update(selected.id, { assetId })}
+          onPickLibraryIcon={(u) => {
+            // Reuse the outer helper — it de-dupes on `lib-<id>` and
+            // appends the synthesized IconAsset via `onAddIconAssets`
+            // so both the modal and the canvas share previews.
+            const stableId = `lib-${u.id}`;
+            if (!iconAssets.some((a) => a.id === stableId)) {
+              onAddIconAssets([synthesizeAssetFromLibrary(u)]);
+            }
+            update(selected.id, {
+              assetId: stableId,
+              asset_source: u.packId ? "iconpack" : "library",
+              library_asset_id: u.id,
+              preview_url: u.imageUrl || undefined,
+            });
+          }}
+          onRemoveIcon={() => {
+            setItems((a) => a.filter((i) => i.id !== selected.id));
+            setEditIconOpen(false);
+          }}
           onAddIcons={onAddIcons}
           openFilePicker={safeOpenFilePicker}
           onSave={(patch) => { update(selected.id, patch); setEditIconOpen(false); }}
