@@ -60,7 +60,17 @@ function synthesizeAssetFromLibrary(u: UserIconAsset): IconAsset {
   return { id: `lib-${u.id}`, file, previewUrl };
 }
 
-type IconAsset = { id: string; file: File; previewUrl: string };
+type IconAsset = {
+  id: string;
+  file: File;
+  previewUrl: string;
+  /** Engine-issued asset_id after a successful POST /api/icons/upload. */
+  asset_id?: string;
+  /** Absolute local path returned by the engine — needed for future
+   *  cross-machine debugging only; never sent inside a PresetModel. */
+  local_image_path?: string;
+  storage_filename?: string;
+};
 // Matches icons_config.json spec. `assetId`/`fileName` are internal-only fields
 // used to bind the in-memory File preview; they are NOT serialized to UI/paths.
 type PlacedIcon = {
