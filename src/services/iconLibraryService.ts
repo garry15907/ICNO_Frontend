@@ -2,8 +2,27 @@
 // Supabase/Local Agent later by replacing the read/write internals only.
 
 import type { MarketIcon, MarketIconPack } from "@/data/mockData";
+import { getCustomImages, localEngineUrl } from "./localEngineApi";
 
 export type UserIconSource = "marketplace_download" | "iconpack_download" | "upload";
+
+/**
+ * Unified UI-facing origin label. `source` is the historical value stored
+ * per-asset; `origin` is what the user-facing "내 보관함" should reason
+ * about. The mapping is derived — see `originOf()`.
+ */
+export type LibraryOrigin =
+  | "user-upload"
+  | "market-download"
+  | "icon-pack"
+  | "local-engine";
+
+export function originOf(a: UserIconAsset): LibraryOrigin {
+  if (a.source === "upload") return "user-upload";
+  if (a.source === "iconpack_download") return "icon-pack";
+  if (a.source === "marketplace_download") return "market-download";
+  return "local-engine";
+}
 
 export type UserIconAsset = {
   id: string;
@@ -61,6 +80,65 @@ function parseResolution(res: string): { w: number; h: number } {
 
 export function getUserIconAssets(): UserIconAsset[] {
   return safeRead<UserIconAsset[]>(STORAGE_KEY, []);
+}
+
+/**
+ * Merge the localStorage-side metadata with the actual files known to the
+ * local FastAPI engine (`GET /api/icons/images`). Any file present on
+ * disk but missing from local metadata is injected as a `local-engine`
+ * origin asset so it shows up in the unified 보관함 list. Never removes
+ * existing metadata entries — the reverse-reconciliation (delete on disk
+ * but still in metadata) is handled by the missing-file UI banner.
+ */
+export async function reconcileWithLocalEngine(): Promise<UserIconAsset[]> {
+  let images: Awaited<ReturnType<typeof getCustomImages>>["images"] = [];
+  try {
+    const res = await getCustomImages();
+    images = res.images ?? [];
+  } catch {
+    // Engine offline — keep current metadata as-is.
+    return getUserIconAssets();
+  }
+  const current = getUserIconAssets();
+  const knownFilenames = new Set(
+    current.map((a) => a.fileName).filter(Boolean) as string[],
+  );
+  const knownPaths = new Set(
+    current.map((a) => a.local_image_path).filter(Boolean) as string[],
+  );
+  const orphans: UserIconAsset[] = [];
+  for (const img of images ?? []) {
+    const filename = String(img.filename ?? "");
+    const localPath = String(img.path ?? "");
+    if (!filename) continue;
+    if (knownFilenames.has(filename)) continue;
+    if (localPath && knownPaths.has(localPath)) continue;
+    const url = img.url ? localEngineUrl(String(img.url)) : "";
+    const ext = filename.split(".").pop()?.toUpperCase() ?? "PNG";
+    orphans.push({
+      id: `ua-engine-${filename}`,
+      userId: CURRENT_USER,
+      originalIconId: `engine:${filename}`,
+      title: filename.replace(/\.[^.]+$/, ""),
+      creatorName: "@local",
+      thumbnailUrl: url,
+      imageUrl: url,
+      fileName: filename,
+      fileFormat: (["PNG", "SVG", "ICO"].includes(ext) ? ext : "PNG") as any,
+      width: 256,
+      height: 256,
+      hasTransparentBackground: true,
+      category: "local",
+      tags: [],
+      license: "local",
+      downloadedAt: new Date().toISOString(),
+      source: "upload",
+      isFavorite: false,
+      local_image_path: localPath || undefined,
+    });
+  }
+  if (orphans.length) writeAssets([...orphans, ...current]);
+  return getUserIconAssets();
 }
 
 export function getUserIconAssetById(id: string): UserIconAsset | undefined {

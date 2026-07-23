@@ -22,6 +22,7 @@ import {
   getUserIconAssets,
   isIconDownloaded as svcIsDownloaded,
   renameUserIconAsset as svcRename,
+  reconcileWithLocalEngine,
 } from "@/services/iconLibraryService";
 
 export type IconDownloadStatus = "idle" | "downloading" | "success" | "failed";
@@ -81,6 +82,24 @@ export function IconLibraryProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("storage", handler);
       window.removeEventListener("focus", handler);
     };
+  }, [refresh]);
+
+  // On mount, sync the localStorage-side metadata with the local FastAPI
+  // engine's real file list so orphan uploads (files that exist on disk
+  // but were never registered as UserIconAsset metadata) show up in the
+  // unified 보관함 list. Non-fatal — silently no-ops if the engine is
+  // offline.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await reconcileWithLocalEngine();
+        if (!cancelled) refresh();
+      } catch {
+        /* engine offline — keep localStorage state */
+      }
+    })();
+    return () => { cancelled = true; };
   }, [refresh]);
 
   const downloadedIconIds = useMemo(

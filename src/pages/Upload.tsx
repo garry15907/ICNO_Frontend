@@ -38,7 +38,6 @@ import { libraryPresets, marketplacePresets } from "@/data/mockData";
 import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutionType } from "@/data/mockData";
 import { useIconLibrary } from "@/lib/icon-library";
 import type { UserIconAsset } from "@/services/iconLibraryService";
-import { groupUserIconAssets } from "@/services/iconLibraryService";
 import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
 import { Loader2 } from "lucide-react";
@@ -1484,13 +1483,13 @@ function AssetModal({
                       <img src={a.previewUrl} alt="" className="max-h-[80%] max-w-[80%] object-contain" />
                     </div>
                     <div className="mt-1.5 text-[11px] truncate">{a.file.name}</div>
-                    <div className="text-[10px] text-muted-foreground">{extOf(a.file.name)} · {formatBytes(a.file.size)}</div>
+                    <div className="text-[10px] text-muted-foreground">이번 세션 업로드 · {extOf(a.file.name)}</div>
                     <div className="text-[10px] text-primary opacity-0 group-hover:opacity-100 mt-0.5">+ 캔버스에 추가</div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="text-xs text-muted-foreground text-center py-4">업로드된 아이콘이 없습니다.</div>
+              null
             )}
 
             <div className="pt-2 border-t border-border/60">
@@ -1510,11 +1509,15 @@ function AssetModal({
                       title={u.title}
                     >
                       <div className="aspect-square rounded-md bg-muted/40 grid place-items-center overflow-hidden text-3xl">
-                        {u.emoji ?? "🖼️"}
+                        {u.imageUrl ? (
+                          <img src={u.imageUrl} alt="" className="max-h-[80%] max-w-[80%] object-contain" />
+                        ) : (
+                          <span>{u.emoji ?? "🖼️"}</span>
+                        )}
                       </div>
                       <div className="mt-1.5 text-[11px] truncate">{u.title}</div>
                       <div className="text-[10px] text-muted-foreground truncate">
-                        {u.packId ? "팩" : "개별"} · {u.fileFormat}
+                        보관함 · {u.fileFormat}{u.packId ? " · 팩" : ""}
                       </div>
                       <div className="text-[10px] text-primary opacity-0 group-hover:opacity-100 mt-0.5">+ 캔버스에 추가</div>
                     </button>
@@ -1592,10 +1595,43 @@ function IconDetailEditModal({
     !libraryIcons.some((u) => u.id === icon.library_asset_id) &&
     !iconAssets.some((a) => a.id === `lib-${icon.library_asset_id}`);
 
-  const groupedLibrary = useMemo(() => groupUserIconAssets(libraryIcons), [libraryIcons]);
-  const [pickerTab, setPickerTab] = useState<"upload" | "library" | "packs">(
-    icon.asset_source === "iconpack" ? "packs" : icon.asset_source === "library" ? "library" : "upload",
-  );
+  const [libSearch, setLibSearch] = useState("");
+  const [libPackFilter, setLibPackFilter] = useState<string>("all");
+  const packOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const u of libraryIcons) {
+      if (u.packId && !seen.has(u.packId)) seen.set(u.packId, u.creatorName || u.packId);
+    }
+    return Array.from(seen.entries());
+  }, [libraryIcons]);
+  // Unified list: session uploads (as pseudo-library entries) + library icons.
+  type UnifiedEntry =
+    | { kind: "upload"; asset: IconAsset }
+    | { kind: "library"; asset: UserIconAsset };
+  const unifiedList = useMemo<UnifiedEntry[]>(() => {
+    const q = libSearch.trim().toLowerCase();
+    const uploads: UnifiedEntry[] = iconAssets
+      .filter((a) => !a.id.startsWith("lib-"))
+      .filter((a) => libPackFilter === "all" || libPackFilter === "none")
+      .filter((a) => !q || a.file.name.toLowerCase().includes(q))
+      .map((asset) => ({ kind: "upload", asset }));
+    const libs: UnifiedEntry[] = libraryIcons
+      .filter((u) => {
+        if (libPackFilter === "none") return !u.packId;
+        if (libPackFilter !== "all") return u.packId === libPackFilter;
+        return true;
+      })
+      .filter((u) => {
+        if (!q) return true;
+        return (
+          u.title.toLowerCase().includes(q) ||
+          (u.fileName || "").toLowerCase().includes(q) ||
+          (u.tags || []).some((t) => t.toLowerCase().includes(q))
+        );
+      })
+      .map((asset) => ({ kind: "library", asset }));
+    return [...uploads, ...libs];
+  }, [iconAssets, libraryIcons, libSearch, libPackFilter]);
 
   const previewAsset = iconAssets.find((a) => a.id === assetId) ?? asset;
 
@@ -1666,118 +1702,81 @@ function IconDetailEditModal({
                 </div>
               )}
 
-              <Tabs value={pickerTab} onValueChange={(v) => setPickerTab(v as typeof pickerTab)} className="w-full">
-                <TabsList className="grid grid-cols-3 w-full h-8">
-                  <TabsTrigger value="upload" className="text-[11px]">
-                    사용자 업로드 ({iconAssets.filter((a) => !a.id.startsWith("lib-")).length})
-                  </TabsTrigger>
-                  <TabsTrigger value="library" className="text-[11px]">
-                    내 보관함 ({groupedLibrary.standalone.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="packs" className="text-[11px]">
-                    아이콘 팩 ({groupedLibrary.packs.reduce((n, p) => n + p.items.length, 0)})
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="upload" className="pt-2">
-                  {iconAssets.filter((a) => !a.id.startsWith("lib-")).length > 0 ? (
-                    <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1">
-                      {iconAssets
-                        .filter((a) => !a.id.startsWith("lib-"))
-                        .map((a) => (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="relative flex-1">
+                    <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={libSearch}
+                      onChange={(e) => setLibSearch(e.target.value)}
+                      placeholder="내 보관함 검색"
+                      className="h-7 pl-6 text-[11px]"
+                    />
+                  </div>
+                  {packOptions.length > 0 && (
+                    <Select value={libPackFilter} onValueChange={setLibPackFilter}>
+                      <SelectTrigger className="h-7 w-28 text-[11px]"><SelectValue placeholder="팩" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">전체</SelectItem>
+                        <SelectItem value="none">개별만</SelectItem>
+                        {packOptions.map(([id, label]) => (
+                          <SelectItem key={id} value={id}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                {unifiedList.length > 0 ? (
+                  <div className="grid grid-cols-5 gap-2 max-h-52 overflow-y-auto pr-1">
+                    {unifiedList.map((entry) => {
+                      if (entry.kind === "upload") {
+                        const a = entry.asset;
+                        const selected = assetId === a.id;
+                        return (
                           <button
-                            key={a.id}
+                            key={`u-${a.id}`}
                             onClick={() => setAssetId(a.id)}
                             title={a.file.name}
                             className={cn(
-                              "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden transition-all",
-                              assetId === a.id ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
+                              "relative aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden transition-all",
+                              selected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
                             )}
                           >
                             <img src={a.previewUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
                           </button>
-                        ))}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
-                      업로드된 이미지가 없습니다.
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="library" className="pt-2">
-                  {groupedLibrary.standalone.length > 0 ? (
-                    <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1">
-                      {groupedLibrary.standalone.map((u) => {
-                        const stableId = `lib-${u.id}`;
-                        const selected = assetId === stableId || icon.library_asset_id === u.id;
-                        return (
-                          <button
-                            key={u.id}
-                            onClick={() => { onPickLibraryIcon(u); setAssetId(stableId); }}
-                            title={u.title}
-                            className={cn(
-                              "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden text-2xl transition-all",
-                              selected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
-                            )}
-                          >
-                            {u.imageUrl ? (
-                              <img src={u.imageUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
-                            ) : (
-                              <span>{u.emoji ?? "🖼️"}</span>
-                            )}
-                          </button>
                         );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
-                      내 아이콘 보관함이 비어 있습니다. 탐색에서 아이콘을 다운로드해 보세요.
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="packs" className="pt-2">
-                  {groupedLibrary.packs.length > 0 ? (
-                    <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
-                      {groupedLibrary.packs.map((pack) => (
-                        <div key={pack.packId}>
-                          <div className="text-[10px] font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
-                            팩 · {pack.items[0]?.creatorName ?? pack.packId} ({pack.items.length})
-                          </div>
-                          <div className="grid grid-cols-5 gap-2">
-                            {pack.items.map((u) => {
-                              const stableId = `lib-${u.id}`;
-                              const selected = assetId === stableId || icon.library_asset_id === u.id;
-                              return (
-                                <button
-                                  key={u.id}
-                                  onClick={() => { onPickLibraryIcon(u); setAssetId(stableId); }}
-                                  title={u.title}
-                                  className={cn(
-                                    "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden text-2xl transition-all",
-                                    selected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
-                                  )}
-                                >
-                                  {u.imageUrl ? (
-                                    <img src={u.imageUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
-                                  ) : (
-                                    <span>{u.emoji ?? "🖼️"}</span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
-                      다운로드한 아이콘 팩이 없습니다.
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+                      }
+                      const u = entry.asset;
+                      const stableId = `lib-${u.id}`;
+                      const selected = assetId === stableId || icon.library_asset_id === u.id;
+                      return (
+                        <button
+                          key={`l-${u.id}`}
+                          onClick={() => { onPickLibraryIcon(u); setAssetId(stableId); }}
+                          title={`${u.title}${u.packId ? " · 팩" : ""}`}
+                          className={cn(
+                            "relative aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden text-2xl transition-all",
+                            selected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
+                          )}
+                        >
+                          {u.imageUrl ? (
+                            <img src={u.imageUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
+                          ) : (
+                            <span>{u.emoji ?? "🖼️"}</span>
+                          )}
+                          {u.packId && (
+                            <span className="absolute bottom-0.5 right-0.5 text-[8px] px-1 rounded bg-background/80 text-muted-foreground">팩</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
+                    내 보관함이 비어 있습니다. 탐색에서 아이콘을 다운로드하거나 새 이미지를 업로드하세요.
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
