@@ -751,11 +751,21 @@ function FullscreenEditor({
     const cellH = 160;
     const x = 80 + (n % cols) * cellW;
     const y = 80 + Math.floor(n / cols) * cellH;
+    // `asset.id === "lib-<UserIconAsset.id>"` marks library-sourced picks;
+    // see `synthesizeAssetFromLibrary`. Everything else is a direct upload.
+    const libId = asset.id.startsWith("lib-") ? asset.id.slice(4) : undefined;
+    const libAsset = libId ? userIcons.find((u) => u.id === libId) : undefined;
+    const asset_source: IconAssetSource = libAsset
+      ? (libAsset.packId ? "iconpack" : "library")
+      : "user-upload";
     const next: PlacedIcon = normalizeIcon({
       assetId: asset.id,
       fileName: asset.file.name,
       name: asset.file.name.replace(/\.[^.]+$/, ""),
       image_path: asset.file.name, // internal-only — UI never shows this
+      asset_source,
+      library_asset_id: libAsset?.id,
+      preview_url: asset.previewUrl,
       x, y,
     });
     setItems((a) => [...a, next]);
@@ -765,6 +775,36 @@ function FullscreenEditor({
 
   const { userIcons } = useIconLibrary();
   const { savedPresets } = useLibrary();
+
+  // Rehydrate library-sourced icons after a reload. Saved presets keep
+  // `library_asset_id`, so we can reconstruct the missing IconAsset entry
+  // (with a fresh preview) from the current icon library. Purely additive —
+  // never overwrites user-uploaded assets that already exist.
+  useEffect(() => {
+    if (!userIcons.length) return;
+    const missing: IconAsset[] = [];
+    for (const it of items) {
+      if (!it.library_asset_id) continue;
+      const stableId = `lib-${it.library_asset_id}`;
+      if (iconAssets.some((a) => a.id === stableId)) continue;
+      const u = userIcons.find((x) => x.id === it.library_asset_id);
+      if (!u) continue; // library asset was deleted — placeholder path handles UI
+      missing.push(synthesizeAssetFromLibrary(u));
+    }
+    if (missing.length) {
+      setIconAssets((prev) => [...prev, ...missing]);
+      // Re-bind assetId so previews connect to the freshly created entries.
+      setItems((arr) =>
+        arr.map((it) => {
+          if (!it.library_asset_id) return it;
+          const stableId = `lib-${it.library_asset_id}`;
+          return it.assetId === stableId ? it : { ...it, assetId: stableId };
+        }),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [userIcons, items.length]);
+
   const libraryWallpapers = useMemo<LibraryWallpaper[]>(() => {
     const seen = new Set<string>();
     const out: LibraryWallpaper[] = [];
