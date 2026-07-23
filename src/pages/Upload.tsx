@@ -38,6 +38,8 @@ import { libraryPresets, marketplacePresets } from "@/data/mockData";
 import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutionType } from "@/data/mockData";
 import { useIconLibrary } from "@/lib/icon-library";
 import type { UserIconAsset } from "@/services/iconLibraryService";
+import { groupUserIconAssets } from "@/services/iconLibraryService";
+import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
 import { Loader2 } from "lucide-react";
 
@@ -67,6 +69,17 @@ type PlacedIcon = {
   // internal binding to uploaded File preview
   assetId: string;
   fileName: string;
+  /**
+   * Where this icon originated. Persisted so the editor can restore the
+   * exact source (library / iconpack / user upload) after a reload and
+   * so the future apply-local flow knows how to resolve the image.
+   */
+  asset_source: IconAssetSource;
+  /** UserIconAsset.id when `asset_source` is `library` or `iconpack`. */
+  library_asset_id?: string;
+  /** Preview URL captured at pick time — survives reloads so a missing
+   *  in-memory File doesn't blank out the canvas. */
+  preview_url?: string;
   // ===== icons_config.json fields =====
   name: string;
   image_path: string;
@@ -106,6 +119,9 @@ function normalizeIcon(raw: any, i = 0): PlacedIcon {
     id: raw?.id ?? uid(),
     assetId: raw?.assetId ?? "",
     fileName: raw?.fileName ?? raw?.file ?? "",
+    asset_source: (raw?.asset_source as IconAssetSource) ?? "user-upload",
+    library_asset_id: raw?.library_asset_id ?? undefined,
+    preview_url: raw?.preview_url ?? undefined,
     name: raw?.name ?? raw?.label ?? `아이콘 ${i + 1}`,
     image_path: raw?.image_path ?? "",
     target_path: raw?.target_path ?? "",
