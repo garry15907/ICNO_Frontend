@@ -11,7 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Download, LogIn, MonitorSmartphone, Loader2 } from "lucide-react";
-import { reloadOverlay, startOverlay, ApiError } from "@/services/localEngineApi";
+import {
+  ApiError,
+  applyPresetLocal,
+  createPreset,
+  getPreset,
+  updatePreset,
+  type PresetModel,
+} from "@/services/localEngineApi";
 import {
   MarketplacePreset,
   marketplacePresets,
@@ -48,6 +55,16 @@ type LibraryContextValue = {
     opts?: { source?: SavedPresetSource; variantId?: string },
   ) => Promise<{ ok: boolean; alreadySaved?: boolean }>;
   requestApply: (presetId: string) => Promise<void> | void;
+  /**
+   * Save an editor-built PresetModel to the local engine (POST or PUT
+   * depending on `model.id`), then call apply-local. Emits the success
+   * toast only after a real 2xx from apply-local. `onSaved` fires with
+   * the persisted model so the caller can remember the backend id.
+   */
+  applyEditedPreset: (
+    model: PresetModel,
+    opts?: { onSaved?: (saved: PresetModel) => void },
+  ) => Promise<void>;
   /** True while any preset is being applied to the local engine. */
   isApplying: boolean;
   /** The preset id currently being applied, if any. */
@@ -149,54 +166,78 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     [isLoggedIn, isSaved, nav],
   );
 
+  // Shared failure-toast helper. `network` toggles the "please install"
+  // modal for cases where the engine is unreachable.
+  const surfaceApplyError = useCallback((err: unknown, presetId?: string) => {
+    const isNetwork = err instanceof ApiError && err.status === 0;
+    const description = isNetwork
+      ? "ICNO Desktop App이 실행 중인지 확인해주세요."
+      : err instanceof Error
+        ? err.message
+        : "알 수 없는 오류가 발생했습니다.";
+    if (isNetwork && presetId) setApplyTargetId(presetId);
+    toast({ title: "프리셋 적용에 실패했습니다.", description, variant: "destructive" });
+  }, []);
+
+  // Legacy call path used by marketplace/library cards. These callers
+  // only know a preset id — they cannot rebuild the PresetModel, so we
+  // simply forward to `POST /api/presets/{id}/apply-local`. If the id
+  // isn't on the engine (e.g. it's a mock/marketplace id that was never
+  // saved), we tell the user to open the editor and save first.
   const requestApply = useCallback(async (presetId: string) => {
-    // Talk to the real local FastAPI engine. Only show the success toast
-    // AFTER a real HTTP 2xx response — never on state/localStorage side
-    // effects alone. If reload-overlay fails because the overlay is not
-    // running yet, try start-overlay once and then reload-overlay again.
     setApplying(true);
     setApplyingPresetId(presetId);
-    let succeeded = false;
-    let lastError: unknown = null;
     try {
-      await reloadOverlay();
-      succeeded = true;
-    } catch (err) {
-      lastError = err;
-      console.warn("[library] reload-overlay failed, attempting start-overlay retry", err);
       try {
-        await startOverlay();
-        await reloadOverlay();
-        succeeded = true;
-      } catch (err2) {
-        lastError = err2;
-        console.error("[library] apply failed after start-overlay retry", err2);
+        await getPreset(presetId);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          toast({
+            title: "저장된 프리셋이 아닙니다.",
+            description: "프리셋 편집에서 저장한 뒤 적용해주세요.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw err;
       }
-    }
-
-    if (succeeded) {
+      await applyPresetLocal(presetId);
       toast({ title: "프리셋이 데스크톱에 적용되었습니다." });
-    } else {
-      const isNetwork = lastError instanceof ApiError && lastError.status === 0;
-      const description = isNetwork
-        ? "ICNO Desktop App이 실행 중인지 확인해주세요."
-        : lastError instanceof Error
-          ? lastError.message
-          : "알 수 없는 오류가 발생했습니다.";
-      if (isNetwork) {
-        // Only prompt to install when the engine is unreachable.
-        setApplyTargetId(presetId);
-      }
-      toast({
-        title: "프리셋 적용에 실패했습니다.",
-        description,
-        variant: "destructive",
-      });
+    } catch (err) {
+      console.error("[library] apply-local failed", err);
+      surfaceApplyError(err, presetId);
+    } finally {
+      setApplying(false);
+      setApplyingPresetId(null);
     }
+  }, [surfaceApplyError]);
 
-    setApplying(false);
-    setApplyingPresetId(null);
-  }, []);
+  const applyEditedPreset = useCallback<LibraryContextValue["applyEditedPreset"]>(
+    async (model, opts) => {
+      setApplying(true);
+      setApplyingPresetId(model.id || "current");
+      try {
+        // 1) Save preset: PUT when we already have a backend id, else POST.
+        const saved = model.id
+          ? await updatePreset(model.id, model)
+          : await createPreset(model);
+        const savedId = saved?.id ?? model.id ?? "";
+        if (!savedId) throw new ApiError("Preset save did not return an id.", 500, saved);
+        opts?.onSaved?.(saved);
+
+        // 2) Apply.
+        await applyPresetLocal(savedId);
+        toast({ title: "프리셋이 데스크톱에 적용되었습니다." });
+      } catch (err) {
+        console.error("[library] applyEditedPreset failed", err);
+        surfaceApplyError(err, model.id || undefined);
+      } finally {
+        setApplying(false);
+        setApplyingPresetId(null);
+      }
+    },
+    [surfaceApplyError],
+  );
 
   const value = useMemo<LibraryContextValue>(
     () => ({
@@ -210,6 +251,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       downloadCount,
       downloadPreset,
       requestApply,
+      applyEditedPreset,
       isApplying: applying,
       applyingPresetId,
       getLibraryIdForPreset,
@@ -224,6 +266,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       downloadCount,
       downloadPreset,
       requestApply,
+      applyEditedPreset,
       applying,
       applyingPresetId,
       getLibraryIdForPreset,
