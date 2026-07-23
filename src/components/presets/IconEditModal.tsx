@@ -319,42 +319,97 @@ export function IconEditModal({
                         <br />탐색에서 아이콘을 다운로드해보세요.
                       </div>
                     ) : (
-                      <ScrollArea className="h-40 rounded-lg border border-border">
-                        <div className="grid grid-cols-4 gap-1.5 p-2">
-                          {userIcons.map((asset) => {
-                            const selected = pickedUserIconId === asset.id;
-                            return (
-                              <button
-                                key={asset.id}
-                                type="button"
-                                title={asset.title}
-                                onClick={() => pickFromLibrary(asset)}
-                                className={cn(
-                                  "aspect-square rounded-md grid place-items-center overflow-hidden text-2xl border-2 transition",
-                                  selected
-                                    ? "border-primary ring-2 ring-primary/30"
-                                    : "border-transparent hover:border-primary/40",
-                                )}
-                                style={{
-                                  background: asset.hasTransparentBackground
-                                    ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 10px 10px"
-                                    : "hsl(var(--muted) / 0.5)",
-                                }}
-                              >
-                                {asset.imageUrl ? (
-                                  <img
-                                    src={asset.imageUrl}
-                                    alt={asset.title}
-                                    className="max-w-full max-h-full object-contain"
-                                  />
-                                ) : (
-                                  <span>{asset.emoji ?? "🖼️"}</span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </ScrollArea>
+                      <Tabs value={libTab} onValueChange={(v) => setLibTab(v as typeof libTab)}>
+                        <TabsList className="grid grid-cols-2 w-full h-7">
+                          <TabsTrigger value="library" className="text-[11px]">
+                            개별 ({libStandalone.length})
+                          </TabsTrigger>
+                          <TabsTrigger value="packs" className="text-[11px]">
+                            팩 ({libPacks.reduce((n, p) => n + p.items.length, 0)})
+                          </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="library" className="pt-2">
+                          {libStandalone.length ? (
+                            <ScrollArea className="h-40 rounded-lg border border-border">
+                              <div className="grid grid-cols-4 gap-1.5 p-2">
+                                {libStandalone.map((asset) => {
+                                  const selected = pickedUserIconId === asset.id;
+                                  return (
+                                    <button
+                                      key={asset.id}
+                                      type="button"
+                                      title={asset.title}
+                                      onClick={() => pickFromLibrary(asset)}
+                                      className={cn(
+                                        "aspect-square rounded-md grid place-items-center overflow-hidden text-2xl border-2 transition",
+                                        selected ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/40",
+                                      )}
+                                      style={{
+                                        background: asset.hasTransparentBackground
+                                          ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 10px 10px"
+                                          : "hsl(var(--muted) / 0.5)",
+                                      }}
+                                    >
+                                      {asset.imageUrl ? (
+                                        <img src={asset.imageUrl} alt={asset.title} className="max-w-full max-h-full object-contain" />
+                                      ) : (
+                                        <span>{asset.emoji ?? "🖼️"}</span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </ScrollArea>
+                          ) : (
+                            <div className="text-xs text-muted-foreground text-center py-4">개별 다운로드 아이콘이 없습니다.</div>
+                          )}
+                        </TabsContent>
+                        <TabsContent value="packs" className="pt-2">
+                          {libPacks.length ? (
+                            <ScrollArea className="h-40 rounded-lg border border-border">
+                              <div className="p-2 space-y-2">
+                                {libPacks.map((pack) => (
+                                  <div key={pack.packId}>
+                                    <div className="text-[10px] font-medium text-muted-foreground mb-1 uppercase tracking-wide">
+                                      {pack.items[0]?.creatorName ?? pack.packId} · {pack.items.length}개
+                                    </div>
+                                    <div className="grid grid-cols-4 gap-1.5">
+                                      {pack.items.map((asset) => {
+                                        const selected = pickedUserIconId === asset.id;
+                                        return (
+                                          <button
+                                            key={asset.id}
+                                            type="button"
+                                            title={asset.title}
+                                            onClick={() => pickFromLibrary(asset)}
+                                            className={cn(
+                                              "aspect-square rounded-md grid place-items-center overflow-hidden text-2xl border-2 transition",
+                                              selected ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/40",
+                                            )}
+                                            style={{
+                                              background: asset.hasTransparentBackground
+                                                ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 10px 10px"
+                                                : "hsl(var(--muted) / 0.5)",
+                                            }}
+                                          >
+                                            {asset.imageUrl ? (
+                                              <img src={asset.imageUrl} alt={asset.title} className="max-w-full max-h-full object-contain" />
+                                            ) : (
+                                              <span>{asset.emoji ?? "🖼️"}</span>
+                                            )}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          ) : (
+                            <div className="text-xs text-muted-foreground text-center py-4">다운로드한 아이콘 팩이 없습니다.</div>
+                          )}
+                        </TabsContent>
+                      </Tabs>
                     )}
                   </TabsContent>
                 </Tabs>
