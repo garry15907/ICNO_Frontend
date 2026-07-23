@@ -218,6 +218,7 @@ export default function Upload() {
   const [searchParams] = useSearchParams();
   const presetIdParam = searchParams.get("preset");
   const { applyEditedPreset, isApplying, applyingPresetId } = useLibrary();
+  const { userIcons } = useIconLibrary();
 
   const [wallpaper, setWallpaper] = useState<{ file: File; url: string } | null>(null);
   const [iconAssets, setIconAssets] = useState<IconAsset[]>([]);
