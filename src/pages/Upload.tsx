@@ -41,6 +41,16 @@ import type { UserIconAsset } from "@/services/iconLibraryService";
 import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
 import { Loader2 } from "lucide-react";
+import {
+  uploadIconImage,
+  uploadWallpaper,
+  createPreset,
+  updatePreset,
+  applyPresetLocal,
+  ApiError,
+  type PresetModel,
+  type PresetIconModel,
+} from "@/services/localEngineApi";
 
 type LibraryWallpaper = { id: string; name: string; url: string; fileName: string };
 
@@ -309,10 +319,53 @@ export default function Upload() {
       toast({ title: "지원하지 않는 형식", description: "PNG, SVG, ICO, GIF만 업로드할 수 있어요." });
       return;
     }
-    setIconAssets((prev) => [
-      ...prev,
-      ...arr.map((file) => ({ id: uid(), file, previewUrl: URL.createObjectURL(file) })),
-    ]);
+    // Optimistically add to the editor, then push each file to the local
+    // FastAPI engine so we get back a real `asset_id` + `local_image_path`
+    // to reference in the saved PresetModel. On failure, remove the asset
+    // and surface the error — never fake a success.
+    const newAssets: IconAsset[] = arr.map((file) => ({
+      id: uid(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    setIconAssets((prev) => [...prev, ...newAssets]);
+    (async () => {
+      for (const a of newAssets) {
+        try {
+          const res = await uploadIconImage(a.file);
+          if (!res?.asset_id || !res?.local_image_path) {
+            throw new ApiError("Upload response missing asset_id/local_image_path", 500, res);
+          }
+          setIconAssets((prev) =>
+            prev.map((x) =>
+              x.id === a.id
+                ? {
+                    ...x,
+                    asset_id: res.asset_id,
+                    local_image_path: res.local_image_path,
+                    storage_filename: res.storage_filename,
+                  }
+                : x,
+            ),
+          );
+        } catch (err) {
+          console.error("[upload] icon upload failed", err);
+          const detail =
+            err instanceof ApiError
+              ? err.status === 0
+                ? "ICNO Desktop App이 실행 중인지 확인해주세요."
+                : `서버 오류 (${err.status})`
+              : "알 수 없는 오류";
+          toast({
+            title: `아이콘 업로드 실패: ${a.file.name}`,
+            description: detail,
+            variant: "destructive",
+          });
+          // Remove the failed asset from the editor so the user can retry.
+          setIconAssets((prev) => prev.filter((x) => x.id !== a.id));
+        }
+      }
+    })();
   };
 
   const addTag = () => {
