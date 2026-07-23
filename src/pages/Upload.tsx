@@ -372,9 +372,18 @@ export default function Upload() {
           </Button>
           <Button
             onClick={handlePublish}
+            disabled={isApplying}
             className="rounded-lg h-10 px-5 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow"
           >
-            <Sparkles className="h-4 w-4" /> 적용하기
+            {isApplying ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> 적용 중…
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" /> 적용하기
+              </>
+            )}
           </Button>
         </div>
       </div>
