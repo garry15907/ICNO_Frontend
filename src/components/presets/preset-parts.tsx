@@ -176,8 +176,6 @@ export function PresetFileList({
       </div>
 
       {/* 아이콘/호버 이미지 목록은 상세 뷰에서 노출하지 않음. */}
-        </div>
-      )}
     </div>
   );
 }
