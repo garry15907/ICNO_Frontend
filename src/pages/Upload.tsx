@@ -100,6 +100,9 @@ type PlacedIcon = {
 };
 
 const DEFAULT_ICON: Omit<PlacedIcon, "id" | "assetId" | "fileName" | "name" | "x" | "y"> = {
+  asset_source: "user-upload",
+  library_asset_id: undefined,
+  preview_url: undefined,
   image_path: "",
   target_path: "",
   size: 72,
