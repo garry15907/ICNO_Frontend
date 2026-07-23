@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { Download, LogIn, MonitorSmartphone } from "lucide-react";
+import { Download, LogIn, MonitorSmartphone, Loader2 } from "lucide-react";
+import { reloadOverlay, startOverlay, ApiError } from "@/services/api";
 import {
   MarketplacePreset,
   marketplacePresets,
@@ -78,6 +79,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   // apply modal state
   const [applyTargetId, setApplyTargetId] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
 
   const savedPresetIds = useMemo(() => savedPresets.map((s) => s.presetId), [savedPresets]);
 
@@ -142,7 +144,38 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     [isLoggedIn, isSaved, nav],
   );
 
-  const requestApply = useCallback((presetId: string) => setApplyTargetId(presetId), []);
+  const requestApply = useCallback(async (presetId: string) => {
+    // Attempt to talk to the real FastAPI desktop engine first. On success
+    // we skip the "install the app" prompt entirely; on failure we fall
+    // back to the existing install-required modal so the user knows why.
+    setApplying(true);
+    try {
+      await reloadOverlay();
+      toast({ title: "프리셋이 데스크톱에 적용되었습니다." });
+    } catch (err) {
+      if (err instanceof ApiError && err.status !== 0) {
+        // Overlay might not be running yet — try starting it once.
+        try {
+          await startOverlay();
+          await reloadOverlay();
+          toast({ title: "프리셋이 데스크톱에 적용되었습니다." });
+          setApplying(false);
+          return;
+        } catch (err2) {
+          console.error("[library] apply failed after start-overlay retry", err2);
+        }
+      }
+      // Network error or repeated failure → show install-required modal.
+      setApplyTargetId(presetId);
+      toast({
+        title: "데스크톱 앱에 연결할 수 없습니다.",
+        description: "ICNO Desktop App이 실행 중인지 확인해주세요.",
+        variant: "destructive",
+      });
+    } finally {
+      setApplying(false);
+    }
+  }, []);
 
   const value = useMemo<LibraryContextValue>(
     () => ({
@@ -242,6 +275,16 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Global apply-in-progress overlay */}
+      {applying && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/60 backdrop-blur-sm">
+          <div className="rounded-xl border bg-card px-4 py-3 shadow-lg flex items-center gap-2 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            데스크톱에 프리셋을 적용하는 중…
+          </div>
+        </div>
+      )}
     </LibraryCtx.Provider>
   );
 }
