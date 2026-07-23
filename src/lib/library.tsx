@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Download, LogIn, MonitorSmartphone, Loader2 } from "lucide-react";
-import { reloadOverlay, startOverlay, ApiError } from "@/services/api";
+import { reloadOverlay, startOverlay, ApiError } from "@/services/localEngineApi";
 import {
   MarketplacePreset,
   marketplacePresets,
@@ -48,6 +48,10 @@ type LibraryContextValue = {
     opts?: { source?: SavedPresetSource; variantId?: string },
   ) => Promise<{ ok: boolean; alreadySaved?: boolean }>;
   requestApply: (presetId: string) => Promise<void> | void;
+  /** True while any preset is being applied to the local engine. */
+  isApplying: boolean;
+  /** The preset id currently being applied, if any. */
+  applyingPresetId: string | null;
   /** Returns the library-detail route id for a saved marketplace preset, if any. */
   getLibraryIdForPreset: (presetId: string) => string | null;
 };
@@ -80,6 +84,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   // apply modal state
   const [applyTargetId, setApplyTargetId] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
+  const [applyingPresetId, setApplyingPresetId] = useState<string | null>(null);
 
   const savedPresetIds = useMemo(() => savedPresets.map((s) => s.presetId), [savedPresets]);
 
@@ -145,36 +150,52 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   );
 
   const requestApply = useCallback(async (presetId: string) => {
-    // Attempt to talk to the real FastAPI desktop engine first. On success
-    // we skip the "install the app" prompt entirely; on failure we fall
-    // back to the existing install-required modal so the user knows why.
+    // Talk to the real local FastAPI engine. Only show the success toast
+    // AFTER a real HTTP 2xx response — never on state/localStorage side
+    // effects alone. If reload-overlay fails because the overlay is not
+    // running yet, try start-overlay once and then reload-overlay again.
     setApplying(true);
+    setApplyingPresetId(presetId);
+    let succeeded = false;
+    let lastError: unknown = null;
     try {
       await reloadOverlay();
-      toast({ title: "프리셋이 데스크톱에 적용되었습니다." });
+      succeeded = true;
     } catch (err) {
-      if (err instanceof ApiError && err.status !== 0) {
-        // Overlay might not be running yet — try starting it once.
-        try {
-          await startOverlay();
-          await reloadOverlay();
-          toast({ title: "프리셋이 데스크톱에 적용되었습니다." });
-          setApplying(false);
-          return;
-        } catch (err2) {
-          console.error("[library] apply failed after start-overlay retry", err2);
-        }
+      lastError = err;
+      console.warn("[library] reload-overlay failed, attempting start-overlay retry", err);
+      try {
+        await startOverlay();
+        await reloadOverlay();
+        succeeded = true;
+      } catch (err2) {
+        lastError = err2;
+        console.error("[library] apply failed after start-overlay retry", err2);
       }
-      // Network error or repeated failure → show install-required modal.
-      setApplyTargetId(presetId);
+    }
+
+    if (succeeded) {
+      toast({ title: "프리셋이 데스크톱에 적용되었습니다." });
+    } else {
+      const isNetwork = lastError instanceof ApiError && lastError.status === 0;
+      const description = isNetwork
+        ? "ICNO Desktop App이 실행 중인지 확인해주세요."
+        : lastError instanceof Error
+          ? lastError.message
+          : "알 수 없는 오류가 발생했습니다.";
+      if (isNetwork) {
+        // Only prompt to install when the engine is unreachable.
+        setApplyTargetId(presetId);
+      }
       toast({
-        title: "데스크톱 앱에 연결할 수 없습니다.",
-        description: "ICNO Desktop App이 실행 중인지 확인해주세요.",
+        title: "프리셋 적용에 실패했습니다.",
+        description,
         variant: "destructive",
       });
-    } finally {
-      setApplying(false);
     }
+
+    setApplying(false);
+    setApplyingPresetId(null);
   }, []);
 
   const value = useMemo<LibraryContextValue>(
@@ -189,6 +210,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       downloadCount,
       downloadPreset,
       requestApply,
+      isApplying: applying,
+      applyingPresetId,
       getLibraryIdForPreset,
     }),
     [
@@ -201,6 +224,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       downloadCount,
       downloadPreset,
       requestApply,
+      applying,
+      applyingPresetId,
       getLibraryIdForPreset,
     ],
   );

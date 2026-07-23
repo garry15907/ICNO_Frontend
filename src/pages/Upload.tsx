@@ -39,6 +39,7 @@ import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutio
 import { useIconLibrary } from "@/lib/icon-library";
 import type { UserIconAsset } from "@/services/iconLibraryService";
 import { useLibrary } from "@/lib/library";
+import { Loader2 } from "lucide-react";
 
 type LibraryWallpaper = { id: string; name: string; url: string; fileName: string };
 
@@ -178,6 +179,7 @@ export default function Upload() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const presetIdParam = searchParams.get("preset");
+  const { requestApply, isApplying, applyingPresetId } = useLibrary();
 
   const [wallpaper, setWallpaper] = useState<{ file: File; url: string } | null>(null);
   const [iconAssets, setIconAssets] = useState<IconAsset[]>([]);
@@ -301,9 +303,15 @@ export default function Upload() {
   ];
   const allDone = checks.every((c) => c.done);
 
+  // Fire the real local FastAPI apply flow (reload-overlay, with a
+  // start-overlay retry on failure). The success toast is emitted inside
+  // `requestApply` and only after a real 2xx from the engine.
   const handlePublish = () => {
-    toast({ title: "프리셋이 적용되었습니다", description: `${name || "이름 없는 프리셋"} · ${placed.length}개 아이콘` });
+    const targetId = presetIdParam ?? name.trim() ?? "current";
+    void requestApply(targetId);
   };
+
+  void applyingPresetId; // reserved for future per-preset button states
 
   const handleSaveDraft = () => {
     toast({ title: "저장되었습니다", description: name || "이름 없는 프리셋" });
@@ -364,9 +372,18 @@ export default function Upload() {
           </Button>
           <Button
             onClick={handlePublish}
+            disabled={isApplying}
             className="rounded-lg h-10 px-5 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow"
           >
-            <Sparkles className="h-4 w-4" /> 적용하기
+            {isApplying ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> 적용 중…
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" /> 적용하기
+              </>
+            )}
           </Button>
         </div>
       </div>
