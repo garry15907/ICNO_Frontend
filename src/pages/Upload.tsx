@@ -44,9 +44,6 @@ import { Loader2 } from "lucide-react";
 import {
   uploadIconImage,
   uploadWallpaper,
-  createPreset,
-  updatePreset,
-  applyPresetLocal,
   ApiError,
   type PresetModel,
   type PresetIconModel,
