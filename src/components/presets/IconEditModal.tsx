@@ -24,7 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useIconLibrary } from "@/lib/icon-library";
 import type { UserIconAsset } from "@/services/iconLibraryService";
-import { groupUserIconAssets } from "@/services/iconLibraryService";
+import { originOf } from "@/services/iconLibraryService";
 
 const presets = [32, 48, 64, 128, 256, 512];
 
@@ -123,11 +123,29 @@ export function IconEditModal({
     icon.userIconAssetId ?? null,
   );
   const { userIcons } = useIconLibrary();
-  const { standalone: libStandalone, packs: libPacks } = useMemo(
-    () => groupUserIconAssets(userIcons),
-    [userIcons],
-  );
-  const [libTab, setLibTab] = useState<"library" | "packs">("library");
+  const [libSearch, setLibSearch] = useState("");
+  const [libPackFilter, setLibPackFilter] = useState<string>("all");
+  const packOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const u of userIcons) {
+      if (u.packId && !seen.has(u.packId)) seen.set(u.packId, u.creatorName || u.packId);
+    }
+    return Array.from(seen.entries());
+  }, [userIcons]);
+  const filteredLibrary = useMemo(() => {
+    const q = libSearch.trim().toLowerCase();
+    return userIcons.filter((u) => {
+      if (libPackFilter === "all") { /* pass */ }
+      else if (libPackFilter === "none") { if (u.packId) return false; }
+      else if (u.packId !== libPackFilter) return false;
+      if (!q) return true;
+      return (
+        u.title.toLowerCase().includes(q) ||
+        (u.fileName || "").toLowerCase().includes(q) ||
+        (u.tags || []).some((t) => t.toLowerCase().includes(q))
+      );
+    });
+  }, [userIcons, libSearch, libPackFilter]);
   const [path, setPath] = useState<string[]>(["내 PC"]);
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
