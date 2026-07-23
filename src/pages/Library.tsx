@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { uploadIconImage, ApiError } from "@/services/api";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -705,10 +706,15 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<UploadedIcon[]>([]);
+  // Original File objects keyed by pending upload id — kept in memory only
+  // (never persisted) so we can POST them to `/api/icons/upload` on confirm.
+  const [pendingFiles, setPendingFiles] = useState<Record<string, File>>({});
+  const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
   const openUploadDialog = () => {
     setPendingUploads([]);
+    setPendingFiles({});
     setUploadOpen(true);
   };
   const addPendingFiles = async (files: FileList | File[] | null) => {
@@ -716,10 +722,12 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
     const arr = Array.from(files).filter((f) => f.type.startsWith("image/") || /\.(png|svg|ico|gif)$/i.test(f.name));
     if (arr.length === 0) return;
     const results: UploadedIcon[] = [];
+    const fileMap: Record<string, File> = {};
     for (const file of arr) {
       const { dataUrl, resolution, fileType } = await fileToDataUrl(file);
+      const id = `ui-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       results.push({
-        id: `ui-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        id,
         name: file.name.replace(/\.[^.]+$/, ""),
         dataUrl,
         fileType,
@@ -727,29 +735,65 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         fileName: file.name,
         createdAt: Date.now(),
       });
+      fileMap[id] = file;
     }
     setPendingUploads((prev) => [...results, ...prev]);
+    setPendingFiles((prev) => ({ ...prev, ...fileMap }));
   };
   const replacePendingImage = async (id: string, file: File) => {
     const { dataUrl, resolution, fileType } = await fileToDataUrl(file);
     setPendingUploads((prev) => prev.map((p) => (p.id === id ? { ...p, dataUrl, resolution, fileType, fileName: file.name } : p)));
+    setPendingFiles((prev) => ({ ...prev, [id]: file }));
   };
   const updatePendingName = (id: string, name: string) => {
     setPendingUploads((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
   };
   const removePending = (id: string) => {
     setPendingUploads((prev) => prev.filter((p) => p.id !== id));
+    setPendingFiles((prev) => { const { [id]: _, ...rest } = prev; return rest; });
   };
-  const confirmUpload = () => {
+  const confirmUpload = async () => {
     if (pendingUploads.length === 0) {
       setUploadOpen(false);
       return;
     }
     const cleaned = pendingUploads.map((p) => ({ ...p, name: p.name.trim() || p.fileName.replace(/\.[^.]+$/, "") }));
-    persist([...cleaned, ...uploaded]);
-    toast({ title: "아이콘이 업로드되었습니다", description: `${cleaned.length}개 추가됨` });
-    setPendingUploads([]);
-    setUploadOpen(false);
+
+    // Push each pending file to the FastAPI backend. Only commit to the
+    // local library once every upload succeeded — never fake a success.
+    setUploading(true);
+    try {
+      for (const item of cleaned) {
+        const file = pendingFiles[item.id];
+        if (!file) {
+          throw new ApiError(`Missing file blob for ${item.fileName}`, 0);
+        }
+        const res = await uploadIconImage(file);
+        if (res && res.success === false) {
+          throw new ApiError(`Upload rejected by server: ${item.fileName}`, 500, res);
+        }
+      }
+      persist([...cleaned, ...uploaded]);
+      toast({ title: "아이콘이 업로드되었습니다", description: `${cleaned.length}개 추가됨` });
+      setPendingUploads([]);
+      setPendingFiles({});
+      setUploadOpen(false);
+    } catch (err) {
+      console.error("[library] icon upload failed", err);
+      const detail =
+        err instanceof ApiError
+          ? err.status === 0
+            ? "백엔드 서버에 연결할 수 없습니다."
+            : `서버 오류 (${err.status})`
+          : "알 수 없는 오류";
+      toast({
+        title: "아이콘 업로드에 실패했습니다",
+        description: detail,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   };
   const [iconOverrides, setIconOverrides] = useState<Record<string, IconOverride>>(() => loadJSON(ICON_OVERRIDES_KEY, {}));
   const [packOverrides, setPackOverrides] = useState<Record<string, PackOverride>>(() => loadJSON(PACK_OVERRIDES_KEY, {}));
@@ -1375,16 +1419,16 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
               <span />
             )}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => { setUploadOpen(false); setPendingUploads([]); }}>
+              <Button variant="outline" disabled={uploading} onClick={() => { setUploadOpen(false); setPendingUploads([]); setPendingFiles({}); }}>
                 취소
               </Button>
               <Button
                 onClick={confirmUpload}
-                disabled={pendingUploads.length === 0}
+                disabled={pendingUploads.length === 0 || uploading}
                 className="bg-gradient-primary text-primary-foreground gap-1.5"
               >
                 <Check className="h-3.5 w-3.5" />
-                저장{pendingUploads.length > 1 ? ` (${pendingUploads.length})` : ""}
+                {uploading ? "업로드 중…" : `저장${pendingUploads.length > 1 ? ` (${pendingUploads.length})` : ""}`}
               </Button>
             </div>
           </DialogFooter>
