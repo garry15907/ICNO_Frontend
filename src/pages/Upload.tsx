@@ -1551,7 +1551,10 @@ function IconDetailEditModal({
   icon,
   asset,
   iconAssets,
+  libraryIcons,
   onPickAsset,
+  onPickLibraryIcon,
+  onRemoveIcon,
   onAddIcons,
   openFilePicker,
   onSave,
@@ -1560,7 +1563,10 @@ function IconDetailEditModal({
   icon: PlacedIcon;
   asset: IconAsset | null;
   iconAssets: IconAsset[];
+  libraryIcons: UserIconAsset[];
   onPickAsset: (assetId: string) => void;
+  onPickLibraryIcon: (u: UserIconAsset) => void;
+  onRemoveIcon: () => void;
   onAddIcons: (f: FileList | File[]) => void;
   openFilePicker: (input: HTMLInputElement | null) => void;
   onSave: (patch: Partial<PlacedIcon>) => void;
@@ -1577,6 +1583,19 @@ function IconDetailEditModal({
   const [textColor, setTextColor] = useState(icon.font_color);
   const [strokeColor, setStrokeColor] = useState(icon.outline_color);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Library-sourced icons keep a `library_asset_id`. If that asset is no
+  // longer present (deleted, storage cleared, etc.) the preview would be
+  // blank — surface a recovery banner instead of failing silently.
+  const isMissingLibraryAsset =
+    !!icon.library_asset_id &&
+    !libraryIcons.some((u) => u.id === icon.library_asset_id) &&
+    !iconAssets.some((a) => a.id === `lib-${icon.library_asset_id}`);
+
+  const groupedLibrary = useMemo(() => groupUserIconAssets(libraryIcons), [libraryIcons]);
+  const [pickerTab, setPickerTab] = useState<"upload" | "library" | "packs">(
+    icon.asset_source === "iconpack" ? "packs" : icon.asset_source === "library" ? "library" : "upload",
+  );
 
   const previewAsset = iconAssets.find((a) => a.id === assetId) ?? asset;
 
