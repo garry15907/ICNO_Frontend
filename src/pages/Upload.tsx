@@ -792,7 +792,7 @@ function FullscreenEditor({
       missing.push(synthesizeAssetFromLibrary(u));
     }
     if (missing.length) {
-      setIconAssets((prev) => [...prev, ...missing]);
+      onAddIconAssets(missing);
       // Re-bind assetId so previews connect to the freshly created entries.
       setItems((arr) =>
         arr.map((it) => {
