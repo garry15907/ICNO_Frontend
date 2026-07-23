@@ -3,8 +3,7 @@
  *
  * This is NOT a cloud service — it talks to the ICNO Desktop engine that
  * runs on `http://127.0.0.1:8000` by default. Base URL comes from the
- * `VITE_LOCAL_ENGINE_API` env var (with a legacy fallback to
- * `VITE_API_BASE_URL` so existing local `.env.local` files keep working).
+ * `VITE_LOCAL_ENGINE_API` env var.
  *
  * Every path, HTTP method, request body and response shape defined here
  * MUST match the FastAPI OpenAPI spec that ships with the desktop app.
@@ -17,7 +16,7 @@
 
 const env = (import.meta as any).env ?? {};
 export const LOCAL_ENGINE_BASE_URL: string =
-  env.VITE_LOCAL_ENGINE_API ?? env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+  env.VITE_LOCAL_ENGINE_API ?? "http://127.0.0.1:8000";
 
 // ── Types (mirrors of the FastAPI Pydantic models) ─────────────────────
 
