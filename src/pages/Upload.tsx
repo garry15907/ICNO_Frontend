@@ -38,7 +38,6 @@ import { libraryPresets, marketplacePresets } from "@/data/mockData";
 import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutionType } from "@/data/mockData";
 import { useIconLibrary } from "@/lib/icon-library";
 import type { UserIconAsset } from "@/services/iconLibraryService";
-import { groupUserIconAssets } from "@/services/iconLibraryService";
 import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
 import { Loader2 } from "lucide-react";
