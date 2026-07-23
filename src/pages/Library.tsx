@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { uploadIconImage, ApiError } from "@/services/api";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
