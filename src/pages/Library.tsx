@@ -1419,16 +1419,16 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
               <span />
             )}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => { setUploadOpen(false); setPendingUploads([]); }}>
+              <Button variant="outline" disabled={uploading} onClick={() => { setUploadOpen(false); setPendingUploads([]); setPendingFiles({}); }}>
                 취소
               </Button>
               <Button
                 onClick={confirmUpload}
-                disabled={pendingUploads.length === 0}
+                disabled={pendingUploads.length === 0 || uploading}
                 className="bg-gradient-primary text-primary-foreground gap-1.5"
               >
                 <Check className="h-3.5 w-3.5" />
-                저장{pendingUploads.length > 1 ? ` (${pendingUploads.length})` : ""}
+                {uploading ? "업로드 중…" : `저장${pendingUploads.length > 1 ? ` (${pendingUploads.length})` : ""}`}
               </Button>
             </div>
           </DialogFooter>
