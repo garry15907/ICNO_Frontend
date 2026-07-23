@@ -175,61 +175,7 @@ export function PresetFileList({
         </button>
       </div>
 
-      <div>
-        <h3 className="text-base font-bold mb-3">
-          아이콘 이미지 ({preset.icons.length})
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {preset.icons.map((ic) => (
-            <button
-              key={ic.id}
-              onClick={() =>
-                onSelectAsset?.({ emoji: ic.emoji, name: ic.fileName })
-              }
-              className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 hover:border-primary/40 transition text-left"
-            >
-              <div className="h-12 w-12 rounded-lg bg-muted grid place-items-center text-2xl">
-                {ic.emoji}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate">{ic.label}</div>
-                <div className="text-[10px] text-muted-foreground truncate">
-                  {ic.fileName} · {ic.size.w}×{ic.size.h} · {ic.fileType}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {preset.hoverIcons?.length > 0 && (
-        <div>
-          <h3 className="text-base font-bold mb-3">
-            호버 이미지 ({preset.hoverIcons.length})
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {preset.hoverIcons.map((h) => (
-              <button
-                key={h.id}
-                onClick={() =>
-                  onSelectAsset?.({ emoji: h.emoji, name: h.fileName })
-                }
-                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 hover:border-primary/40 transition text-left"
-              >
-                <div className="h-12 w-12 rounded-lg bg-muted grid place-items-center text-2xl">
-                  {h.emoji}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium truncate">{h.label}</div>
-                  <div className="text-[10px] text-muted-foreground truncate">
-                    {h.fileName} · GIF
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* 아이콘/호버 이미지 목록은 상세 뷰에서 노출하지 않음. */}
     </div>
   );
 }
