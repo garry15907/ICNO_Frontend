@@ -337,97 +337,68 @@ export function IconEditModal({
                         <br />탐색에서 아이콘을 다운로드해보세요.
                       </div>
                     ) : (
-                      <Tabs value={libTab} onValueChange={(v) => setLibTab(v as typeof libTab)}>
-                        <TabsList className="grid grid-cols-2 w-full h-7">
-                          <TabsTrigger value="library" className="text-[11px]">
-                            개별 ({libStandalone.length})
-                          </TabsTrigger>
-                          <TabsTrigger value="packs" className="text-[11px]">
-                            팩 ({libPacks.reduce((n, p) => n + p.items.length, 0)})
-                          </TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="library" className="pt-2">
-                          {libStandalone.length ? (
-                            <ScrollArea className="h-40 rounded-lg border border-border">
-                              <div className="grid grid-cols-4 gap-1.5 p-2">
-                                {libStandalone.map((asset) => {
-                                  const selected = pickedUserIconId === asset.id;
-                                  return (
-                                    <button
-                                      key={asset.id}
-                                      type="button"
-                                      title={asset.title}
-                                      onClick={() => pickFromLibrary(asset)}
-                                      className={cn(
-                                        "aspect-square rounded-md grid place-items-center overflow-hidden text-2xl border-2 transition",
-                                        selected ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/40",
-                                      )}
-                                      style={{
-                                        background: asset.hasTransparentBackground
-                                          ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 10px 10px"
-                                          : "hsl(var(--muted) / 0.5)",
-                                      }}
-                                    >
-                                      {asset.imageUrl ? (
-                                        <img src={asset.imageUrl} alt={asset.title} className="max-w-full max-h-full object-contain" />
-                                      ) : (
-                                        <span>{asset.emoji ?? "🖼️"}</span>
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </ScrollArea>
-                          ) : (
-                            <div className="text-xs text-muted-foreground text-center py-4">개별 다운로드 아이콘이 없습니다.</div>
-                          )}
-                        </TabsContent>
-                        <TabsContent value="packs" className="pt-2">
-                          {libPacks.length ? (
-                            <ScrollArea className="h-40 rounded-lg border border-border">
-                              <div className="p-2 space-y-2">
-                                {libPacks.map((pack) => (
-                                  <div key={pack.packId}>
-                                    <div className="text-[10px] font-medium text-muted-foreground mb-1 uppercase tracking-wide">
-                                      {pack.items[0]?.creatorName ?? pack.packId} · {pack.items.length}개
-                                    </div>
-                                    <div className="grid grid-cols-4 gap-1.5">
-                                      {pack.items.map((asset) => {
-                                        const selected = pickedUserIconId === asset.id;
-                                        return (
-                                          <button
-                                            key={asset.id}
-                                            type="button"
-                                            title={asset.title}
-                                            onClick={() => pickFromLibrary(asset)}
-                                            className={cn(
-                                              "aspect-square rounded-md grid place-items-center overflow-hidden text-2xl border-2 transition",
-                                              selected ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/40",
-                                            )}
-                                            style={{
-                                              background: asset.hasTransparentBackground
-                                                ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 10px 10px"
-                                                : "hsl(var(--muted) / 0.5)",
-                                            }}
-                                          >
-                                            {asset.imageUrl ? (
-                                              <img src={asset.imageUrl} alt={asset.title} className="max-w-full max-h-full object-contain" />
-                                            ) : (
-                                              <span>{asset.emoji ?? "🖼️"}</span>
-                                            )}
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className="relative flex-1">
+                            <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              value={libSearch}
+                              onChange={(e) => setLibSearch(e.target.value)}
+                              placeholder="보관함 검색"
+                              className="h-7 pl-6 text-[11px]"
+                            />
+                          </div>
+                          {packOptions.length > 0 && (
+                            <Select value={libPackFilter} onValueChange={setLibPackFilter}>
+                              <SelectTrigger className="h-7 w-28 text-[11px]"><SelectValue placeholder="팩" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">전체</SelectItem>
+                                <SelectItem value="none">개별만</SelectItem>
+                                {packOptions.map(([id, label]) => (
+                                  <SelectItem key={id} value={id}>{label}</SelectItem>
                                 ))}
-                              </div>
-                            </ScrollArea>
-                          ) : (
-                            <div className="text-xs text-muted-foreground text-center py-4">다운로드한 아이콘 팩이 없습니다.</div>
+                              </SelectContent>
+                            </Select>
                           )}
-                        </TabsContent>
-                      </Tabs>
+                        </div>
+                        {filteredLibrary.length ? (
+                          <ScrollArea className="h-40 rounded-lg border border-border">
+                            <div className="grid grid-cols-4 gap-1.5 p-2">
+                              {filteredLibrary.map((asset) => {
+                                const selected = pickedUserIconId === asset.id;
+                                return (
+                                  <button
+                                    key={asset.id}
+                                    type="button"
+                                    title={`${asset.title}${asset.packId ? " · 팩" : ""}`}
+                                    onClick={() => pickFromLibrary(asset)}
+                                    className={cn(
+                                      "relative aspect-square rounded-md grid place-items-center overflow-hidden text-2xl border-2 transition",
+                                      selected ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/40",
+                                    )}
+                                    style={{
+                                      background: asset.hasTransparentBackground
+                                        ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 10px 10px"
+                                        : "hsl(var(--muted) / 0.5)",
+                                    }}
+                                  >
+                                    {asset.imageUrl ? (
+                                      <img src={asset.imageUrl} alt={asset.title} className="max-w-full max-h-full object-contain" />
+                                    ) : (
+                                      <span>{asset.emoji ?? "🖼️"}</span>
+                                    )}
+                                    {asset.packId && (
+                                      <span className="absolute bottom-0.5 right-0.5 text-[8px] px-1 rounded bg-background/80 text-muted-foreground">팩</span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </ScrollArea>
+                        ) : (
+                          <div className="text-xs text-muted-foreground text-center py-4">일치하는 아이콘이 없습니다.</div>
+                        )}
+                      </div>
                     )}
                   </TabsContent>
                 </Tabs>
