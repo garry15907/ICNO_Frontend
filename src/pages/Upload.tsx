@@ -41,6 +41,13 @@ import type { UserIconAsset } from "@/services/iconLibraryService";
 import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
 import { Loader2 } from "lucide-react";
+import {
+  uploadIconImage,
+  uploadWallpaper,
+  ApiError,
+  type PresetModel,
+  type PresetIconModel,
+} from "@/services/localEngineApi";
 
 type LibraryWallpaper = { id: string; name: string; url: string; fileName: string };
 
@@ -60,7 +67,17 @@ function synthesizeAssetFromLibrary(u: UserIconAsset): IconAsset {
   return { id: `lib-${u.id}`, file, previewUrl };
 }
 
-type IconAsset = { id: string; file: File; previewUrl: string };
+type IconAsset = {
+  id: string;
+  file: File;
+  previewUrl: string;
+  /** Engine-issued asset_id after a successful POST /api/icons/upload. */
+  asset_id?: string;
+  /** Absolute local path returned by the engine — needed for future
+   *  cross-machine debugging only; never sent inside a PresetModel. */
+  local_image_path?: string;
+  storage_filename?: string;
+};
 // Matches icons_config.json spec. `assetId`/`fileName` are internal-only fields
 // used to bind the in-memory File preview; they are NOT serialized to UI/paths.
 type PlacedIcon = {
@@ -197,7 +214,8 @@ export default function Upload() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const presetIdParam = searchParams.get("preset");
-  const { requestApply, isApplying, applyingPresetId } = useLibrary();
+  const { applyEditedPreset, isApplying, applyingPresetId } = useLibrary();
+  const { userIcons } = useIconLibrary();
 
   const [wallpaper, setWallpaper] = useState<{ file: File; url: string } | null>(null);
   const [iconAssets, setIconAssets] = useState<IconAsset[]>([]);
@@ -299,10 +317,53 @@ export default function Upload() {
       toast({ title: "지원하지 않는 형식", description: "PNG, SVG, ICO, GIF만 업로드할 수 있어요." });
       return;
     }
-    setIconAssets((prev) => [
-      ...prev,
-      ...arr.map((file) => ({ id: uid(), file, previewUrl: URL.createObjectURL(file) })),
-    ]);
+    // Optimistically add to the editor, then push each file to the local
+    // FastAPI engine so we get back a real `asset_id` + `local_image_path`
+    // to reference in the saved PresetModel. On failure, remove the asset
+    // and surface the error — never fake a success.
+    const newAssets: IconAsset[] = arr.map((file) => ({
+      id: uid(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    setIconAssets((prev) => [...prev, ...newAssets]);
+    (async () => {
+      for (const a of newAssets) {
+        try {
+          const res = await uploadIconImage(a.file);
+          if (!res?.asset_id || !res?.local_image_path) {
+            throw new ApiError("Upload response missing asset_id/local_image_path", 500, res);
+          }
+          setIconAssets((prev) =>
+            prev.map((x) =>
+              x.id === a.id
+                ? {
+                    ...x,
+                    asset_id: res.asset_id,
+                    local_image_path: res.local_image_path,
+                    storage_filename: res.storage_filename,
+                  }
+                : x,
+            ),
+          );
+        } catch (err) {
+          console.error("[upload] icon upload failed", err);
+          const detail =
+            err instanceof ApiError
+              ? err.status === 0
+                ? "ICNO Desktop App이 실행 중인지 확인해주세요."
+                : `서버 오류 (${err.status})`
+              : "알 수 없는 오류";
+          toast({
+            title: `아이콘 업로드 실패: ${a.file.name}`,
+            description: detail,
+            variant: "destructive",
+          });
+          // Remove the failed asset from the editor so the user can retry.
+          setIconAssets((prev) => prev.filter((x) => x.id !== a.id));
+        }
+      }
+    })();
   };
 
   const addTag = () => {
@@ -321,12 +382,111 @@ export default function Upload() {
   ];
   const allDone = checks.every((c) => c.done);
 
-  // Fire the real local FastAPI apply flow (reload-overlay, with a
-  // start-overlay retry on failure). The success toast is emitted inside
-  // `requestApply` and only after a real 2xx from the engine.
-  const handlePublish = () => {
-    const targetId = presetIdParam ?? name.trim() ?? "current";
-    void requestApply(targetId);
+  // Backend preset id — set after the first successful POST /api/presets
+  // so subsequent saves use PUT /api/presets/{id}. `presetIdParam` from
+  // the URL is *only* the localStorage/mock id (e.g. `lib-…`) and is NOT
+  // the engine-side id, so we don't seed this from the URL.
+  const [backendPresetId, setBackendPresetId] = useState<string>("");
+
+  // Build a spec-shaped PresetModel from the current editor state.
+  // Filters out icons that have no `asset_id` yet (emoji stand-ins,
+  // library icons that were never uploaded, or user uploads whose
+  // POST /api/icons/upload has not resolved). Coordinates stay in the
+  // 1920×1080 canvas frame — the engine handles resolution scaling.
+  const buildPresetPayload = (wallpaper_path: string): {
+    model: PresetModel;
+    excluded: PlacedIcon[];
+  } => {
+    const excluded: PlacedIcon[] = [];
+    const icons: PresetIconModel[] = [];
+    for (const it of placed) {
+      // Prefer the session upload's engine asset_id; fall back to a
+      // library-sourced UserIconAsset.asset_id if the icon came from
+      // "내 아이콘 보관함".
+      const uploadAsset = iconAssets.find((a) => a.id === it.assetId);
+      const libAsset = it.library_asset_id
+        ? userIcons.find((u) => u.id === it.library_asset_id)
+        : undefined;
+      const asset_id = uploadAsset?.asset_id ?? libAsset?.asset_id ?? "";
+      if (!asset_id) {
+        excluded.push(it);
+        continue;
+      }
+      icons.push({
+        asset_id,
+        icon_name: it.name,
+        target_path: it.target_path || "",
+        x: it.x,
+        y: it.y,
+        size: it.size,
+        show_name: it.show_name,
+        hover_image_path: it.hover_image_path || "",
+        font_family: it.font_family,
+        font_size: it.font_size,
+        font_bold: it.font_bold,
+        font_italic: it.font_italic,
+        font_color: it.font_color,
+        outline_color: it.outline_color,
+      });
+    }
+    return {
+      model: {
+        id: backendPresetId || "",
+        name: name.trim() || "이름 없는 프리셋",
+        wallpaper_path,
+        canvas: { w: CANVAS_W, h: CANVAS_H },
+        settings: {},
+        icons,
+      },
+      excluded,
+    };
+  };
+
+  const handlePublish = async () => {
+    // 1) Upload the wallpaper file if we have a real File (not a stub
+    //    reconstructed from a saved preview URL).
+    let wallpaper_path = "";
+    if (wallpaper?.file && wallpaper.file.size > 0) {
+      try {
+        const res = await uploadWallpaper(wallpaper.file);
+        wallpaper_path = res.wallpaper_path ?? "";
+      } catch (err) {
+        console.error("[upload] wallpaper upload failed", err);
+        toast({
+          title: "배경화면 업로드에 실패했습니다.",
+          description:
+            err instanceof ApiError && err.status === 0
+              ? "ICNO Desktop App이 실행 중인지 확인해주세요."
+              : err instanceof Error
+                ? err.message
+                : "알 수 없는 오류",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // 2) Build spec-shaped payload and warn about excluded emoji-only icons.
+    const { model, excluded } = buildPresetPayload(wallpaper_path);
+    if (excluded.length) {
+      toast({
+        title: `${excluded.length}개 아이콘은 적용에서 제외됐어요`,
+        description:
+          "아직 로컬에 저장되지 않은 아이콘입니다. 파일을 직접 업로드해서 사용해주세요.",
+      });
+    }
+    if (model.icons!.length === 0 && !wallpaper_path) {
+      toast({
+        title: "적용할 항목이 없습니다.",
+        description: "배경화면 또는 로컬에 저장된 아이콘이 필요합니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 3) Save (POST or PUT) then apply. Success toast emitted inside
+    //    library.tsx after real 2xx from apply-local.
+    await applyEditedPreset(model, { onSaved: (saved) => setBackendPresetId(saved.id ?? "") });
   };
 
   void applyingPresetId; // reserved for future per-preset button states

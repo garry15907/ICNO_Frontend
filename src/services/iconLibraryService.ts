@@ -52,6 +52,15 @@ export type UserIconAsset = {
    * same asset twice. Empty until the icon has been sent to the engine.
    */
   local_image_path?: string;
+  /**
+   * Server-issued asset id returned by `POST /api/icons/upload`. Required
+   * to reference this icon inside a saved `PresetModel.icons[]` on the
+   * local FastAPI engine. Empty for emoji/marketplace stand-ins that
+   * were never uploaded as a real file.
+   */
+  asset_id?: string;
+  /** Server-side storage filename (returned by upload). */
+  storage_filename?: string;
 };
 
 const STORAGE_KEY = "icno-user-icons-v1";
@@ -249,6 +258,20 @@ export function renameUserIconAsset(id: string, newTitle: string): void {
 export function setUserIconLocalPath(id: string, localPath: string): void {
   const next = getUserIconAssets().map((a) =>
     a.id === id ? { ...a, local_image_path: localPath } : a,
+  );
+  writeAssets(next);
+}
+
+/**
+ * Persist the engine-issued asset_id + storage_filename after a
+ * successful `POST /api/icons/upload`. Called at most once per asset.
+ */
+export function setUserIconBackendIds(
+  id: string,
+  patch: { asset_id?: string; local_image_path?: string; storage_filename?: string },
+): void {
+  const next = getUserIconAssets().map((a) =>
+    a.id === id ? { ...a, ...patch } : a,
   );
   writeAssets(next);
 }

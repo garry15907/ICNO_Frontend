@@ -171,10 +171,57 @@ export function getCustomImages(): Promise<{ images?: CustomImage[] } & Record<s
 /** POST /api/icons/upload (multipart) */
 export function uploadIconImage(
   file: File,
-): Promise<{ success?: boolean; filename?: string; path?: string; url?: string } & Record<string, any>> {
+): Promise<UploadIconImageResponse> {
   const fd = new FormData();
   fd.append("file", file);
   return request("/api/icons/upload", { method: "POST", body: fd });
+}
+
+/**
+ * Response shape of POST /api/icons/upload (Phase A).
+ * `asset_id` / `local_image_path` / `storage_filename` are the fields that
+ * must be persisted on the library-side record. `duplicate` is true when
+ * the sha256 already existed on the engine and the response reuses the
+ * existing `asset_id`.
+ */
+export type UploadIconImageResponse = {
+  asset_id: string;
+  local_image_path: string;
+  storage_filename: string;
+  duplicate: boolean;
+  // Legacy (hạ-compat) fields — kept by the engine for the older client:
+  success?: boolean;
+  filename?: string;
+  path?: string;
+  url?: string;
+  [k: string]: unknown;
+};
+
+/** GET /api/icons/library — full library with `file_exists` + asset_id. */
+export type LibraryAsset = {
+  asset_id: string;
+  display_name: string;
+  storage_filename: string;
+  local_image_path: string;
+  file_exists: boolean;
+  [k: string]: unknown;
+};
+export function getIconLibrary(): Promise<{ assets?: LibraryAsset[] } & Record<string, any>> {
+  return request("/api/icons/library");
+}
+
+/** PATCH /api/icons/library/{asset_id} — rename only. */
+export function updateLibraryAsset(assetId: string, display_name: string): Promise<any> {
+  return request(`/api/icons/library/${encodeURIComponent(assetId)}`, {
+    method: "PATCH",
+    body: { display_name } as any,
+  });
+}
+
+/** DELETE /api/icons/library/{asset_id}?force=... */
+export function deleteLibraryAsset(assetId: string, force = false): Promise<any> {
+  const qs = force ? "?force=true" : "";
+  return request(`/api/icons/library/${encodeURIComponent(assetId)}${qs}`, { method: "DELETE" });
 }
 
 /** GET /api/icons/mappings */
@@ -241,6 +288,92 @@ export function launchLauncher(): Promise<any> {
 }
 export function calculate(expression: string): Promise<any> {
   return request("/api/calculate", { method: "POST", body: { expression } as any });
+}
+
+// ── Wallpaper ─────────────────────────────────────────────────────────
+
+/** POST /api/wallpaper/upload (multipart) → returns the absolute wallpaper_path. */
+export function uploadWallpaper(
+  file: File,
+): Promise<{ wallpaper_path: string } & Record<string, any>> {
+  const fd = new FormData();
+  fd.append("file", file);
+  return request("/api/wallpaper/upload", { method: "POST", body: fd });
+}
+
+/** POST /api/wallpaper/apply */
+export function applyWallpaper(wallpaper_path: string): Promise<any> {
+  return request("/api/wallpaper/apply", {
+    method: "POST",
+    body: { wallpaper_path } as any,
+  });
+}
+
+// ── Presets ───────────────────────────────────────────────────────────
+
+export type CanvasModel = { w: number; h: number };
+export type PresetSettingsModel = {
+  mode?: string;
+  grid_cell_w?: number;
+  grid_cell_h?: number;
+  grid_cols?: number;
+};
+
+/**
+ * Matches PresetIconModel in the FastAPI OpenAPI spec exactly. Only these
+ * fields are persisted server-side — front-end-only fields (preview_url,
+ * download_status, cloud_asset_id, ...) must not appear here.
+ */
+export type PresetIconModel = {
+  asset_id: string;
+  icon_name?: string;
+  target_path?: string;
+  x?: number;
+  y?: number;
+  size?: number;
+  show_name?: boolean;
+  hover_image_path?: string;
+  font_family?: string;
+  font_size?: number;
+  font_bold?: boolean;
+  font_italic?: boolean;
+  font_color?: string;
+  outline_color?: string;
+};
+
+export type PresetModel = {
+  id?: string;
+  name?: string;
+  wallpaper_path?: string;
+  settings?: PresetSettingsModel;
+  canvas?: CanvasModel;
+  icons?: PresetIconModel[];
+};
+
+export function listPresets(): Promise<{ presets?: PresetModel[] } & Record<string, any>> {
+  return request("/api/presets");
+}
+export function getPreset(presetId: string): Promise<PresetModel & Record<string, any>> {
+  return request(`/api/presets/${encodeURIComponent(presetId)}`);
+}
+export function createPreset(payload: PresetModel): Promise<PresetModel & Record<string, any>> {
+  return request("/api/presets", { method: "POST", body: payload as any });
+}
+export function updatePreset(
+  presetId: string,
+  payload: PresetModel,
+): Promise<PresetModel & Record<string, any>> {
+  return request(`/api/presets/${encodeURIComponent(presetId)}`, {
+    method: "PUT",
+    body: payload as any,
+  });
+}
+export function deletePreset(presetId: string): Promise<any> {
+  return request(`/api/presets/${encodeURIComponent(presetId)}`, { method: "DELETE" });
+}
+/** POST /api/presets/{id}/apply-local — atomic apply, engine rolls back on failure. */
+export function applyPresetLocal(presetId: string): Promise<any> {
+  return request(`/api/presets/${encodeURIComponent(presetId)}/apply-local`, { method: "POST" });
 }
 
 /** Prefix a local-engine relative URL (e.g. `/custom_icons/foo.png`) with the engine base. */

@@ -617,6 +617,12 @@ type UploadedIcon = {
   resolution: string;
   fileName: string;
   createdAt: number;
+  // Populated after a successful POST /api/icons/upload. Presence of
+  // `local_image_path` also signals "already on the engine — do not
+  // re-upload".
+  asset_id?: string;
+  local_image_path?: string;
+  storage_filename?: string;
 };
 
 const UPLOADED_ICONS_KEY = "library-uploaded-icons";
@@ -763,17 +769,35 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
     // local library once every upload succeeded — never fake a success.
     setUploading(true);
     try {
+      // Upload each pending file to the local engine. Skip files that
+      // already carry `local_image_path` (should not happen for the
+      // upload dialog, but keeps the logic symmetric with editor uploads
+      // and prevents accidental re-uploads).
+      const finalized: UploadedIcon[] = [];
       for (const item of cleaned) {
+        if (item.local_image_path && item.asset_id) {
+          finalized.push(item);
+          continue;
+        }
         const file = pendingFiles[item.id];
         if (!file) {
           throw new ApiError(`Missing file blob for ${item.fileName}`, 0);
         }
         const res = await uploadIconImage(file);
-        if (res && res.success === false) {
+        if (res && (res as any).success === false) {
           throw new ApiError(`Upload rejected by server: ${item.fileName}`, 500, res);
         }
+        if (!res?.asset_id || !res?.local_image_path) {
+          throw new ApiError(`Upload response missing asset_id/local_image_path`, 500, res);
+        }
+        finalized.push({
+          ...item,
+          asset_id: res.asset_id,
+          local_image_path: res.local_image_path,
+          storage_filename: res.storage_filename,
+        });
       }
-      persist([...cleaned, ...uploaded]);
+      persist([...finalized, ...uploaded]);
       toast({ title: "아이콘이 업로드되었습니다", description: `${cleaned.length}개 추가됨` });
       setPendingUploads([]);
       setPendingFiles({});
