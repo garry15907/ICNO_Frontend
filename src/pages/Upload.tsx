@@ -39,6 +39,7 @@ import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutio
 import { useIconLibrary } from "@/lib/icon-library";
 import type { UserIconAsset } from "@/services/iconLibraryService";
 import { useLibrary } from "@/lib/library";
+import { Loader2 } from "lucide-react";
 
 type LibraryWallpaper = { id: string; name: string; url: string; fileName: string };
 
@@ -178,6 +179,7 @@ export default function Upload() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const presetIdParam = searchParams.get("preset");
+  const { requestApply, isApplying, applyingPresetId } = useLibrary();
 
   const [wallpaper, setWallpaper] = useState<{ file: File; url: string } | null>(null);
   const [iconAssets, setIconAssets] = useState<IconAsset[]>([]);
@@ -301,9 +303,15 @@ export default function Upload() {
   ];
   const allDone = checks.every((c) => c.done);
 
+  // Fire the real local FastAPI apply flow (reload-overlay, with a
+  // start-overlay retry on failure). The success toast is emitted inside
+  // `requestApply` and only after a real 2xx from the engine.
   const handlePublish = () => {
-    toast({ title: "프리셋이 적용되었습니다", description: `${name || "이름 없는 프리셋"} · ${placed.length}개 아이콘` });
+    const targetId = presetIdParam ?? name.trim() ?? "current";
+    void requestApply(targetId);
   };
+
+  const applyingThis = isApplying && (applyingPresetId === (presetIdParam ?? name.trim() ?? "current") || applyingPresetId === presetIdParam);
 
   const handleSaveDraft = () => {
     toast({ title: "저장되었습니다", description: name || "이름 없는 프리셋" });
