@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useIconLibrary } from "@/lib/icon-library";
 import type { UserIconAsset } from "@/services/iconLibraryService";
+import { groupUserIconAssets } from "@/services/iconLibraryService";
 
 const presets = [32, 48, 64, 128, 256, 512];
 
@@ -122,6 +123,11 @@ export function IconEditModal({
     icon.userIconAssetId ?? null,
   );
   const { userIcons } = useIconLibrary();
+  const { standalone: libStandalone, packs: libPacks } = useMemo(
+    () => groupUserIconAssets(userIcons),
+    [userIcons],
+  );
+  const [libTab, setLibTab] = useState<"library" | "packs">("library");
   const [path, setPath] = useState<string[]>(["내 PC"]);
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
