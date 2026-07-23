@@ -1635,7 +1635,7 @@ function IconDetailEditModal({
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <Label className="text-xs">커스텀 이미지 선택</Label>
+                <Label className="text-xs">이미지 선택</Label>
                 <input
                   ref={fileInput}
                   type="file"
@@ -1645,29 +1645,139 @@ function IconDetailEditModal({
                   onChange={(e) => e.target.files && onAddIcons(e.target.files)}
                 />
                 <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openFilePicker(fileInput.current)}>
-                  <UploadIcon className="h-3 w-3" /> 업로드
+                  <UploadIcon className="h-3 w-3" /> 새 이미지 업로드
                 </Button>
               </div>
-              {iconAssets.length > 0 ? (
-                <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1">
-                  {iconAssets.map((a) => (
-                    <button
-                      key={a.id}
-                      onClick={() => setAssetId(a.id)}
-                      className={cn(
-                        "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden transition-all",
-                        assetId === a.id ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
-                      )}
-                    >
-                      <img src={a.previewUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
-                  업로드된 이미지가 없습니다.
+
+              {isMissingLibraryAsset && (
+                <div className="mb-2 rounded-lg border border-warning/40 bg-warning/10 p-2.5 text-[11px] text-foreground/85 space-y-1.5">
+                  <div className="font-medium">보관함 아이콘 파일을 찾을 수 없습니다.</div>
+                  <div className="text-muted-foreground">
+                    이 아이콘의 원본 자산이 삭제되었거나 이동되었습니다. 아래에서 다른 아이콘으로 교체하거나 새 이미지를 업로드해 주세요.
+                  </div>
+                  <div className="flex gap-1.5 pt-1">
+                    <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => openFilePicker(fileInput.current)}>
+                      새 이미지 업로드
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-[11px] text-destructive hover:text-destructive" onClick={onRemoveIcon}>
+                      이 아이콘 제거
+                    </Button>
+                  </div>
                 </div>
               )}
+
+              <Tabs value={pickerTab} onValueChange={(v) => setPickerTab(v as typeof pickerTab)} className="w-full">
+                <TabsList className="grid grid-cols-3 w-full h-8">
+                  <TabsTrigger value="upload" className="text-[11px]">
+                    사용자 업로드 ({iconAssets.filter((a) => !a.id.startsWith("lib-")).length})
+                  </TabsTrigger>
+                  <TabsTrigger value="library" className="text-[11px]">
+                    내 보관함 ({groupedLibrary.standalone.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="packs" className="text-[11px]">
+                    아이콘 팩 ({groupedLibrary.packs.reduce((n, p) => n + p.items.length, 0)})
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="upload" className="pt-2">
+                  {iconAssets.filter((a) => !a.id.startsWith("lib-")).length > 0 ? (
+                    <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1">
+                      {iconAssets
+                        .filter((a) => !a.id.startsWith("lib-"))
+                        .map((a) => (
+                          <button
+                            key={a.id}
+                            onClick={() => setAssetId(a.id)}
+                            title={a.file.name}
+                            className={cn(
+                              "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden transition-all",
+                              assetId === a.id ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
+                            )}
+                          >
+                            <img src={a.previewUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
+                          </button>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
+                      업로드된 이미지가 없습니다.
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="library" className="pt-2">
+                  {groupedLibrary.standalone.length > 0 ? (
+                    <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1">
+                      {groupedLibrary.standalone.map((u) => {
+                        const stableId = `lib-${u.id}`;
+                        const selected = assetId === stableId || icon.library_asset_id === u.id;
+                        return (
+                          <button
+                            key={u.id}
+                            onClick={() => { onPickLibraryIcon(u); setAssetId(stableId); }}
+                            title={u.title}
+                            className={cn(
+                              "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden text-2xl transition-all",
+                              selected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
+                            )}
+                          >
+                            {u.imageUrl ? (
+                              <img src={u.imageUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
+                            ) : (
+                              <span>{u.emoji ?? "🖼️"}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
+                      내 아이콘 보관함이 비어 있습니다. 탐색에서 아이콘을 다운로드해 보세요.
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="packs" className="pt-2">
+                  {groupedLibrary.packs.length > 0 ? (
+                    <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
+                      {groupedLibrary.packs.map((pack) => (
+                        <div key={pack.packId}>
+                          <div className="text-[10px] font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+                            팩 · {pack.items[0]?.creatorName ?? pack.packId} ({pack.items.length})
+                          </div>
+                          <div className="grid grid-cols-5 gap-2">
+                            {pack.items.map((u) => {
+                              const stableId = `lib-${u.id}`;
+                              const selected = assetId === stableId || icon.library_asset_id === u.id;
+                              return (
+                                <button
+                                  key={u.id}
+                                  onClick={() => { onPickLibraryIcon(u); setAssetId(stableId); }}
+                                  title={u.title}
+                                  className={cn(
+                                    "aspect-square rounded-lg border bg-background/40 grid place-items-center overflow-hidden text-2xl transition-all",
+                                    selected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/50",
+                                  )}
+                                >
+                                  {u.imageUrl ? (
+                                    <img src={u.imageUrl} alt="" className="max-h-[75%] max-w-[75%] object-contain" />
+                                  ) : (
+                                    <span>{u.emoji ?? "🖼️"}</span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border/60">
+                      다운로드한 아이콘 팩이 없습니다.
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
 
             <div>
