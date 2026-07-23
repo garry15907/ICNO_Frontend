@@ -1483,13 +1483,13 @@ function AssetModal({
                       <img src={a.previewUrl} alt="" className="max-h-[80%] max-w-[80%] object-contain" />
                     </div>
                     <div className="mt-1.5 text-[11px] truncate">{a.file.name}</div>
-                    <div className="text-[10px] text-muted-foreground">{extOf(a.file.name)} · {formatBytes(a.file.size)}</div>
+                    <div className="text-[10px] text-muted-foreground">이번 세션 업로드 · {extOf(a.file.name)}</div>
                     <div className="text-[10px] text-primary opacity-0 group-hover:opacity-100 mt-0.5">+ 캔버스에 추가</div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="text-xs text-muted-foreground text-center py-4">업로드된 아이콘이 없습니다.</div>
+              null
             )}
 
             <div className="pt-2 border-t border-border/60">
@@ -1509,11 +1509,15 @@ function AssetModal({
                       title={u.title}
                     >
                       <div className="aspect-square rounded-md bg-muted/40 grid place-items-center overflow-hidden text-3xl">
-                        {u.emoji ?? "🖼️"}
+                        {u.imageUrl ? (
+                          <img src={u.imageUrl} alt="" className="max-h-[80%] max-w-[80%] object-contain" />
+                        ) : (
+                          <span>{u.emoji ?? "🖼️"}</span>
+                        )}
                       </div>
                       <div className="mt-1.5 text-[11px] truncate">{u.title}</div>
                       <div className="text-[10px] text-muted-foreground truncate">
-                        {u.packId ? "팩" : "개별"} · {u.fileFormat}
+                        보관함 · {u.fileFormat}{u.packId ? " · 팩" : ""}
                       </div>
                       <div className="text-[10px] text-primary opacity-0 group-hover:opacity-100 mt-0.5">+ 캔버스에 추가</div>
                     </button>
