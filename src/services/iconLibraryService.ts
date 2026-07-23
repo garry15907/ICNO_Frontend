@@ -27,6 +27,12 @@ export type UserIconAsset = {
   isFavorite: boolean;
   // Emoji stand-in for the prototype; real builds swap for imageUrl.
   emoji?: string;
+  /**
+   * Cached local FastAPI path returned by `POST /api/icons/upload`.
+   * Reused whenever a preset needs this icon so we never re-upload the
+   * same asset twice. Empty until the icon has been sent to the engine.
+   */
+  local_image_path?: string;
 };
 
 const STORAGE_KEY = "icno-user-icons-v1";
@@ -155,6 +161,40 @@ export function renameUserIconAsset(id: string, newTitle: string): void {
     a.id === id ? { ...a, title: newTitle } : a,
   );
   writeAssets(next);
+}
+
+/**
+ * Persist the FastAPI-side path for a boarding-house icon so future
+ * preset applies don't re-upload the same bytes. Called once, after the
+ * first successful `POST /api/icons/upload` for this asset.
+ */
+export function setUserIconLocalPath(id: string, localPath: string): void {
+  const next = getUserIconAssets().map((a) =>
+    a.id === id ? { ...a, local_image_path: localPath } : a,
+  );
+  writeAssets(next);
+}
+
+/** Split the library into stand-alone icons vs icon-pack icons. */
+export function groupUserIconAssets(assets: UserIconAsset[]): {
+  standalone: UserIconAsset[];
+  packs: { packId: string; items: UserIconAsset[] }[];
+} {
+  const standalone: UserIconAsset[] = [];
+  const byPack = new Map<string, UserIconAsset[]>();
+  for (const a of assets) {
+    if (a.packId) {
+      const list = byPack.get(a.packId) ?? [];
+      list.push(a);
+      byPack.set(a.packId, list);
+    } else {
+      standalone.push(a);
+    }
+  }
+  return {
+    standalone,
+    packs: Array.from(byPack.entries()).map(([packId, items]) => ({ packId, items })),
+  };
 }
 
 export function applyUserIconToPreset(
