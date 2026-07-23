@@ -1592,9 +1592,43 @@ function IconDetailEditModal({
     !iconAssets.some((a) => a.id === `lib-${icon.library_asset_id}`);
 
   const groupedLibrary = useMemo(() => groupUserIconAssets(libraryIcons), [libraryIcons]);
-  const [pickerTab, setPickerTab] = useState<"upload" | "library" | "packs">(
-    icon.asset_source === "iconpack" ? "packs" : icon.asset_source === "library" ? "library" : "upload",
-  );
+  const [libSearch, setLibSearch] = useState("");
+  const [libPackFilter, setLibPackFilter] = useState<string>("all");
+  const packOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const u of libraryIcons) {
+      if (u.packId && !seen.has(u.packId)) seen.set(u.packId, u.creatorName || u.packId);
+    }
+    return Array.from(seen.entries());
+  }, [libraryIcons]);
+  // Unified list: session uploads (as pseudo-library entries) + library icons.
+  type UnifiedEntry =
+    | { kind: "upload"; asset: IconAsset }
+    | { kind: "library"; asset: UserIconAsset };
+  const unifiedList = useMemo<UnifiedEntry[]>(() => {
+    const q = libSearch.trim().toLowerCase();
+    const uploads: UnifiedEntry[] = iconAssets
+      .filter((a) => !a.id.startsWith("lib-"))
+      .filter((a) => libPackFilter === "all" || libPackFilter === "none")
+      .filter((a) => !q || a.file.name.toLowerCase().includes(q))
+      .map((asset) => ({ kind: "upload", asset }));
+    const libs: UnifiedEntry[] = libraryIcons
+      .filter((u) => {
+        if (libPackFilter === "none") return !u.packId;
+        if (libPackFilter !== "all") return u.packId === libPackFilter;
+        return true;
+      })
+      .filter((u) => {
+        if (!q) return true;
+        return (
+          u.title.toLowerCase().includes(q) ||
+          (u.fileName || "").toLowerCase().includes(q) ||
+          (u.tags || []).some((t) => t.toLowerCase().includes(q))
+        );
+      })
+      .map((asset) => ({ kind: "library", asset }));
+    return [...uploads, ...libs];
+  }, [iconAssets, libraryIcons, libSearch, libPackFilter]);
 
   const previewAsset = iconAssets.find((a) => a.id === assetId) ?? asset;
 
