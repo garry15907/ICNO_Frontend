@@ -311,7 +311,7 @@ export default function Upload() {
     void requestApply(targetId);
   };
 
-  const applyingThis = isApplying && (applyingPresetId === (presetIdParam ?? name.trim() ?? "current") || applyingPresetId === presetIdParam);
+  void applyingPresetId; // reserved for future per-preset button states
 
   const handleSaveDraft = () => {
     toast({ title: "저장되었습니다", description: name || "이름 없는 프리셋" });
