@@ -14,9 +14,10 @@
  * not belong in this file — see `src/services/cloudApi.ts`.
  */
 
-const env = (import.meta as any).env ?? {};
-export const LOCAL_ENGINE_BASE_URL: string =
-  env.VITE_LOCAL_ENGINE_API ?? "http://127.0.0.1:8000";
+export const LOCAL_ENGINE_BASE_URL: string = (
+  (import.meta as any).env?.VITE_LOCAL_ENGINE_API ||
+  "http://127.0.0.1:8000"
+).replace(/\/$/, "");
 
 // ── Types (mirrors of the FastAPI Pydantic models) ─────────────────────
 
