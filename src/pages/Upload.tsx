@@ -283,8 +283,61 @@ export default function Upload() {
   // fullscreen editor experience.
   useEffect(() => {
     if (!presetIdParam) return;
-    const preset = libraryPresets.find((p) => p.id === presetIdParam);
+    let cancelled = false;
+    (async () => {
+      // 1) Try loading from the local FastAPI engine first — this is the
+      // source of truth for anything that was saved via POST/PUT /api/presets.
+      try {
+        const model = await getPreset(presetIdParam);
+        if (cancelled) return;
+        if (model && (model.id || model.name || (model.icons?.length ?? 0) > 0 || model.wallpaper_path)) {
+          setBackendPresetId(model.id || presetIdParam);
+          if (model.name) setName((prev) => prev || model.name!);
+          const nextAssets: IconAsset[] = [];
+          const nextPlaced: PlacedIcon[] = (model.icons ?? []).map((it, i) => {
+            const libAsset = it.asset_id
+              ? userIcons.find((u) => u.asset_id === it.asset_id)
+              : undefined;
+            const stableId = libAsset ? `lib-${libAsset.id}` : `be-${it.asset_id || i}`;
+            if (!nextAssets.some((a) => a.id === stableId)) {
+              if (libAsset) {
+                nextAssets.push(iconAssetFromLibrary(libAsset));
+              } else {
+                const stub = new File([], `${it.asset_id || `icon-${i}`}.png`, { type: "image/png" });
+                nextAssets.push({ id: stableId, file: stub, previewUrl: "", asset_id: it.asset_id });
+              }
+            }
+            return normalizeIcon({
+              ...it,
+              assetId: stableId,
+              fileName: it.icon_name ?? "",
+              name: it.icon_name ?? `아이콘 ${i + 1}`,
+              asset_source: libAsset ? (libAsset.packId ? "iconpack" : "library") : "user-upload",
+              library_asset_id: libAsset?.id,
+              preview_url: libAsset?.imageUrl || libAsset?.thumbnailUrl,
+            }, i);
+          });
+          setIconAssets((prev) => [...prev, ...nextAssets.filter((a) => !prev.some((p) => p.id === a.id))]);
+          setPlaced(nextPlaced);
+          // wallpaper_path is an absolute local filesystem path — the
+          // browser can't render it. Fall through to the legacy preview
+          // sources below to still show a thumbnail if we have one.
+        }
+      } catch (err) {
+        if (!(err instanceof ApiError && (err.status === 404 || err.status === 0))) {
+          console.warn("[upload] getPreset failed, falling back to local cache", err);
+        }
+      }
+      if (cancelled) return;
+      loadLegacyPreset();
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presetIdParam]);
 
+  const loadLegacyPreset = () => {
+    if (!presetIdParam) return;
+    const preset = libraryPresets.find((p) => p.id === presetIdParam);
     let wpUrl: string | undefined;
     let savedIcons: any[] | undefined;
     let savedName: string | undefined;
@@ -299,20 +352,16 @@ export default function Upload() {
         if (data?.name) savedName = data.name;
       }
     } catch {}
-
     if (!wpUrl && preset?.thumbnail && preset.thumbnail !== "/placeholder.svg") {
       wpUrl = preset.thumbnail;
     }
     if (wpUrl) {
       const stub = new File([], "wallpaper", { type: "image/*" });
-      setWallpaper({ file: stub, url: wpUrl });
+      setWallpaper((prev) => prev ?? { file: stub, url: wpUrl! });
     }
-
     const sourceIcons = savedIcons ?? preset?.icons ?? [];
     if (sourceIcons.length) {
       const next: PlacedIcon[] = sourceIcons.map((it: any, i: number) => {
-        // LibraryDetail/mockData icons use {position:{x,y}} as percentages
-        // (0–100). Upload editor uses px in a 1920x1080 canvas.
         const px = it?.x ?? it?.position?.x ?? 0;
         const py = it?.y ?? it?.position?.y ?? 0;
         const isPercent = px <= 100 && py <= 100 && !("size" in (it ?? {}));
@@ -323,13 +372,11 @@ export default function Upload() {
           y: isPercent ? Math.round((py / 100) * CANVAS_H) : py,
         }, i);
       });
-      setPlaced(next);
+      setPlaced((prev) => (prev.length ? prev : next));
     }
-
-    if (preset?.name && !name) setName(savedName ?? preset.name);
-    if (preset?.description && !description) setDescription(preset.description);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [presetIdParam]);
+    if (preset?.name) setName((prev) => prev || (savedName ?? preset.name));
+    if (preset?.description) setDescription((prev) => prev || preset.description);
+  };
 
   const handleWallpaper = (file?: File) => {
     if (!file) return;
@@ -520,8 +567,43 @@ export default function Upload() {
 
   void applyingPresetId; // reserved for future per-preset button states
 
-  const handleSaveDraft = () => {
-    toast({ title: "저장되었습니다", description: name || "이름 없는 프리셋" });
+  const [isSaving, setIsSaving] = useState(false);
+  const handleSaveDraft = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      let wallpaper_path = "";
+      if (wallpaper?.file && wallpaper.file.size > 0) {
+        const res = await uploadWallpaper(wallpaper.file);
+        wallpaper_path = res.wallpaper_path ?? "";
+      }
+      const { model, excluded } = buildPresetPayload(wallpaper_path);
+      const saved = backendPresetId
+        ? await updatePreset(backendPresetId, model)
+        : await createPreset(model);
+      const savedId = saved?.id ?? backendPresetId;
+      if (savedId) setBackendPresetId(savedId);
+      toast({
+        title: "저장되었습니다",
+        description:
+          (model.name || "이름 없는 프리셋") +
+          (excluded.length ? ` · ${excluded.length}개 아이콘 제외됨` : ""),
+      });
+    } catch (err) {
+      console.error("[upload] save failed", err);
+      toast({
+        title: "저장에 실패했습니다.",
+        description:
+          err instanceof ApiError && err.status === 0
+            ? "ICNO Desktop App이 실행 중인지 확인해주세요."
+            : err instanceof Error
+              ? err.message
+              : "알 수 없는 오류",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const assetById = useMemo(() => {
@@ -567,8 +649,8 @@ export default function Upload() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="rounded-lg" onClick={handleSaveDraft}>
-            <Save className="h-4 w-4" /> 저장하기
+          <Button variant="outline" className="rounded-lg" onClick={handleSaveDraft} disabled={isSaving}>
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} 저장하기
           </Button>
           <Button
             variant="secondary"
