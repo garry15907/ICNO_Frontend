@@ -688,7 +688,7 @@ export default function Upload() {
               className="relative w-full aspect-video rounded-xl overflow-hidden border border-border bg-muted group cursor-pointer"
             >
               {wallpaper ? (
-                <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-contain" />
+                <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover" />
               ) : (
                 <div className="absolute inset-0 grid place-items-center text-center px-6 bg-gradient-to-br from-muted/40 to-muted/10">
                   <div className="text-muted-foreground">
@@ -1059,7 +1059,7 @@ function FullscreenEditor({
       if (iconAssets.some((a) => a.id === stableId)) continue;
       const u = userIcons.find((x) => x.id === it.library_asset_id);
       if (!u) continue; // library asset was deleted — placeholder path handles UI
-      missing.push(synthesizeAssetFromLibrary(u));
+      missing.push(iconAssetFromLibrary(u));
     }
     if (missing.length) {
       onAddIconAssets(missing);
@@ -1102,7 +1102,7 @@ function FullscreenEditor({
       addToCanvas(existing);
       return;
     }
-    const asset = synthesizeAssetFromLibrary(u);
+    const asset = iconAssetFromLibrary(u);
     onAddIconAssets([asset]);
     addToCanvas(asset);
   };
