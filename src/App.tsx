@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,11 +22,6 @@ import { ProfileMain, Wishlist, Downloads, Purchases, Sales, Following } from ".
 import CreatorProfile from "./pages/CreatorProfile";
 import NotFound from "./pages/NotFound";
 
-function LibraryRedirect() {
-  const { id } = useParams();
-  return <Navigate to={`/library?open=${encodeURIComponent(id ?? "")}`} replace />;
-}
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -47,7 +42,6 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/library" element={<Library />} />
-              <Route path="/library/:id" element={<LibraryRedirect />} />
               <Route path="/icon-maker" element={<IconMaker />} />
               <Route path="/upload" element={<Upload />} />
               <Route path="/notifications" element={<Notifications />} />
