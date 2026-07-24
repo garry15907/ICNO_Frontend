@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Play, Power, Loader2 } from "lucide-react";
+import { Sparkles, Play, Power, Loader2, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { libraryPresets, marketplacePresets, marketItems, downloadedIds, LibraryStatus } from "@/data/mockData";
 import { MarketItemCard } from "@/components/presets/PresetCard";
@@ -7,8 +7,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useWishlist } from "@/lib/wishlist";
 import { useLibrary } from "@/lib/library";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { ApiError, deactivateOverlay } from "@/services/localEngineApi";
+import { useEffect, useState } from "react";
+import {
+  ApiError,
+  deactivateOverlay,
+  getActivePreset,
+  localEngineUrl,
+  type PresetModel,
+} from "@/services/localEngineApi";
+import { PresetMiniPreview } from "@/components/presets/PresetMiniPreview";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -26,11 +33,35 @@ const Index = () => {
   const { isWishlisted, toggle } = useWishlist();
   const { requestApply } = useLibrary();
   const [deactivating, setDeactivating] = useState(false);
+  // Live "currently applied" preset pulled from the local engine. `null`
+  // means the engine is reachable but nothing is applied; `undefined`
+  // means we haven't fetched yet or the engine is offline.
+  const [activePreset, setActivePreset] = useState<PresetModel | null | undefined>(undefined);
+  const refetchActive = async () => {
+    try {
+      const res = await getActivePreset();
+      setActivePreset(res?.active ?? null);
+    } catch {
+      setActivePreset(null);
+    }
+  };
+  useEffect(() => {
+    refetchActive();
+    const onFocus = () => refetchActive();
+    const onRefresh = () => refetchActive();
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("presets:refresh", onRefresh as EventListener);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("presets:refresh", onRefresh as EventListener);
+    };
+  }, []);
   const handleDeactivate = async () => {
     if (deactivating) return;
     setDeactivating(true);
     try {
       await deactivateOverlay();
+      setActivePreset(null);
       toast({ title: "기본 바탕화면으로 복원됐어요" });
     } catch (err) {
       console.error("[home] deactivate failed", err);
@@ -52,7 +83,6 @@ const Index = () => {
     const added = toggle(id);
     toast({ title: added ? "찜 추가" : "찜 해제", description: added ? "찜 목록에 추가했어요." : "찜 목록에서 제거했어요." });
   };
-  const current = libraryPresets.find((p) => p.status === "현재 적용 중")!;
   const recent = libraryPresets.slice(0, 3);
   const creatorMap = new Map(marketplacePresets.map((m) => [m.id, m.creator.name] as const));
   const presetItems = marketItems.filter((i) => i.type === "preset");
@@ -63,24 +93,55 @@ const Index = () => {
     <div className="space-y-10">
       {/* Hero / current preset */}
       <section className="relative overflow-hidden rounded-3xl border border-border shadow-card">
-        <img src={current.thumbnail} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/70 to-background/30" />
-        <div className="relative p-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-3">
-            <Sparkles className="h-3.5 w-3.5" /> 현재 적용 중인 프리셋
+        {activePreset ? (
+          <>
+            <div className="absolute inset-0">
+              <PresetMiniPreview preset={activePreset} className="w-full h-full" />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/70 to-background/30" />
+            <div className="relative p-10 max-w-2xl">
+              <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-3">
+                <Sparkles className="h-3.5 w-3.5" /> 현재 적용 중인 프리셋
+              </div>
+              <h2 className="text-4xl font-bold tracking-tight mb-3">
+                {activePreset.name || "이름 없는 프리셋"}
+              </h2>
+              <div className="flex gap-3 mt-6">
+                {activePreset.id && (
+                  <Button
+                    onClick={() => nav(`/upload?preset=${activePreset.id}`)}
+                    className="bg-gradient-primary text-primary-foreground hover:opacity-90"
+                  >
+                    프리셋 관리
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => nav("/library")}>보관함 열기</Button>
+                <Button variant="outline" onClick={handleDeactivate} disabled={deactivating}>
+                  {deactivating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                  끄기
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="relative p-10 max-w-2xl">
+            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+              <ImageOff className="h-3.5 w-3.5" /> 적용 중인 프리셋 없음
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight mb-3">
+              지금은 기본 바탕화면을 사용 중이에요
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              보관함에서 프리셋을 선택해 적용해보세요.
+            </p>
+            <div className="flex gap-3">
+              <Button onClick={() => nav("/library")} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
+                보관함 열기
+              </Button>
+              <Button variant="outline" onClick={() => nav("/explore")}>탐색하기</Button>
+            </div>
           </div>
-          <h2 className="text-4xl font-bold tracking-tight mb-3">{current.name}</h2>
-          <div className="flex gap-3 mt-6">
-            <Button onClick={() => nav(`/upload?preset=${current.id}`)} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
-              프리셋 관리
-            </Button>
-            <Button variant="outline" onClick={() => nav("/library")}>보관함 열기</Button>
-            <Button variant="outline" onClick={handleDeactivate} disabled={deactivating}>
-              {deactivating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
-              끄기
-            </Button>
-          </div>
-        </div>
+        )}
       </section>
 
       <Section title="최근 사용한 프리셋">
