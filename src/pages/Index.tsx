@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Play } from "lucide-react";
+import { Sparkles, Play, Power, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { libraryPresets, marketplacePresets, marketItems, downloadedIds, LibraryStatus } from "@/data/mockData";
 import { MarketItemCard } from "@/components/presets/PresetCard";
@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useWishlist } from "@/lib/wishlist";
 import { useLibrary } from "@/lib/library";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { ApiError, deactivateOverlay } from "@/services/localEngineApi";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -23,6 +25,29 @@ const Index = () => {
   const { toast } = useToast();
   const { isWishlisted, toggle } = useWishlist();
   const { requestApply } = useLibrary();
+  const [deactivating, setDeactivating] = useState(false);
+  const handleDeactivate = async () => {
+    if (deactivating) return;
+    setDeactivating(true);
+    try {
+      await deactivateOverlay();
+      toast({ title: "기본 바탕화면으로 복원됐어요" });
+    } catch (err) {
+      console.error("[home] deactivate failed", err);
+      toast({
+        title: "프리셋을 끄지 못했습니다.",
+        description:
+          err instanceof ApiError && err.status === 0
+            ? "ICNO Desktop App이 실행 중인지 확인해주세요."
+            : err instanceof Error
+              ? err.message
+              : "알 수 없는 오류",
+        variant: "destructive",
+      });
+    } finally {
+      setDeactivating(false);
+    }
+  };
   const toggleWish = (id: string) => {
     const added = toggle(id);
     toast({ title: added ? "찜 추가" : "찜 해제", description: added ? "찜 목록에 추가했어요." : "찜 목록에서 제거했어요." });
@@ -50,6 +75,10 @@ const Index = () => {
               프리셋 관리
             </Button>
             <Button variant="outline" onClick={() => nav("/library")}>보관함 열기</Button>
+            <Button variant="outline" onClick={handleDeactivate} disabled={deactivating}>
+              {deactivating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+              끄기
+            </Button>
           </div>
         </div>
       </section>
