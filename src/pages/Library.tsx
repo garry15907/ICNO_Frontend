@@ -12,7 +12,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { uploadIconImage, ApiError, listPresets, type PresetModel } from "@/services/localEngineApi";
+import {
+  uploadIconImage,
+  ApiError,
+  listPresets,
+  deletePreset as apiDeletePreset,
+  patchPreset as apiPatchPreset,
+  type PresetModel,
+} from "@/services/localEngineApi";
+import { PresetMiniPreview } from "@/components/presets/PresetMiniPreview";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -127,7 +135,7 @@ export default function Library() {
   // ignored when the engine is unreachable.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const refetch = async () => {
       try {
         const res = await listPresets();
         if (cancelled) return;
@@ -135,8 +143,17 @@ export default function Library() {
       } catch {
         // Engine offline — leave list empty.
       }
-    })();
-    return () => { cancelled = true; };
+    };
+    refetch();
+    const onFocus = () => refetch();
+    const onRefresh = () => refetch();
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("presets:refresh", onRefresh as EventListener);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("presets:refresh", onRefresh as EventListener);
+    };
   }, []);
 
   const backendEntries = backendPresets
@@ -153,6 +170,7 @@ export default function Library() {
       description: "",
       tags: [] as string[],
       icons: [] as any[],
+      _backend: bp,
     })) as any[];
 
   const merged = [
@@ -312,7 +330,14 @@ export default function Library() {
             className="group relative rounded-2xl overflow-hidden bg-card border border-border shadow-card hover:shadow-glow transition-all"
           >
             <div className="relative aspect-[16/10] overflow-hidden cursor-pointer" onClick={() => openPresetById(p.id)}>
-              <img src={p.thumbnail} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+              {(p as any)._backend ? (
+                <PresetMiniPreview
+                  preset={(p as any)._backend}
+                  className="group-hover:scale-105 transition-transform"
+                />
+              ) : (
+                <img src={p.thumbnail} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+              )}
               {visibleStatuses.includes(p.status) && (
                 <span className={cn("absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md border shadow-card", statusStyles[p.status])}>
                   {p.status}
@@ -354,47 +379,10 @@ export default function Library() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
                     <DropdownMenuItem onClick={() => openPresetById(p.id)}>
-                      <Pencil className="h-3.5 w-3.5 mr-2" /> 상세 보기
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShareTarget({ id: p.id, name: p.name })}>
-                      <Share2 className="h-3.5 w-3.5 mr-2" /> 공유
+                      <Pencil className="h-3.5 w-3.5 mr-2" /> 편집기 열기
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => { setRenameTarget({ id: p.id, name: p.name }); setRenameValue(p.name); }}>
                       <Edit className="h-3.5 w-3.5 mr-2" /> 이름 변경
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                      setPresets((prev) => {
-                        const idx = prev.findIndex((x) => x.id === p.id);
-                        if (idx === -1) return prev;
-                        // 기본 이름(복사본 접미사 제거)
-                        const baseName = p.name.replace(/\s*복사본(?:\(\d+\))?$/, "");
-                        // 기존 복사본들 중 가장 큰 번호 찾기
-                        const escaped = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-                        const re = new RegExp(`^${escaped}\\s*복사본(?:\\((\\d+)\\))?$`);
-                        let maxN = 0;
-                        let hasPlain = false;
-                        prev.forEach((x) => {
-                          const m = x.name.match(re);
-                          if (!m) return;
-                          if (m[1]) maxN = Math.max(maxN, parseInt(m[1], 10));
-                          else hasPlain = true;
-                        });
-                        const nextName = !hasPlain
-                          ? `${baseName} 복사본`
-                          : `${baseName} 복사본(${Math.max(maxN, 1) + 1})`;
-                        const copy = {
-                          ...prev[idx],
-                          id: `${p.id}-copy-${Date.now()}`,
-                          name: nextName,
-                          status: "로컬 수정됨" as LibraryStatus,
-                        };
-                        const next = [...prev];
-                        next.splice(idx + 1, 0, copy);
-                        return next;
-                      });
-                      toast({ title: "복제 완료", description: `${p.name} 복사본이 보관함에 추가되었습니다.` });
-                    }}>
-                      <Copy className="h-3.5 w-3.5 mr-2" /> 복제
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -532,8 +520,22 @@ export default function Library() {
           <Input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} autoFocus />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameTarget(null)}>취소</Button>
-            <Button onClick={() => {
-              if (renameTarget) {
+            <Button onClick={async () => {
+              if (!renameTarget) return;
+              const isBackend = backendPresets.some((bp) => bp.id === renameTarget.id);
+              if (isBackend) {
+                try {
+                  await apiPatchPreset(renameTarget.id, { name: renameValue });
+                  setBackendPresets((prev) => prev.map((bp) => bp.id === renameTarget.id ? { ...bp, name: renameValue } : bp));
+                  toast({ title: "이름이 변경되었습니다", description: renameValue });
+                } catch (err) {
+                  toast({
+                    title: "이름 변경에 실패했습니다",
+                    description: err instanceof ApiError && err.status === 0 ? "ICNO Desktop App이 실행 중인지 확인해주세요." : err instanceof Error ? err.message : "알 수 없는 오류",
+                    variant: "destructive",
+                  });
+                }
+              } else {
                 setPresets((prev) => prev.map((x) => x.id === renameTarget.id ? { ...x, name: renameValue } : x));
                 toast({ title: "이름이 변경되었습니다", description: renameValue });
               }
@@ -557,8 +559,22 @@ export default function Library() {
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>취소</Button>
             <Button
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (deleteTarget) {
+              onClick={async () => {
+                if (!deleteTarget) { setDeleteTarget(null); return; }
+                const isBackend = backendPresets.some((bp) => bp.id === deleteTarget.id);
+                if (isBackend) {
+                  try {
+                    await apiDeletePreset(deleteTarget.id);
+                    setBackendPresets((prev) => prev.filter((bp) => bp.id !== deleteTarget.id));
+                    toast({ title: "삭제되었습니다", description: deleteTarget.name });
+                  } catch (err) {
+                    toast({
+                      title: "삭제에 실패했습니다",
+                      description: err instanceof ApiError && err.status === 0 ? "ICNO Desktop App이 실행 중인지 확인해주세요." : err instanceof Error ? err.message : "알 수 없는 오류",
+                      variant: "destructive",
+                    });
+                  }
+                } else {
                   setPresets((prev) => prev.filter((x) => x.id !== deleteTarget.id));
                   toast({ title: "삭제되었습니다", description: deleteTarget.name });
                 }

@@ -115,12 +115,37 @@ export async function reconcileWithLocalEngine(): Promise<UserIconAsset[]> {
   const knownPaths = new Set(
     current.map((a) => a.local_image_path).filter(Boolean) as string[],
   );
+  const knownStorage = new Set(
+    current.map((a) => a.storage_filename).filter(Boolean) as string[],
+  );
   const orphans: UserIconAsset[] = [];
+  // Backfill existing metadata whose asset_id/storage_filename we didn't
+  // know at first-upload time (older records).
+  let backfilled = false;
+  const backfilledList = current.map((a) => {
+    if (a.asset_id && a.storage_filename) return a;
+    const match = (images ?? []).find(
+      (img) => {
+        const fn = String(img.filename ?? "");
+        const sf = String((img as any).storage_filename ?? "");
+        return (fn && fn === a.fileName) || (sf && sf === a.storage_filename) || (fn && fn === a.storage_filename);
+      },
+    );
+    if (!match) return a;
+    const asset_id = String((match as any).asset_id ?? a.asset_id ?? "");
+    const storage_filename = String((match as any).storage_filename ?? match.filename ?? a.storage_filename ?? "");
+    const local_image_path = String(match.path ?? a.local_image_path ?? "");
+    if (asset_id === a.asset_id && storage_filename === a.storage_filename && local_image_path === a.local_image_path) return a;
+    backfilled = true;
+    return { ...a, asset_id: asset_id || a.asset_id, storage_filename: storage_filename || a.storage_filename, local_image_path: local_image_path || a.local_image_path };
+  });
   for (const img of images ?? []) {
     const filename = String(img.filename ?? "");
     const localPath = String(img.path ?? "");
+    const storageFilename = String((img as any).storage_filename ?? filename);
+    const assetId = String((img as any).asset_id ?? "");
     if (!filename) continue;
-    if (knownFilenames.has(filename)) continue;
+    if (knownFilenames.has(filename) || knownStorage.has(storageFilename)) continue;
     if (localPath && knownPaths.has(localPath)) continue;
     const url = img.url ? localEngineUrl(String(img.url)) : "";
     const ext = filename.split(".").pop()?.toUpperCase() ?? "PNG";
@@ -144,9 +169,11 @@ export async function reconcileWithLocalEngine(): Promise<UserIconAsset[]> {
       source: "upload",
       isFavorite: false,
       local_image_path: localPath || undefined,
+      asset_id: assetId || undefined,
+      storage_filename: storageFilename || undefined,
     });
   }
-  if (orphans.length) writeAssets([...orphans, ...current]);
+  if (orphans.length || backfilled) writeAssets([...orphans, ...backfilledList]);
   return getUserIconAssets();
 }
 
