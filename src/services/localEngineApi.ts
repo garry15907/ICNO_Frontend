@@ -268,6 +268,10 @@ export function startOverlay(): Promise<any> {
 export function launchApplyWindow(): Promise<any> {
   return request("/api/icons/launch-apply-window", { method: "POST" });
 }
+/** POST /api/overlay/deactivate — stop overlay + restore default icons + restore original wallpaper. */
+export function deactivateOverlay(): Promise<any> {
+  return request("/api/overlay/deactivate", { method: "POST" });
+}
 export function pickTargetFile(): Promise<any> {
   return request("/api/icons/pick-file");
 }
