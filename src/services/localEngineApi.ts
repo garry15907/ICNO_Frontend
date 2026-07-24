@@ -343,6 +343,8 @@ export type PresetIconModel = {
   font_italic?: boolean;
   font_color?: string;
   outline_color?: string;
+  /** Engine-added convenience field: web-fetchable relative URL for the icon image. */
+  image_url?: string;
 };
 
 export type PresetModel = {
@@ -352,6 +354,8 @@ export type PresetModel = {
   settings?: PresetSettingsModel;
   canvas?: CanvasModel;
   icons?: PresetIconModel[];
+  /** Engine-added convenience field: web-fetchable relative URL for the wallpaper. */
+  wallpaper_url?: string;
 };
 
 export function listPresets(): Promise<{ presets?: PresetModel[] } & Record<string, any>> {
@@ -372,8 +376,22 @@ export function updatePreset(
     body: payload as any,
   });
 }
+/** PATCH /api/presets/{id} — partial update (currently just rename). */
+export function patchPreset(
+  presetId: string,
+  payload: Partial<Pick<PresetModel, "name">>,
+): Promise<PresetModel & Record<string, any>> {
+  return request(`/api/presets/${encodeURIComponent(presetId)}`, {
+    method: "PATCH",
+    body: payload as any,
+  });
+}
 export function deletePreset(presetId: string): Promise<any> {
   return request(`/api/presets/${encodeURIComponent(presetId)}`, { method: "DELETE" });
+}
+/** GET /api/active-preset → `{ active: PresetModel | null }`. */
+export function getActivePreset(): Promise<{ active: PresetModel | null }> {
+  return request("/api/active-preset");
 }
 /** POST /api/presets/{id}/apply-local — atomic apply, engine rolls back on failure. */
 export function applyPresetLocal(presetId: string): Promise<any> {

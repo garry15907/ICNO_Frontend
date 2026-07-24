@@ -885,7 +885,9 @@ function FullscreenEditor({
   const { toast } = useToast();
   const [items, setItems] = useState<PlacedIcon[]>(placed);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [grid, setGrid] = useState(true);
+  // Grid-snap defaults OFF — free placement is the more common editor flow;
+  // the toolbar toggle remains available for users who want alignment.
+  const [grid, setGrid] = useState(false);
   const [assetOpen, setAssetOpen] = useState<false | "wallpaper" | "icons">(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [dirty, setDirty] = useState(false);
