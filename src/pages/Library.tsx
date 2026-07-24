@@ -520,8 +520,22 @@ export default function Library() {
           <Input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} autoFocus />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameTarget(null)}>취소</Button>
-            <Button onClick={() => {
-              if (renameTarget) {
+            <Button onClick={async () => {
+              if (!renameTarget) return;
+              const isBackend = backendPresets.some((bp) => bp.id === renameTarget.id);
+              if (isBackend) {
+                try {
+                  await apiPatchPreset(renameTarget.id, { name: renameValue });
+                  setBackendPresets((prev) => prev.map((bp) => bp.id === renameTarget.id ? { ...bp, name: renameValue } : bp));
+                  toast({ title: "이름이 변경되었습니다", description: renameValue });
+                } catch (err) {
+                  toast({
+                    title: "이름 변경에 실패했습니다",
+                    description: err instanceof ApiError && err.status === 0 ? "ICNO Desktop App이 실행 중인지 확인해주세요." : err instanceof Error ? err.message : "알 수 없는 오류",
+                    variant: "destructive",
+                  });
+                }
+              } else {
                 setPresets((prev) => prev.map((x) => x.id === renameTarget.id ? { ...x, name: renameValue } : x));
                 toast({ title: "이름이 변경되었습니다", description: renameValue });
               }
@@ -545,8 +559,22 @@ export default function Library() {
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>취소</Button>
             <Button
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (deleteTarget) {
+              onClick={async () => {
+                if (!deleteTarget) { setDeleteTarget(null); return; }
+                const isBackend = backendPresets.some((bp) => bp.id === deleteTarget.id);
+                if (isBackend) {
+                  try {
+                    await apiDeletePreset(deleteTarget.id);
+                    setBackendPresets((prev) => prev.filter((bp) => bp.id !== deleteTarget.id));
+                    toast({ title: "삭제되었습니다", description: deleteTarget.name });
+                  } catch (err) {
+                    toast({
+                      title: "삭제에 실패했습니다",
+                      description: err instanceof ApiError && err.status === 0 ? "ICNO Desktop App이 실행 중인지 확인해주세요." : err instanceof Error ? err.message : "알 수 없는 오류",
+                      variant: "destructive",
+                    });
+                  }
+                } else {
                   setPresets((prev) => prev.filter((x) => x.id !== deleteTarget.id));
                   toast({ title: "삭제되었습니다", description: deleteTarget.name });
                 }
