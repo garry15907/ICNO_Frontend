@@ -45,6 +45,10 @@ import {
   uploadIconImage,
   uploadWallpaper,
   ApiError,
+  createPreset,
+  updatePreset,
+  getPreset,
+  localEngineUrl,
   type PresetModel,
   type PresetIconModel,
 } from "@/services/localEngineApi";
@@ -65,6 +69,31 @@ function synthesizeAssetFromLibrary(u: UserIconAsset): IconAsset {
   const file = new File([svg], `lib-${u.id}-${u.fileName || u.title}.svg`, { type: "image/svg+xml" });
   const previewUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   return { id: `lib-${u.id}`, file, previewUrl };
+}
+
+/**
+ * Build an IconAsset from a library asset, preferring the real image
+ * (engine-uploaded file) over the emoji SVG stand-in. Only falls back
+ * to `synthesizeAssetFromLibrary` when no real image bytes exist.
+ */
+function iconAssetFromLibrary(u: UserIconAsset): IconAsset {
+  const stableId = `lib-${u.id}`;
+  const realUrl =
+    u.imageUrl ||
+    u.thumbnailUrl ||
+    (u.storage_filename ? localEngineUrl(`/custom_icons/${u.storage_filename}`) : "");
+  if (u.asset_id && realUrl) {
+    const stub = new File([], u.fileName || `${u.title}.png`, { type: "image/png" });
+    return {
+      id: stableId,
+      file: stub,
+      previewUrl: realUrl,
+      asset_id: u.asset_id,
+      local_image_path: u.local_image_path,
+      storage_filename: u.storage_filename,
+    };
+  }
+  return synthesizeAssetFromLibrary(u);
 }
 
 type IconAsset = {
