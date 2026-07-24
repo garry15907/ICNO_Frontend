@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { uploadIconImage, ApiError } from "@/services/localEngineApi";
+import { uploadIconImage, ApiError, listPresets, type PresetModel } from "@/services/localEngineApi";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -45,6 +45,7 @@ export default function Library() {
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [presets, setPresets] = useState(libraryPresets);
+  const [backendPresets, setBackendPresets] = useState<PresetModel[]>([]);
   const { savedPresets, requestApply } = useLibrary();
   const {
     selectedUserIconAssetId,
@@ -121,7 +122,46 @@ export default function Library() {
   const togglePin = (id: string) =>
     setPinned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
-  const merged = [...savedFromContext, ...presets];
+  // Fetch presets stored on the local FastAPI engine so save-only (not
+  // applied) presets show up alongside the seed/mock library. Silently
+  // ignored when the engine is unreachable.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await listPresets();
+        if (cancelled) return;
+        setBackendPresets(Array.isArray(res?.presets) ? res.presets : []);
+      } catch {
+        // Engine offline — leave list empty.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const backendEntries = backendPresets
+    .filter((bp) => !!bp.id)
+    .map((bp) => ({
+      id: bp.id!,
+      sourceMarketId: undefined,
+      name: bp.name || "이름 없는 프리셋",
+      thumbnail: "/placeholder.svg",
+      iconCount: bp.icons?.length ?? 0,
+      mappedCount: 0,
+      status: "내가 만든 프리셋" as LibraryStatus,
+      lastModified: "",
+      description: "",
+      tags: [] as string[],
+      icons: [] as any[],
+    })) as any[];
+
+  const merged = [
+    ...backendEntries.filter(
+      (b) => !savedFromContext.some((s) => s.id === b.id) && !presets.some((p) => p.id === b.id),
+    ),
+    ...savedFromContext,
+    ...presets,
+  ];
   const sortedPresets = [...merged].sort(
     (a, b) => (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0),
   );
