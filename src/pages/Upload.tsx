@@ -290,21 +290,30 @@ export default function Upload() {
       try {
         const model = await getPreset(presetIdParam);
         if (cancelled) return;
-        if (model && (model.id || model.name || (model.icons?.length ?? 0) > 0 || model.wallpaper_path)) {
+        if (model && (model.id || model.name || (model.icons?.length ?? 0) > 0 || model.wallpaper_path || model.wallpaper_url)) {
           setBackendPresetId(model.id || presetIdParam);
           if (model.name) setName((prev) => prev || model.name!);
+          // Restore the wallpaper using the engine-provided web URL
+          // (absolute `wallpaper_path` is a filesystem path the browser
+          // cannot render).
+          if (model.wallpaper_url) {
+            const wpUrl = localEngineUrl(model.wallpaper_url);
+            const stub = new File([], "wallpaper", { type: "image/*" });
+            setWallpaper((prev) => prev ?? { file: stub, url: wpUrl });
+          }
           const nextAssets: IconAsset[] = [];
           const nextPlaced: PlacedIcon[] = (model.icons ?? []).map((it, i) => {
             const libAsset = it.asset_id
               ? userIcons.find((u) => u.asset_id === it.asset_id)
               : undefined;
             const stableId = libAsset ? `lib-${libAsset.id}` : `be-${it.asset_id || i}`;
+            const engineImageUrl = it.image_url ? localEngineUrl(it.image_url) : "";
             if (!nextAssets.some((a) => a.id === stableId)) {
               if (libAsset) {
                 nextAssets.push(iconAssetFromLibrary(libAsset));
               } else {
                 const stub = new File([], `${it.asset_id || `icon-${i}`}.png`, { type: "image/png" });
-                nextAssets.push({ id: stableId, file: stub, previewUrl: "", asset_id: it.asset_id });
+                nextAssets.push({ id: stableId, file: stub, previewUrl: engineImageUrl, asset_id: it.asset_id });
               }
             }
             return normalizeIcon({
@@ -314,14 +323,13 @@ export default function Upload() {
               name: it.icon_name ?? `아이콘 ${i + 1}`,
               asset_source: libAsset ? (libAsset.packId ? "iconpack" : "library") : "user-upload",
               library_asset_id: libAsset?.id,
-              preview_url: libAsset?.imageUrl || libAsset?.thumbnailUrl,
+              preview_url: libAsset?.imageUrl || libAsset?.thumbnailUrl || engineImageUrl,
             }, i);
           });
           setIconAssets((prev) => [...prev, ...nextAssets.filter((a) => !prev.some((p) => p.id === a.id))]);
           setPlaced(nextPlaced);
-          // wallpaper_path is an absolute local filesystem path — the
-          // browser can't render it. Fall through to the legacy preview
-          // sources below to still show a thumbnail if we have one.
+          // If the engine already gave us a wallpaper_url + real icons we're done.
+          if (model.wallpaper_url || (model.icons?.length ?? 0) > 0) return;
         }
       } catch (err) {
         if (!(err instanceof ApiError && (err.status === 404 || err.status === 0))) {
@@ -583,6 +591,8 @@ export default function Upload() {
         : await createPreset(model);
       const savedId = saved?.id ?? backendPresetId;
       if (savedId) setBackendPresetId(savedId);
+      // Tell the library page to refetch so the freshly saved card appears.
+      try { window.dispatchEvent(new CustomEvent("presets:refresh")); } catch {}
       toast({
         title: "저장되었습니다",
         description:
