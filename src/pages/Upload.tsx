@@ -1561,7 +1561,7 @@ function FullscreenEditor({
             // so both the modal and the canvas share previews.
             const stableId = `lib-${u.id}`;
             if (!iconAssets.some((a) => a.id === stableId)) {
-              onAddIconAssets([synthesizeAssetFromLibrary(u)]);
+              onAddIconAssets([iconAssetFromLibrary(u)]);
             }
             update(selected.id, {
               assetId: stableId,
