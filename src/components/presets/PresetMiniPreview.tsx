@@ -26,7 +26,7 @@ export function PresetMiniPreview({
     if (!el) return;
     const ro = new ResizeObserver(() => {
       const r = el.getBoundingClientRect();
-      const s = Math.min(r.width / CANVAS_W, r.height / CANVAS_H);
+      const s = Math.max(r.width / CANVAS_W, r.height / CANVAS_H);
       if (s > 0) setScale(s);
     });
     ro.observe(el);
@@ -77,7 +77,7 @@ export function PresetMiniPreview({
                 left: it.x ?? 0,
                 top: it.y ?? 0,
                 width: size,
-                height: size,
+                height: "auto",
               }}
             />
           );

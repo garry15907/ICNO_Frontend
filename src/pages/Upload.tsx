@@ -48,6 +48,7 @@ import {
   createPreset,
   updatePreset,
   getPreset,
+  pickTargetFile,
   localEngineUrl,
   type PresetModel,
   type PresetIconModel,
@@ -987,7 +988,9 @@ function FullscreenEditor({
   };
 
   // Pick a program/file/folder to bind as the selected icon's launch target.
-  // Prefers Electron native dialog when available; falls back to <input type=file>.
+  // 브라우저 <input type=file> 은 절대경로를 못 주므로(파일명만 넘어와 오버레이가
+  // 실행 못 함), 로컬 엔진의 네이티브 파일 대화상자(GET /api/icons/pick-file)를
+  // 사용해 실제 절대경로를 받는다. Electron 이 있으면 그쪽을 우선.
   const pickTargetForSelected = async () => {
     if (!selected) return;
     const api = (window as any).electronAPI;
@@ -1002,7 +1005,25 @@ function FullscreenEditor({
       }
       return;
     }
-    safeOpenFilePicker(targetInputRef.current);
+    // 로컬 엔진 네이티브 파일 선택 (절대경로 반환)
+    try {
+      const res = await pickTargetFile();
+      const path: string = res?.file_path ?? "";
+      if (path) {
+        update(selected.id, { target_path: path });
+      } else {
+        toast({ title: "선택을 취소했습니다" });
+      }
+    } catch (err) {
+      toast({
+        title: "파일 선택에 실패했습니다.",
+        description:
+          err instanceof ApiError && err.status === 0
+            ? "ICNO Desktop App이 실행 중인지 확인해주세요."
+            : "로컬 엔진 파일 선택을 사용할 수 없습니다.",
+        variant: "destructive",
+      });
+    }
   };
 
   useEffect(() => {
