@@ -389,17 +389,17 @@ export default function Upload() {
 
   const handleWallpaper = (file?: File) => {
     if (!file) return;
-    if (!/\.(jpe?g|png|webp|gif)$/i.test(file.name)) {
-      toast({ title: "지원하지 않는 형식", description: "JPG, PNG, WEBP, GIF만 업로드할 수 있어요." });
+    if (!/\.(jpe?g|png|gif)$/i.test(file.name)) {
+      toast({ title: "지원하지 않는 형식", description: "JPG, PNG, GIF만 업로드할 수 있어요." });
       return;
     }
     setWallpaper({ file, url: URL.createObjectURL(file) });
   };
 
   const handleIcons = (files: FileList | File[]) => {
-    const arr = Array.from(files).filter((f) => /\.(png|svg|ico|gif)$/i.test(f.name));
+    const arr = Array.from(files).filter((f) => /\.(png|jpe?g|gif)$/i.test(f.name));
     if (!arr.length) {
-      toast({ title: "지원하지 않는 형식", description: "PNG, SVG, ICO, GIF만 업로드할 수 있어요." });
+      toast({ title: "지원하지 않는 형식", description: "PNG, JPG, GIF만 업로드할 수 있어요." });
       return;
     }
     // Optimistically add to the editor, then push each file to the local
@@ -1680,7 +1680,7 @@ function AssetModal({
           </TabsList>
 
           <TabsContent value="wallpaper" className="p-5 space-y-4">
-            <input ref={wallpaperInput} type="file" accept=".jpg,.jpeg,.png,.webp,.gif" className="hidden"
+            <input ref={wallpaperInput} type="file" accept=".jpg,.jpeg,.png,.gif" className="hidden"
               onChange={(e) => onWallpaper(e.target.files?.[0])} />
             <div
               {...dropZone((f) => onWallpaper(f[0]))}
@@ -1689,7 +1689,7 @@ function AssetModal({
             >
               <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
               <div className="text-sm font-medium">파일을 끌어다 놓거나 클릭해 업로드</div>
-              <div className="text-xs text-muted-foreground mt-1">JPG · PNG · WEBP · GIF</div>
+              <div className="text-xs text-muted-foreground mt-1">JPG · PNG · GIF</div>
             </div>
             {wallpaper && (
               <div className="rounded-xl border border-border/60 p-3 flex items-center gap-3">
@@ -1767,7 +1767,7 @@ function AssetModal({
           </TabsContent>
 
           <TabsContent value="icons" className="p-5 space-y-4">
-            <input ref={iconsInput} type="file" multiple accept=".png,.svg,.ico,.gif" className="hidden"
+            <input ref={iconsInput} type="file" multiple accept=".png,.jpg,.jpeg,.gif" className="hidden"
               onChange={(e) => e.target.files && onAddIcons(e.target.files)} />
             <div
               {...dropZone((f) => onAddIcons(f))}
@@ -1776,7 +1776,7 @@ function AssetModal({
             >
               <UploadIcon className="h-7 w-7 mx-auto text-muted-foreground mb-2" />
               <div className="text-sm font-medium">아이콘 업로드 (여러 개 가능)</div>
-              <div className="text-xs text-muted-foreground mt-1">PNG · SVG · ICO</div>
+              <div className="text-xs text-muted-foreground mt-1">PNG · JPG · GIF</div>
             </div>
             {iconAssets.length > 0 ? (
               <div className="grid grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1">
@@ -1980,7 +1980,7 @@ function IconDetailEditModal({
                   ref={fileInput}
                   type="file"
                   multiple
-                  accept=".png,.svg,.ico,.gif"
+                  accept=".png,.jpg,.jpeg,.gif"
                   className="hidden"
                   onChange={(e) => e.target.files && onAddIcons(e.target.files)}
                 />
