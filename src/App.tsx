@@ -62,10 +62,10 @@ const App = () => (
           </AppLayout>
           </IconLibraryProvider>
           </LibraryProvider>
+          </NotificationsProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
-      </NotificationsProvider>
       </WishlistProvider>
       </ProfileProvider>
       </SidebarModeProvider>
