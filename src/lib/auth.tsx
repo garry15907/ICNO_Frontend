@@ -9,6 +9,7 @@ type AuthContextValue = {
   session: Session | null;
   loading: boolean;
   displayName: string | null;
+  avatarUrl: string | null;
   signUp: (email: string, password: string, displayName: string) => Promise<AuthResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     // 1) 세션 변화 구독 (먼저 등록)
@@ -57,13 +59,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const uid = user?.id;
     if (!uid) {
       setDisplayName(null);
+      setAvatarUrl(null);
       return;
     }
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("display_name")
+        .select("display_name, avatar_url")
         .eq("id", uid)
         .maybeSingle();
       if (cancelled) return;
@@ -72,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       setDisplayName(data?.display_name ?? null);
+      setAvatarUrl(data?.avatar_url ?? null);
     })();
     return () => {
       cancelled = true;
@@ -102,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthCtx.Provider value={{ user, session, loading, displayName, signUp, signIn, signOut }}>
+    <AuthCtx.Provider value={{ user, session, loading, displayName, avatarUrl, signUp, signIn, signOut }}>
       {children}
     </AuthCtx.Provider>
   );
