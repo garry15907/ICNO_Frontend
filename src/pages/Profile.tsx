@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, currentUser, reviews as mockReviews, followedCreators, marketItems } from "@/data/mockData";
 import { useProfile, isImageAvatar } from "@/lib/profile";
+import { useAuth } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist";
 import { Button } from "@/components/ui/button";
 import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft, TrendingUp, MessageSquare, Activity, Calendar, Shield, Upload, Eye, EyeOff, Pencil, Trash2, Flag, CheckCircle2, Info, ChevronRight, Users, UserMinus } from "lucide-react";
@@ -18,6 +19,7 @@ import { toast } from "@/hooks/use-toast";
 export function ProfileMain() {
   const nav = useNavigate();
   const { profile, setProfile } = useProfile();
+  const { user, displayName, avatarUrl } = useAuth();
   const { wishlist } = useWishlist();
   const [editOpen, setEditOpen] = useState(false);
   const [defaultPickerOpen, setDefaultPickerOpen] = useState(false);
@@ -32,14 +34,15 @@ export function ProfileMain() {
     reader.readAsDataURL(file);
     e.target.value = "";
   };
+  // 마켓 기능(찜/다운로드/구매/판매/팔로우)은 아직 백엔드가 없어 0으로 표시합니다.
   const stats = [
-    { label: "찜", value: wishlist.length, to: "/profile/wishlist", icon: Heart },
-    { label: "다운로드", value: downloadedIds.length, to: "/profile/downloads", icon: Download },
-    { label: "구매", value: purchasedIds.length, to: "/profile/purchases", icon: Receipt },
-    { label: "내 상품", value: 3, to: "/profile/sales", icon: Store },
-    { label: "팔로잉", value: followedCreators.length, to: "/profile/following", icon: Users },
+    { label: "찜", value: 0, to: "/profile/wishlist", icon: Heart },
+    { label: "다운로드", value: 0, to: "/profile/downloads", icon: Download },
+    { label: "구매", value: 0, to: "/profile/purchases", icon: Receipt },
+    { label: "내 상품", value: 0, to: "/profile/sales", icon: Store },
+    { label: "팔로잉", value: 0, to: "/profile/following", icon: Users },
   ];
-  const [following, setFollowing] = useState(followedCreators);
+  const [following, setFollowing] = useState<typeof followedCreators>([]);
   const [unfollowTarget, setUnfollowTarget] = useState<string | null>(null);
   const handleUnfollow = () => {
     if (!unfollowTarget) return;
@@ -54,33 +57,31 @@ export function ProfileMain() {
     { title: "내 상품 관리", desc: "업로드한 프리셋 관리", icon: Store, to: "/profile/sales" },
     { title: "팔로우 목록", desc: "팔로우한 크리에이터 모아보기", icon: Users, to: "/profile/following" },
   ];
-  const recent = [
-    { icon: Download, text: "노을 프리셋을 다운로드했습니다.", preset: "노을", time: "10분 전" },
-    { icon: Heart, text: "커비 프리셋을 찜했습니다.", preset: "커비", time: "2시간 전" },
-    { icon: Receipt, text: "픽셀 게임룸 프리셋을 구매했습니다.", preset: "픽셀 게임룸", time: "어제" },
-    { icon: CheckCircle2, text: "노을 프리셋 위치를 저장했습니다.", preset: "노을", time: "2일 전" },
-  ];
+  const recent: { icon: typeof Download; text: string; preset: string; time: string }[] = [];
+  const joinedAt = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" })
+    : "—";
+  const shownName = displayName || user?.email?.split("@")[0] || "사용자";
+  const shownAvatar = avatarUrl || (isImageAvatar(profile.avatar) ? profile.avatar : "");
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
       <div className="p-8 rounded-2xl bg-gradient-surface border border-border">
         <div className="flex items-start gap-6">
           <div className="h-24 w-24 rounded-full bg-gradient-primary grid place-items-center text-5xl shadow-glow overflow-hidden shrink-0">
-            {isImageAvatar(profile.avatar) ? (
-              <img src={profile.avatar} alt="프로필 사진" className="h-full w-full object-cover" />
+            {shownAvatar ? (
+              <img src={shownAvatar} alt={`${shownName} 프로필 사진`} className="h-full w-full object-cover" />
             ) : (
-              profile.avatar
+              <span className="text-3xl font-bold text-primary-foreground">{shownName.slice(0, 1).toUpperCase()}</span>
             )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-3xl font-bold">{profile.nickname}</h2>
-              <Badge variant="secondary" className="text-[10px]">{currentUser.role}</Badge>
+              <h2 className="text-3xl font-bold truncate">{shownName}</h2>
             </div>
-            <div className="text-sm text-muted-foreground mt-1">{currentUser.username}</div>
+            <div className="text-sm text-muted-foreground mt-1 truncate">{user?.email ?? "로그인이 필요합니다"}</div>
             {profile.bio && <p className="text-sm text-foreground/80 mt-3 line-clamp-1">{profile.bio}</p>}
             <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground flex-wrap">
-              <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> 가입 2025-08-12</span>
-              <span className="inline-flex items-center gap-1"><Shield className="h-3.5 w-3.5" /> Steam: <span className="text-muted-foreground/80">미연동</span></span>
+              <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> 가입 {joinedAt}</span>
             </div>
           </div>
           <Button variant="outline" onClick={() => { setForm(profile); setEditOpen(true); }}>프로필 편집</Button>
