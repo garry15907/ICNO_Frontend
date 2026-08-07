@@ -41,6 +41,7 @@ import { useAuth } from "@/lib/auth";
 import type { UserIconAsset } from "@/services/iconLibraryService";
 import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
+import { PresetThumbnail } from "@/components/presets/PresetThumbnail";
 import { Loader2 } from "lucide-react";
 import {
   uploadIconImage,
@@ -729,48 +730,30 @@ export default function Upload() {
               onClick={() => setEditorOpen(true)}
               className="relative w-full aspect-video rounded-xl overflow-hidden border border-border bg-muted group cursor-pointer"
             >
-              {wallpaper ? (
-                <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-              ) : placed.length > 0 ? (
-                <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
-              ) : (
-                <div className="absolute inset-0 grid place-items-center text-center px-6 bg-gradient-to-br from-muted/40 to-muted/10">
-                  <div className="text-muted-foreground">
-                    <Monitor className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                    <div className="text-sm font-medium text-foreground">배경화면과 아이콘을 추가해 프리셋을 구성하세요.</div>
-                    <div className="text-xs mt-1">미리보기를 클릭하면 전체화면 편집 모드로 이동합니다.</div>
+              <PresetThumbnail
+                wallpaperUrl={wallpaper?.url ?? null}
+                canvasW={CANVAS_W}
+                canvasH={CANVAS_H}
+                icons={placed.map((ic) => ({
+                  imageUrl: assetById.get(ic.assetId)?.previewUrl ?? null,
+                  x: ic.x,
+                  y: ic.y,
+                  size: ic.size,
+                  showName: ic.show_name,
+                  label: ic.name,
+                  fontSize: ic.font_size,
+                  fontFamily: ic.font_family,
+                }))}
+                emptyState={
+                  <div className="absolute inset-0 grid place-items-center text-center px-6 bg-gradient-to-br from-muted/40 to-muted/10">
+                    <div className="text-muted-foreground">
+                      <Monitor className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                      <div className="text-sm font-medium text-foreground">배경화면과 아이콘을 추가해 프리셋을 구성하세요.</div>
+                      <div className="text-xs mt-1">미리보기를 클릭하면 전체화면 편집 모드로 이동합니다.</div>
+                    </div>
                   </div>
-                </div>
-              )}
-              {(wallpaper || placed.length > 0) && (
-                <div
-                  className="absolute top-0 left-0 pointer-events-none"
-                  style={{
-                    width: CANVAS_W,
-                    height: CANVAS_H,
-                    transform: `scale(${previewScale})`,
-                    transformOrigin: "top left",
-                  }}
-                >
-                  {placed.map((ic) => {
-                    const a = assetById.get(ic.assetId);
-                    return (
-                    <div
-                        key={ic.id}
-                        style={{ left: `${ic.x}px`, top: `${ic.y}px`, "--desktop-icon-size": `${ic.size}px` } as CSSProperties}
-                        className="absolute desktopIconWrapper"
-                      >
-                        <div className="desktopIconImageBox">
-                          {a ? <img src={a.previewUrl} alt="" className="desktopIconImage" draggable={false} /> : <ImageIcon className="h-4 w-4 text-white/70 drop-shadow" />}
-                        </div>
-                        {ic.show_name && (
-                          <div className="desktopIconLabel text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)", fontSize: `${ic.font_size}px`, fontFamily: ic.font_family }}>{ic.name}</div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                }
+              />
               <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors grid place-items-center opacity-0 group-hover:opacity-100">
                 <div className="bg-background/90 rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5">
                   <Maximize2 className="h-3.5 w-3.5" /> 클릭해서 편집 모드 열기

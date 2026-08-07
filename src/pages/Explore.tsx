@@ -9,6 +9,7 @@ import { useMarketPresets } from "@/lib/market-presets";
 import { useWishlist } from "@/lib/wishlist";
 import { MarketItemModal } from "@/components/presets/MarketItemModal";
 import { MarketPresetModal } from "@/components/presets/MarketPresetModal";
+import { MarketPresetCard } from "@/components/presets/MarketPresetCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -50,13 +51,24 @@ export default function Explore() {
   const display = useCurrentDisplay();
   const { presets: cloudPresets } = useMarketPresets();
   const cloudMatches = useMemo(
-    () =>
-      cloudPresets.filter(
+    () => {
+      const list = cloudPresets.filter(
         (p) =>
           (typeFilter === "all" || typeFilter === "preset") &&
           (!query || (p.name + " " + p.tags.join(" ")).includes(query)),
-      ),
-    [cloudPresets, typeFilter, query],
+      );
+      const sorted = [...list];
+      if (sort === "인기순" || sort === "다운로드순") sorted.sort((a, b) => b.downloads - a.downloads || b.likes - a.likes);
+      if (sort === "최신순") sorted.sort((a, b) => b.created_at.localeCompare(a.created_at));
+      if (sort === "평점순")
+        sorted.sort(
+          (a, b) =>
+            (b.rating_count ? b.rating_sum / b.rating_count : 0) -
+            (a.rating_count ? a.rating_sum / a.rating_count : 0),
+        );
+      return sorted;
+    },
+    [cloudPresets, typeFilter, query, sort],
   );
 
   const filteredCategories = useMemo(
@@ -254,38 +266,7 @@ export default function Explore() {
           <h3 className="text-lg font-semibold">마켓 프리셋</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {cloudMatches.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setParams({ market: p.id })}
-                className="text-left rounded-2xl overflow-hidden bg-card border border-border shadow-card transition hover:border-primary/40 hover:shadow-glow"
-              >
-                <div className="aspect-[16/10] bg-muted overflow-hidden">
-                  {p.thumbnailUrl ? (
-                    <img src={p.thumbnailUrl} alt={p.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-muted to-background" />
-                  )}
-                </div>
-                <div className="p-4 space-y-1">
-                  <div className="text-sm font-semibold truncate">{p.name}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">
-                    아이콘 {p.icons.length}개 · {p.created_at.slice(0, 10)}
-                  </div>
-                  {p.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">{p.description}</p>
-                  )}
-                  {p.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {p.tags.map((t) => (
-                        <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                          #{t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </button>
+              <MarketPresetCard key={p.id} preset={p} showFollow onClick={() => setParams({ market: p.id })} />
             ))}
           </div>
         </div>

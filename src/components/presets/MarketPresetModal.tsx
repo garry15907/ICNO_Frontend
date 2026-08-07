@@ -1,92 +1,57 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Download, Image as ImageIcon, Loader2 } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Download,
+  Loader2,
+  Heart,
+  Bookmark,
+  Share2,
+  Flag,
+  Star,
+  Eye,
+  MessageSquare,
+} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { MARKET_BUCKET } from "@/services/marketPresetUpload";
 import { importMarketPreset } from "@/services/marketPresetDownload";
-import type { MarketPresetRow } from "@/lib/market-presets";
+import { presetAverageRating, type MarketPresetRow } from "@/lib/market-presets";
+import { useMarketSocial, type ReportReason } from "@/lib/market-social";
+import { PresetThumbnail } from "@/components/presets/PresetThumbnail";
+import { PresetComments } from "@/components/presets/PresetComments";
+import { FollowButton } from "@/components/presets/FollowButton";
+import { cn } from "@/lib/utils";
 
-/** Big canvas preview: wallpaper + icon placement, scaled to the box. */
-function MarketPresetPreview({
-  preset,
-  wallpaperUrl,
-  iconUrls,
+const reportReasons: { id: ReportReason; label: string }[] = [
+  { id: "spam", label: "스팸/광고" },
+  { id: "inappropriate", label: "부적절한 콘텐츠" },
+  { id: "copyright", label: "저작권 침해" },
+  { id: "malware", label: "악성 파일 의심" },
+  { id: "other", label: "기타" },
+];
+
+function StarRating({
+  value,
+  onRate,
 }: {
-  preset: MarketPresetRow;
-  wallpaperUrl?: string | null;
-  iconUrls: Record<number, string>;
+  value: number;
+  onRate: (score: number) => void;
 }) {
-  const boxRef = useRef<HTMLDivElement>(null);
-  const w = preset.canvas?.w ?? 1920;
-  const h = preset.canvas?.h ?? 1080;
-  const [scale, setScale] = useState(0.1);
-
-  useEffect(() => {
-    const el = boxRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      const r = el.getBoundingClientRect();
-      const s = Math.min(r.width / w, r.height / h);
-      if (s > 0) setScale(s);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [w, h]);
-
   return (
-    <div
-      ref={boxRef}
-      className="relative w-full rounded-xl overflow-hidden border border-border bg-muted"
-      style={{ aspectRatio: `${w} / ${h}` }}
-    >
-      {wallpaperUrl ? (
-        <img src={wallpaperUrl} alt={preset.name} className="absolute inset-0 w-full h-full object-cover" />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
-      )}
-      <div
-        className="absolute top-1/2 left-1/2"
-        style={{
-          width: w,
-          height: h,
-          transform: `translate(-50%, -50%) scale(${scale})`,
-          transformOrigin: "center center",
-          pointerEvents: "none",
-        }}
-      >
-        {(preset.icons ?? []).map((ic, i) => {
-          const size = ic.size ?? 72;
-          const url = iconUrls[i];
-          return (
-            <div
-              key={i}
-              className="absolute flex flex-col items-center gap-1"
-              style={{ left: ic.x ?? 0, top: ic.y ?? 0, width: size }}
-            >
-              <div className="grid place-items-center" style={{ width: size, height: size }}>
-                {url ? (
-                  <img src={url} alt="" className="w-full h-full object-contain" />
-                ) : (
-                  <div className="w-full h-full grid place-items-center rounded-md bg-white/10 border border-white/15">
-                    <ImageIcon className="w-1/2 h-1/2 text-white/50" />
-                  </div>
-                )}
-              </div>
-              {ic.show_name && ic.icon_name ? (
-                <span
-                  className="text-white drop-shadow max-w-full truncate"
-                  style={{ fontSize: ic.font_size ?? Math.round(size / 4) }}
-                >
-                  {ic.icon_name}
-                </span>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button key={n} onClick={() => onRate(n)} aria-label={`${n}점`} className="p-0.5">
+          <Star
+            className={cn(
+              "h-4 w-4 transition-colors",
+              n <= value ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground",
+            )}
+          />
+        </button>
+      ))}
     </div>
   );
 }
@@ -99,33 +64,63 @@ export function MarketPresetModal({
   onClose: () => void;
 }) {
   const nav = useNavigate();
-  const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(preset.thumbnailUrl ?? null);
-  const [iconUrls, setIconUrls] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState(false);
   const iconCount = useMemo(() => (preset.icons ?? []).length, [preset]);
+  const [me, setMe] = useState<string | null>(null);
+  const [ownerName, setOwnerName] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<ReportReason>("spam");
+  const [reportDetail, setReportDetail] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
+
+  const {
+    isLiked,
+    isWishlisted,
+    myRating,
+    toggleLike,
+    toggleWishlist,
+    rate,
+    registerDownload,
+    report,
+    incrementView,
+  } = useMarketSocial();
+
+  const avg = presetAverageRating(preset);
+  const mine = myRating(preset.id);
+
+  const thumbIcons = useMemo(
+    () =>
+      (preset.icons ?? []).map((ic, i) => ({
+        imageUrl: preset.iconUrls?.[i] ?? null,
+        x: ic.x,
+        y: ic.y,
+        size: ic.size,
+        showName: ic.show_name,
+        label: ic.icon_name,
+        fontSize: ic.font_size,
+        fontFamily: ic.font_family,
+      })),
+    [preset],
+  );
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      const paths: string[] = [];
-      if (preset.wallpaper_path) paths.push(preset.wallpaper_path);
-      (preset.icons ?? []).forEach((ic) => ic.image_path && paths.push(ic.image_path));
-      if (paths.length === 0) return;
-      const { data } = await supabase.storage.from(MARKET_BUCKET).createSignedUrls(paths, 3600);
-      if (!alive || !data) return;
-      const map = new Map(data.map((d) => [d.path ?? "", d.signedUrl] as const));
-      if (preset.wallpaper_path) setWallpaperUrl(map.get(preset.wallpaper_path) ?? null);
-      const next: Record<number, string> = {};
-      (preset.icons ?? []).forEach((ic, i) => {
-        const u = ic.image_path ? map.get(ic.image_path) : undefined;
-        if (u) next[i] = u;
-      });
-      setIconUrls(next);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [preset]);
+    void supabase.auth.getUser().then(({ data }) => setMe(data.user?.id ?? null));
+  }, []);
+
+  useEffect(() => {
+    void supabase
+      .from("profiles")
+      .select("display_name, username")
+      .eq("id", preset.owner_id)
+      .maybeSingle()
+      .then(({ data }) => setOwnerName(data?.display_name || data?.username || null));
+  }, [preset.owner_id]);
+
+  // Count one view per modal open.
+  useEffect(() => {
+    void incrementView(preset.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preset.id]);
 
   const handleDownload = async () => {
     setBusy(true);
@@ -135,24 +130,75 @@ export function MarketPresetModal({
       toast.error(r.error);
       return;
     }
+    void registerDownload(preset.id);
     window.dispatchEvent(new Event("presets:refresh"));
     toast.success("보관함에 저장됨", {
       action: { label: "보관함으로", onClick: () => nav("/library") },
     });
   };
 
+  const copyLink = async () => {
+    const url = `${window.location.origin}/explore?market=${preset.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("링크를 복사했습니다.");
+    } catch {
+      toast.error("링크 복사에 실패했습니다.");
+    }
+  };
+
+  const submitReport = async () => {
+    setReportBusy(true);
+    const ok = await report(preset.id, reportReason, reportDetail);
+    setReportBusy(false);
+    if (ok) {
+      setReportOpen(false);
+      setReportDetail("");
+    }
+  };
+
   return (
+    <>
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-thin">
         <div className="space-y-5">
-          <MarketPresetPreview preset={preset} wallpaperUrl={wallpaperUrl} iconUrls={iconUrls} />
+          <div
+            className="relative w-full rounded-xl overflow-hidden border border-border bg-muted"
+            style={{ aspectRatio: `${preset.canvas?.w ?? 1920} / ${preset.canvas?.h ?? 1080}` }}
+          >
+            <PresetThumbnail
+              wallpaperUrl={preset.thumbnailUrl ?? null}
+              icons={thumbIcons}
+              canvasW={preset.canvas?.w ?? 1920}
+              canvasH={preset.canvas?.h ?? 1080}
+            />
+          </div>
 
           <div className="grid md:grid-cols-[1fr_240px] gap-5">
             <div className="space-y-3">
               <h2 className="text-2xl font-bold tracking-tight">{preset.name}</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">
+                  {ownerName ? `@${ownerName}` : "크리에이터"}
+                </span>
+                <FollowButton userId={preset.owner_id} />
+              </div>
               <div className="text-xs text-muted-foreground">
                 아이콘 {iconCount}개 · {preset.canvas?.w ?? 1920}×{preset.canvas?.h ?? 1080} ·{" "}
                 {preset.created_at.slice(0, 10)} 등록
+              </div>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                <span className="inline-flex items-center gap-1"><Eye className="h-3.5 w-3.5" />{preset.views}</span>
+                <span className="inline-flex items-center gap-1"><Download className="h-3.5 w-3.5" />{preset.downloads}</span>
+                <span className="inline-flex items-center gap-1"><Heart className="h-3.5 w-3.5" />{preset.likes}</span>
+                <span className="inline-flex items-center gap-1"><Bookmark className="h-3.5 w-3.5" />{preset.wishlist_count}</span>
+                <span className="inline-flex items-center gap-1"><MessageSquare className="h-3.5 w-3.5" />{preset.comment_count}</span>
+                {avg > 0 && (
+                  <span className="inline-flex items-center gap-1 text-yellow-500">
+                    <Star className="h-3.5 w-3.5 fill-current" />
+                    {avg.toFixed(1)} ({preset.rating_count})
+                  </span>
+                )}
               </div>
               {preset.description && (
                 <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
@@ -168,6 +214,9 @@ export function MarketPresetModal({
                   ))}
                 </div>
               )}
+              <div className="pt-2 border-t border-border">
+                <PresetComments presetId={preset.id} myUserId={me} />
+              </div>
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-4 space-y-3 h-fit">
@@ -188,6 +237,39 @@ export function MarketPresetModal({
                   </>
                 )}
               </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={isLiked(preset.id) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => void toggleLike(preset.id)}
+                >
+                  <Heart className={cn("h-3.5 w-3.5 mr-1.5", isLiked(preset.id) && "fill-current")} />
+                  {preset.likes}
+                </Button>
+                <Button
+                  variant={isWishlisted(preset.id) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => void toggleWishlist(preset.id)}
+                >
+                  <Bookmark className={cn("h-3.5 w-3.5 mr-1.5", isWishlisted(preset.id) && "fill-current")} />
+                  찜
+                </Button>
+              </div>
+              <div className="rounded-xl bg-muted/40 p-3 space-y-1">
+                <div className="text-[11px] font-semibold text-muted-foreground">내 별점</div>
+                <StarRating value={mine} onRate={(n) => void rate(preset.id, n)} />
+              </div>
+              <Button variant="outline" size="sm" className="w-full" onClick={copyLink}>
+                <Share2 className="h-3.5 w-3.5 mr-1.5" />링크 복사
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-muted-foreground hover:text-destructive"
+                onClick={() => setReportOpen(true)}
+              >
+                <Flag className="h-3.5 w-3.5 mr-1.5" />신고
+              </Button>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 다운로드하면 보관함에 저장됩니다. 프로그램 연결은 보관함 편집기에서 직접 지정하세요.
               </p>
@@ -196,5 +278,49 @@ export function MarketPresetModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>프리셋 신고</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">신고 사유</label>
+            <Select value={reportReason} onValueChange={(v) => setReportReason(v as ReportReason)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {reportReasons.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">상세 내용 (선택)</label>
+            <Textarea
+              value={reportDetail}
+              maxLength={2000}
+              onChange={(e) => setReportDetail(e.target.value)}
+              placeholder="어떤 문제가 있는지 알려주세요."
+              className="min-h-[96px] text-sm"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setReportOpen(false)}>
+              취소
+            </Button>
+            <Button variant="destructive" disabled={reportBusy} onClick={submitReport}>
+              {reportBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "신고하기"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

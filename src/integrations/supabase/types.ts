@@ -14,45 +14,183 @@ export type Database = {
   }
   public: {
     Tables: {
+      comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          preset_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          preset_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          preset_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "market_presets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      downloads: {
+        Row: {
+          created_at: string
+          id: string
+          preset_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preset_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preset_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "downloads_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "market_presets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      likes: {
+        Row: {
+          created_at: string
+          id: string
+          preset_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preset_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preset_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "likes_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "market_presets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_presets: {
         Row: {
           canvas: Json
+          comment_count: number
           created_at: string
           description: string | null
+          downloads: number
           icons: Json
           id: string
+          is_hidden: boolean
           is_public: boolean
+          likes: number
           name: string
           owner_id: string
+          rating_count: number
+          rating_sum: number
           tags: string[]
           updated_at: string
+          views: number
           wallpaper_path: string | null
+          wishlist_count: number
         }
         Insert: {
           canvas?: Json
+          comment_count?: number
           created_at?: string
           description?: string | null
+          downloads?: number
           icons?: Json
           id?: string
+          is_hidden?: boolean
           is_public?: boolean
+          likes?: number
           name: string
           owner_id: string
+          rating_count?: number
+          rating_sum?: number
           tags?: string[]
           updated_at?: string
+          views?: number
           wallpaper_path?: string | null
+          wishlist_count?: number
         }
         Update: {
           canvas?: Json
+          comment_count?: number
           created_at?: string
           description?: string | null
+          downloads?: number
           icons?: Json
           id?: string
+          is_hidden?: boolean
           is_public?: boolean
+          likes?: number
           name?: string
           owner_id?: string
+          rating_count?: number
+          rating_sum?: number
           tags?: string[]
           updated_at?: string
+          views?: number
           wallpaper_path?: string | null
+          wishlist_count?: number
         }
         Relationships: []
       }
@@ -62,6 +200,8 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string | null
+          follower_count: number
+          following_count: number
           id: string
           updated_at: string
           username: string | null
@@ -71,6 +211,8 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          follower_count?: number
+          following_count?: number
           id: string
           updated_at?: string
           username?: string | null
@@ -80,18 +222,119 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          follower_count?: number
+          following_count?: number
           id?: string
           updated_at?: string
           username?: string | null
         }
         Relationships: []
       }
+      ratings: {
+        Row: {
+          created_at: string
+          id: string
+          preset_id: string
+          score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preset_id: string
+          score: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preset_id?: string
+          score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ratings_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "market_presets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          created_at: string
+          detail: string | null
+          id: string
+          preset_id: string | null
+          reason: string
+          reporter_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          id?: string
+          preset_id?: string | null
+          reason: string
+          reporter_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          id?: string
+          preset_id?: string | null
+          reason?: string
+          reporter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "market_presets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wishlists: {
+        Row: {
+          created_at: string
+          id: string
+          preset_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preset_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preset_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlists_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "market_presets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_view: { Args: { p_preset_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

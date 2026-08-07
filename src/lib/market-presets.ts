@@ -28,18 +28,37 @@ export type MarketPresetRow = {
   icons: MarketPresetIcon[];
   is_public: boolean;
   created_at: string;
+  likes: number;
+  downloads: number;
+  views: number;
+  wishlist_count: number;
+  comment_count: number;
+  rating_sum: number;
+  rating_count: number;
   /** Signed preview URL for `wallpaper_path` (bucket is private). */
   thumbnailUrl?: string | null;
+  /** Signed URLs for `icons[].image_path`, index-aligned with `icons`. */
+  iconUrls?: (string | null)[];
 };
 
-async function signThumbnails(rows: MarketPresetRow[]): Promise<MarketPresetRow[]> {
-  const paths = rows.map((r) => r.wallpaper_path).filter((p): p is string => !!p);
+/** Average rating, or 0 when nobody rated the preset yet. */
+export function presetAverageRating(p: Pick<MarketPresetRow, "rating_sum" | "rating_count">) {
+  return p.rating_count > 0 ? p.rating_sum / p.rating_count : 0;
+}
+
+async function signAssets(rows: MarketPresetRow[]): Promise<MarketPresetRow[]> {
+  const paths = [
+    ...rows.map((r) => r.wallpaper_path),
+    ...rows.flatMap((r) => (r.icons ?? []).map((ic) => ic.image_path ?? null)),
+  ].filter((p): p is string => !!p);
   if (paths.length === 0) return rows;
-  const { data } = await supabase.storage.from(MARKET_BUCKET).createSignedUrls(paths, 3600);
+  const unique = [...new Set(paths)];
+  const { data } = await supabase.storage.from(MARKET_BUCKET).createSignedUrls(unique, 3600);
   const map = new Map((data ?? []).map((d) => [d.path ?? "", d.signedUrl] as const));
   return rows.map((r) => ({
     ...r,
     thumbnailUrl: r.wallpaper_path ? map.get(r.wallpaper_path) ?? null : null,
+    iconUrls: (r.icons ?? []).map((ic) => (ic.image_path ? map.get(ic.image_path) ?? null : null)),
   }));
 }
 
@@ -74,7 +93,7 @@ export function useMarketPresets(options?: { mine?: boolean }) {
       setLoading(false);
       return;
     }
-    setPresets(await signThumbnails((data ?? []) as unknown as MarketPresetRow[]));
+    setPresets(await signAssets((data ?? []) as unknown as MarketPresetRow[]));
     setLoading(false);
   }, [mine]);
 
