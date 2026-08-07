@@ -38,7 +38,7 @@ export default function Library() {
   const nav = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
-  const [pinned, setPinned] = useState<string[]>([]);
+  const [pinned, setPinned] = useState<string[]>(() => readPinned());
   const [tab, setTab] = useState<"presets" | "icons">(
     () => (searchParams.get("tab") === "icons" ? "icons" : "presets"),
   );
