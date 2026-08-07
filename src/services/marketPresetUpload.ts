@@ -57,7 +57,7 @@ export function parseTags(raw: string): string[] {
 async function fetchImageBlob(url: string, label: string): Promise<Blob> {
   let res: Response;
   try {
-    res = await fetch(localEngineUrl(url));
+    res = await fetch(localEngineUrl(url), { cache: "no-store" });
   } catch {
     throw new MarketUploadError(
       `${label} 이미지를 불러올 수 없습니다. ICNO Desktop App이 실행 중인지 확인해주세요.`,
