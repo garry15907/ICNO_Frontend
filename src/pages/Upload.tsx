@@ -30,6 +30,7 @@ import {
   Link2,
   Link2Off,
   ArrowLeft,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +43,7 @@ import type { UserIconAsset } from "@/services/iconLibraryService";
 import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
 import { PresetThumbnail } from "@/components/presets/PresetThumbnail";
+import { MarketUploadModal } from "@/components/presets/MarketUploadModal";
 import { Loader2 } from "lucide-react";
 import {
   uploadIconImage,
@@ -606,12 +608,13 @@ export default function Upload() {
   void applyingPresetId; // reserved for future per-preset button states
 
   const [isSaving, setIsSaving] = useState(false);
-  const handleSaveDraft = async () => {
-    if (isSaving) return;
-    if (!requireLogin()) return;
+  // Single save path — reused by 저장하기 and 마켓에 업로드.
+  const saveCurrentPreset = async (): Promise<PresetModel | null> => {
+    if (isSaving) return null;
+    if (!requireLogin()) return null;
     if (wallpaperUploading) {
       toast({ title: "배경화면 업로드 중입니다.", description: "잠시 후 다시 시도해주세요." });
-      return;
+      return null;
     }
     setIsSaving(true);
     try {
@@ -629,6 +632,7 @@ export default function Upload() {
           (model.name || "이름 없는 프리셋") +
           (excluded.length ? ` · ${excluded.length}개 아이콘 제외됨` : ""),
       });
+      return { ...model, ...(saved ?? {}), id: savedId, name: model.name } as PresetModel;
     } catch (err) {
       console.error("[upload] save failed", err);
       toast({
@@ -641,9 +645,18 @@ export default function Upload() {
               : "알 수 없는 오류",
         variant: "destructive",
       });
+      return null;
     } finally {
       setIsSaving(false);
     }
+  };
+  const handleSaveDraft = () => { void saveCurrentPreset(); };
+
+  // 마켓에 업로드: save first so the latest name/layout is what gets published.
+  const [marketTarget, setMarketTarget] = useState<PresetModel | null>(null);
+  const handleMarketUpload = async () => {
+    const saved = await saveCurrentPreset();
+    if (saved) setMarketTarget(saved);
   };
 
   const assetById = useMemo(() => {
@@ -683,8 +696,7 @@ export default function Upload() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              프리셋 편집
-              {presetIdParam && name ? <span className="text-muted-foreground font-semibold"> · {name}</span> : null}
+              {name.trim() || "새 프리셋"}
             </h1>
             <p className="text-muted-foreground mt-1.5 text-sm">
               배경화면과 아이콘 배치를 자유롭게 편집해보세요.
@@ -694,6 +706,14 @@ export default function Upload() {
         <div className="flex items-center gap-2">
           <Button variant="outline" className="rounded-lg" onClick={handleSaveDraft} disabled={isSaving}>
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} 저장하기
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-lg"
+            onClick={handleMarketUpload}
+            disabled={isSaving}
+          >
+            <Store className="h-4 w-4" /> 마켓에 업로드
           </Button>
           <Button
             variant="secondary"
@@ -719,6 +739,20 @@ export default function Upload() {
           </Button>
         </div>
       </div>
+
+      <section className="rounded-2xl border border-border/60 bg-card/50 p-5">
+        <Label htmlFor="preset-name" className="text-sm font-semibold">프리셋 이름</Label>
+        <Input
+          id="preset-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="예: 감자탕"
+          className="mt-2 max-w-md"
+        />
+        <p className="text-[11px] text-muted-foreground mt-2">
+          저장하기를 누르면 변경한 이름이 함께 저장됩니다.
+        </p>
+      </section>
 
       <section className="rounded-2xl border border-border/60 bg-card/50 p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -853,6 +887,12 @@ export default function Upload() {
           }}
         />
       )}
+
+      <MarketUploadModal
+        preset={marketTarget}
+        open={!!marketTarget}
+        onOpenChange={(o) => !o && setMarketTarget(null)}
+      />
     </div>
   );
 }
