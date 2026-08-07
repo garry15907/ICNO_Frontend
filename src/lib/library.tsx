@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 import { Download, LogIn, MonitorSmartphone, Loader2 } from "lucide-react";
 import {
   ApiError,
