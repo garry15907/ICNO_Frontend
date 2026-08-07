@@ -278,5 +278,49 @@ export function MarketPresetModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>프리셋 신고</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">신고 사유</label>
+            <Select value={reportReason} onValueChange={(v) => setReportReason(v as ReportReason)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {reportReasons.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">상세 내용 (선택)</label>
+            <Textarea
+              value={reportDetail}
+              maxLength={2000}
+              onChange={(e) => setReportDetail(e.target.value)}
+              placeholder="어떤 문제가 있는지 알려주세요."
+              className="min-h-[96px] text-sm"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setReportOpen(false)}>
+              취소
+            </Button>
+            <Button variant="destructive" disabled={reportBusy} onClick={submitReport}>
+              {reportBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "신고하기"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
