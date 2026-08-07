@@ -73,10 +73,8 @@ export function MarketPresetModal({
   const [reportBusy, setReportBusy] = useState(false);
 
   const {
-    isLiked,
     isWishlisted,
     myRating,
-    toggleLike,
     toggleWishlist,
     rate,
     registerDownload,
