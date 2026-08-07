@@ -246,6 +246,19 @@ export default function Upload() {
   const presetIdParam = searchParams.get("preset");
   const { applyEditedPreset, isApplying, applyingPresetId } = useLibrary();
   const { userIcons } = useIconLibrary();
+  const { session } = useAuth();
+
+  // 로그인이 필요한 동작을 실제 세션으로 게이팅
+  const requireLogin = () => {
+    if (session) return true;
+    toast({
+      title: "로그인이 필요합니다",
+      description: "프리셋을 저장하거나 적용하려면 로그인해주세요.",
+      variant: "destructive",
+    });
+    navigate("/auth?redirect=" + encodeURIComponent(window.location.pathname + window.location.search));
+    return false;
+  };
 
   const [wallpaper, setWallpaper] = useState<{ file: File; url: string } | null>(null);
   const [iconAssets, setIconAssets] = useState<IconAsset[]>([]);
