@@ -535,6 +535,13 @@ export default function Library() {
         </DialogContent>
       </Dialog>
 
+      {/* 마켓 업로드 모달 */}
+      <MarketUploadModal
+        preset={marketTarget}
+        open={!!marketTarget}
+        onOpenChange={(o) => !o && setMarketTarget(null)}
+      />
+
       {/* 이름 변경 모달 */}
       <Dialog open={!!renameTarget} onOpenChange={(o) => !o && setRenameTarget(null)}>
         <DialogContent className="max-w-sm">
