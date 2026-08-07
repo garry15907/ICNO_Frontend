@@ -41,6 +41,7 @@ import { useAuth } from "@/lib/auth";
 import type { UserIconAsset } from "@/services/iconLibraryService";
 import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
+import { PresetThumbnail } from "@/components/presets/PresetThumbnail";
 import { Loader2 } from "lucide-react";
 import {
   uploadIconImage,
