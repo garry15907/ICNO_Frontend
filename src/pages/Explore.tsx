@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Search, SlidersHorizontal, Sparkles, Image as ImageIcon, Package, Layers, Monitor } from "lucide-react";
 import { MarketItemCard } from "@/components/presets/PresetCard";
 import { marketItems, type CreatorResolutionType } from "@/data/mockData";
+import { useMarketPresets } from "@/lib/market-presets";
 import { useWishlist } from "@/lib/wishlist";
 import { MarketItemModal } from "@/components/presets/MarketItemModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -46,6 +47,16 @@ export default function Explore() {
   const [resolution, setResolution] = useState<"ALL" | CreatorResolutionType>("ALL");
   const [matchOnly, setMatchOnly] = useState(false);
   const display = useCurrentDisplay();
+  const { presets: cloudPresets } = useMarketPresets();
+  const cloudMatches = useMemo(
+    () =>
+      cloudPresets.filter(
+        (p) =>
+          (typeFilter === "all" || typeFilter === "preset") &&
+          (!query || (p.name + " " + p.tags.join(" ")).includes(query)),
+      ),
+    [cloudPresets, typeFilter, query],
+  );
 
   const filteredCategories = useMemo(
     () => categories.filter((c) => c.toLowerCase().includes(categoryQuery.toLowerCase())),
@@ -234,10 +245,50 @@ export default function Explore() {
         )}
       </div>
 
+      {/* 클라우드 마켓 프리셋 */}
+      {cloudMatches.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">마켓 프리셋</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {cloudMatches.map((p) => (
+              <div key={p.id} className="rounded-2xl overflow-hidden bg-card border border-border shadow-card">
+                <div className="aspect-[16/10] bg-muted overflow-hidden">
+                  {p.thumbnailUrl ? (
+                    <img src={p.thumbnailUrl} alt={p.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-muted to-background" />
+                  )}
+                </div>
+                <div className="p-4 space-y-1">
+                  <div className="text-sm font-semibold truncate">{p.name}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">
+                    아이콘 {p.icons.length}개 · {p.created_at.slice(0, 10)}
+                  </div>
+                  {p.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">{p.description}</p>
+                  )}
+                  {p.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {p.tags.map((t) => (
+                        <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Grid */}
       {items.length === 0 ? (
         <div className="border border-dashed rounded-2xl p-16 text-center text-muted-foreground">
-          {marketItems.length === 0
+          {cloudMatches.length > 0
+            ? "다른 상품(아이콘·팩)은 아직 없습니다."
+            : marketItems.length === 0
             ? "아직 마켓에 올라온 항목이 없습니다."
             : "조건에 맞는 상품이 없습니다."}
         </div>
