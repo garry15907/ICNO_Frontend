@@ -406,13 +406,37 @@ export default function Upload() {
     if (preset?.description) setDescription((prev) => prev || preset.description);
   };
 
-  const handleWallpaper = (file?: File) => {
+  const handleWallpaper = async (file?: File) => {
     if (!file) return;
     if (!/\.(jpe?g|png|gif)$/i.test(file.name)) {
       toast({ title: "지원하지 않는 형식", description: "JPG, PNG, GIF만 업로드할 수 있어요." });
       return;
     }
-    setWallpaper({ file, url: URL.createObjectURL(file) });
+    const localUrl = URL.createObjectURL(file);
+    setWallpaper({ file, url: localUrl });
+    // Upload immediately (same as icons) so the engine path exists before save.
+    setWallpaperUploading(true);
+    try {
+      const res = await uploadWallpaper(file);
+      const path = res.wallpaper_path ?? "";
+      if (!path) throw new Error("wallpaper_path 응답이 비어 있습니다.");
+      setWallpaperPath(path);
+    } catch (err) {
+      console.error("[upload] wallpaper upload failed", err);
+      setWallpaperPath("");
+      toast({
+        title: "배경화면 업로드에 실패했습니다.",
+        description:
+          err instanceof ApiError && err.status === 0
+            ? "ICNO Desktop App이 실행 중인지 확인해주세요."
+            : err instanceof Error
+              ? err.message
+              : "알 수 없는 오류",
+        variant: "destructive",
+      });
+    } finally {
+      setWallpaperUploading(false);
+    }
   };
 
   const handleIcons = (files: FileList | File[]) => {
