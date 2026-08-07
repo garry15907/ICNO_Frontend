@@ -85,8 +85,8 @@ export function ProfileMain() {
     setUnfollowTarget(null);
   };
   const quickMenus = [
-    { title: "찜 목록", desc: "찜한 프리셋 · 아이콘 · 아이콘 팩", icon: Heart, to: "/profile/wishlist" },
-    { title: "다운로드 목록", desc: "원본 재다운로드 및 초기 복원", icon: Download, to: "/profile/downloads" },
+    { title: "찜한 프리셋", desc: "하트를 누른 마켓 프리셋", icon: Heart, to: "/profile/wishlist" },
+    { title: "다운로드 목록", desc: "다운로드한 마켓 프리셋", icon: Download, to: "/profile/downloads" },
     { title: "구매 내역", desc: "구매한 유료 프리셋 확인", icon: Receipt, to: "/profile/purchases" },
     { title: "내 상품 관리", desc: "업로드한 프리셋 관리", icon: Store, to: "/profile/sales" },
     { title: "팔로우 목록", desc: "팔로우한 크리에이터 모아보기", icon: Users, to: "/profile/following" },
