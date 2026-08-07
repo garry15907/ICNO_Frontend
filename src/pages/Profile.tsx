@@ -628,6 +628,18 @@ function Empty({ text }: { text: string }) {
   return <div className="border border-dashed rounded-2xl p-12 text-center text-muted-foreground">{text}</div>;
 }
 
+function SignInPrompt() {
+  const nav = useNavigate();
+  return (
+    <div className="border border-dashed rounded-2xl p-12 text-center space-y-3">
+      <p className="text-muted-foreground">로그인이 필요한 목록입니다.</p>
+      <Button className="bg-gradient-primary text-primary-foreground" onClick={() => nav("/auth")}>
+        로그인하기
+      </Button>
+    </div>
+  );
+}
+
 export function Following() {
   const nav = useNavigate();
   const [following, setFollowing] = useState(followedCreators);
