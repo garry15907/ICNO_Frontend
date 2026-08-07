@@ -5,6 +5,7 @@ import { currentUser } from "@/data/mockData";
 import { useSidebarMode } from "@/lib/sidebar-mode";
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { useNotifications } from "@/lib/notifications";
+import { useAuth } from "@/lib/auth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const navItems = [
