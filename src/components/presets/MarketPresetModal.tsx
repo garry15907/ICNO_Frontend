@@ -131,7 +131,7 @@ export function MarketPresetModal({
     setBusy(true);
     const r = await importMarketPreset(preset);
     setBusy(false);
-    if (!r.ok) {
+    if (r.ok === false) {
       toast.error(r.error);
       return;
     }
