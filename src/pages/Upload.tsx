@@ -30,6 +30,7 @@ import {
   Link2,
   Link2Off,
   ArrowLeft,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +43,7 @@ import type { UserIconAsset } from "@/services/iconLibraryService";
 import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
 import { PresetThumbnail } from "@/components/presets/PresetThumbnail";
+import { MarketUploadModal } from "@/components/presets/MarketUploadModal";
 import { Loader2 } from "lucide-react";
 import {
   uploadIconImage,
