@@ -21,6 +21,7 @@ import {
   type PresetModel,
 } from "@/services/localEngineApi";
 import { PresetMiniPreview } from "@/components/presets/PresetMiniPreview";
+import { MarketUploadModal } from "@/components/presets/MarketUploadModal";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -52,6 +53,7 @@ export default function Library() {
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [marketTarget, setMarketTarget] = useState<PresetModel | null>(null);
   // 프리셋 목록은 로컬 엔진(GET /api/presets)이 유일한 소스입니다.
   // 이 상태는 아직 저장 전인 로컬 초안 카드만 담습니다.
   const [presets, setPresets] = useState<LibraryPreset[]>([]);
@@ -386,6 +388,11 @@ export default function Library() {
                     <DropdownMenuItem onClick={() => { setRenameTarget({ id: p.id, name: p.name }); setRenameValue(p.name); }}>
                       <Edit className="h-3.5 w-3.5 mr-2" /> 이름 변경
                     </DropdownMenuItem>
+                    {(p as any)._backend && (
+                      <DropdownMenuItem onClick={() => setMarketTarget((p as any)._backend as PresetModel)}>
+                        <Store className="h-3.5 w-3.5 mr-2" /> 마켓에 올리기
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
@@ -408,6 +415,20 @@ export default function Library() {
                 <Play className="h-3.5 w-3.5 mr-1.5" />
                 적용하기
               </Button>
+              {(p as any)._backend && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full mt-1.5 h-8 text-primary hover:text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMarketTarget((p as any)._backend as PresetModel);
+                  }}
+                >
+                  <Store className="h-3.5 w-3.5 mr-1.5" />
+                  마켓에 올리기
+                </Button>
+              )}
             </div>
           </div>
         ))}

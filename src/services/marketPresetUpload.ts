@@ -143,7 +143,7 @@ export async function uploadPresetToMarket(input: MarketUploadInput): Promise<Ma
   try {
     const wallpaperPath = wallpaperBlob ? await put(wallpaperBlob, wallpaperExt) : null;
 
-    const iconRows = [] as Record<string, unknown>[];
+    const iconRows: Record<string, string | number | boolean | null>[] = [];
     for (const { blob, ext, icon } of iconBlobs) {
       const image_path = await put(blob, ext);
       // Layout fields ONLY — target_path is intentionally excluded.
@@ -177,7 +177,7 @@ export async function uploadPresetToMarket(input: MarketUploadInput): Promise<Ma
         tags,
         wallpaper_path: wallpaperPath,
         canvas,
-        icons: iconRows,
+        icons: iconRows as unknown as never,
         is_public: input.isPublic,
       })
       .select("id, name")
