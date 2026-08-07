@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, reviews as mockReviews, followedCreators, marketItems } from "@/data/mockData";
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { useAuth } from "@/lib/auth";
+import { useMarketPresets } from "@/lib/market-presets";
+import { supabase } from "@/integrations/supabase/client";
 import { useWishlist } from "@/lib/wishlist";
 import { Button } from "@/components/ui/button";
 import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft, TrendingUp, MessageSquare, Activity, Calendar, Shield, Upload, Eye, EyeOff, Pencil, Trash2, Flag, CheckCircle2, Info, ChevronRight, Users, UserMinus } from "lucide-react";
