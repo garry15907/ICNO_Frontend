@@ -349,106 +349,41 @@ export function ProfileMain() {
 
 export function Wishlist() {
   const nav = useNavigate();
-  const { wishlist, toggle } = useWishlist();
+  const { presets, loading, signedIn } = useWishlistedPresets();
+  const { toggleWishlist } = useMarketSocial();
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string } | null>(null);
-  const [filter, setFilter] = useState<"all" | "preset" | "icon" | "iconpack">("all");
-  const allItems = marketItems.filter((it) => wishlist.includes(it.id));
-  const counts = {
-    all: allItems.length,
-    preset: allItems.filter((i) => i.type === "preset").length,
-    icon: allItems.filter((i) => i.type === "icon").length,
-    iconpack: allItems.filter((i) => i.type === "iconpack").length,
-  };
-  const items = filter === "all" ? allItems : allItems.filter((i) => i.type === filter);
-  const handleUnlike = () => {
+  const handleUnlike = async () => {
     if (!confirmTarget) return;
-    toggle(confirmTarget.id);
-    toast({ title: "찜 해제됨", description: `${confirmTarget.name}을(를) 찜 목록에서 제거했습니다.` });
+    await toggleWishlist(confirmTarget.id);
     setConfirmTarget(null);
   };
-  const tabs: { key: typeof filter; label: string }[] = [
-    { key: "all", label: "전체" },
-    { key: "preset", label: "프리셋" },
-    { key: "icon", label: "아이콘" },
-    { key: "iconpack", label: "아이콘 팩" },
-  ];
-  const typeLabel = (t: "preset" | "icon" | "iconpack") =>
-    t === "preset" ? "프리셋" : t === "icon" ? "아이콘" : "아이콘 팩";
   return (
-    <ProfileList title="찜 목록" subtitle="찜한 프리셋 · 아이콘 · 아이콘 팩을 모아봅니다.">
-      <div className="flex flex-wrap gap-2 mb-2">
-        {tabs.map((t) => {
-          const active = filter === t.key;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setFilter(t.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                active
-                  ? "bg-gradient-primary text-primary-foreground border-transparent shadow-glow"
-                  : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
-              }`}
-            >
-              {t.label}
-              <span className={`ml-1.5 ${active ? "opacity-90" : "opacity-60"}`}>{counts[t.key]}</span>
-            </button>
-          );
-        })}
-      </div>
-      {items.length === 0 ? (
-        <Empty text="찜한 항목이 없습니다." />
+    <ProfileList title="찜한 프리셋" subtitle="하트를 누른 마켓 프리셋을 모아봅니다.">
+      {signedIn === false ? (
+        <SignInPrompt />
+      ) : loading ? (
+        <Empty text="불러오는 중…" />
+      ) : presets.length === 0 ? (
+        <Empty text="찜한 프리셋이 없습니다. 탐색에서 하트를 눌러 담아보세요." />
       ) : (
-        items.map((it) => {
-          const isPreset = it.type === "preset";
-          const isIcon = it.type === "icon";
-          const isPack = it.type === "iconpack";
-          const meta = isPreset
-            ? `@${it.creator.name} · ★${it.rating} · ${it.downloads.toLocaleString()} 다운로드`
-            : isIcon
-              ? `@${it.creator.name} · ${it.fileType} · ${it.resolution}`
-              : `@${it.creator.name} · ${it.icons.length}종 · ★${it.rating}`;
-          const nameForAction = isPreset ? "다운로드" : "구매";
-          const primaryLabel = it.price === 0 ? "다운로드" : nameForAction === "구매" ? "구매" : "구매";
-          return (
-            <div key={it.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition">
-              {isPreset ? (
-                <img src={it.thumbnail} className="h-16 w-24 object-cover rounded-md shrink-0" alt="" />
-              ) : isIcon ? (
-                <div className="h-16 w-24 rounded-md bg-muted grid place-items-center text-4xl shrink-0">{it.emoji}</div>
-              ) : (
-                <div className="h-16 w-24 rounded-md bg-muted grid grid-cols-3 gap-0.5 p-1 shrink-0">
-                  {it.thumbnailEmojis.slice(0, 6).map((e, i) => (
-                    <div key={i} className="grid place-items-center text-base">{e}</div>
-                  ))}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-[10px]">{typeLabel(it.type)}</Badge>
-                  <div className="font-semibold text-sm truncate">{it.name}</div>
-                </div>
-                <div className="text-xs text-muted-foreground mt-1 truncate">{meta}</div>
-              </div>
-              <span className="text-sm font-semibold whitespace-nowrap">{it.price === 0 ? "무료" : `₩${it.price.toLocaleString()}`}</span>
-              <Button
-                size="sm"
-                className="bg-gradient-primary text-primary-foreground"
-                onClick={() => nav(`/explore?item=${it.id}`)}
-              >
-                {it.price === 0 ? "다운로드" : "구매"}
-              </Button>
+        presets.map((p) => (
+          <MarketPresetListRow
+            key={p.id}
+            preset={p}
+            onClick={() => nav(`/explore?market=${p.id}`)}
+            actions={
               <Button
                 size="sm"
                 variant="ghost"
                 aria-label="찜 해제"
                 title="찜 해제"
-                onClick={() => setConfirmTarget({ id: it.id, name: it.name })}
+                onClick={() => setConfirmTarget({ id: p.id, name: p.name })}
               >
                 <Heart className="h-4 w-4 fill-destructive text-destructive" />
               </Button>
-            </div>
-          );
-        })
+            }
+          />
+        ))
       )}
       <AlertDialog open={!!confirmTarget} onOpenChange={(o) => !o && setConfirmTarget(null)}>
         <AlertDialogContent>
@@ -460,7 +395,7 @@ export function Wishlist() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction onClick={handleUnlike} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">제거</AlertDialogAction>
+            <AlertDialogAction onClick={() => void handleUnlike()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">제거</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -469,48 +404,30 @@ export function Wishlist() {
 }
 
 export function Downloads() {
-  const items = marketplacePresets.filter((p) => downloadedIds.includes(p.id));
-  const [restore, setRestore] = useState<string | null>(null);
+  const nav = useNavigate();
+  const { presets, loading, signedIn } = useDownloadedPresets();
   return (
-    <ProfileList title="다운로드 목록" subtitle="다운로드한 프리셋을 다시 받거나 원본 상태로 복원할 수 있습니다.">
-      {items.length === 0 && <Empty text="다운로드한 프리셋이 없습니다." />}
-      {items.map((p) => {
-        const lib = libraryPresets.find((l) => l.sourceMarketId === p.id);
-        const status = lib ? (lib.status === "로컬 수정됨" ? "로컬 수정됨" : "보관함에 있음") : "보관함에서 삭제됨";
-        return (
-          <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
-            <img src={p.thumbnail} className="h-16 w-24 object-cover rounded-md" alt="" />
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm truncate">{p.name}</div>
-              <div className="text-xs text-muted-foreground">@{p.creator.name} · 2026-04-20 · v1.0 · {p.price === 0 ? "무료" : "구매함"}</div>
-              <span className="text-[10px] mt-1 inline-block px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{status}</span>
-            </div>
-            <Button size="sm" variant="outline"><Download className="h-3.5 w-3.5 mr-1" />다시 다운로드</Button>
-            <Button size="sm" variant="outline"><FolderOpen className="h-3.5 w-3.5 mr-1" />보관함</Button>
-            <Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => setRestore(p.id)}><RotateCcw className="h-3.5 w-3.5" /></Button>
-          </div>
-        );
-      })}
-      <Dialog open={!!restore} onOpenChange={(o) => !o && setRestore(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>프리셋을 초기 상태로 복원할까요?</DialogTitle>
-            <DialogDescription>복원 방식을 선택하세요.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 pt-2">
-            <button className="w-full text-left p-4 rounded-xl border border-border hover:border-primary transition">
-              <div className="text-sm font-semibold">매핑 정보 유지하고 복원</div>
-              <div className="text-xs text-muted-foreground mt-1">배경화면, 아이콘 이미지, 위치, 크기, 스타일을 복원하고 로컬 매핑은 유지합니다.</div>
-            </button>
-            <button className="w-full text-left p-4 rounded-xl border border-border hover:border-destructive transition">
-              <div className="text-sm font-semibold text-destructive">전체 초기화</div>
-              <div className="text-xs text-muted-foreground mt-1">모든 항목과 매핑을 초기화합니다. 아이콘을 다시 매핑해야 합니다.</div>
-            </button>
-            <Button variant="ghost" className="w-full" onClick={() => setRestore(null)}>취소</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+    <ProfileList title="다운로드 목록" subtitle="내가 다운로드한 마켓 프리셋입니다.">
+      {signedIn === false ? (
+        <SignInPrompt />
+      ) : loading ? (
+        <Empty text="불러오는 중…" />
+      ) : presets.length === 0 ? (
+        <Empty text="다운로드한 프리셋이 없습니다." />
+      ) : (
+        presets.map((p) => (
+          <MarketPresetListRow
+            key={p.id}
+            preset={p}
+            onClick={() => nav(`/explore?market=${p.id}`)}
+            actions={
+              <Button size="sm" variant="outline" onClick={() => nav("/library")}>
+                <FolderOpen className="h-3.5 w-3.5 mr-1" />보관함
+              </Button>
+            }
+          />
+        ))
+      )}
     </ProfileList>
   );
 }
