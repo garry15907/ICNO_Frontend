@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme";
+import { AuthProvider } from "@/lib/auth";
 import { SidebarModeProvider } from "@/lib/sidebar-mode";
 import { ProfileProvider } from "@/lib/profile";
 import { WishlistProvider } from "@/lib/wishlist";
@@ -18,6 +19,7 @@ import IconMaker from "./pages/IconMaker";
 import Upload from "./pages/Upload";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
+import Auth from "./pages/Auth";
 import { ProfileMain, Wishlist, Downloads, Purchases, Sales, Following } from "./pages/Profile";
 import CreatorProfile from "./pages/CreatorProfile";
 import NotFound from "./pages/NotFound";
@@ -35,11 +37,13 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AuthProvider>
           <LibraryProvider>
           <IconLibraryProvider>
           <AppLayout>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/library" element={<Library />} />
               <Route path="/icon-maker" element={<IconMaker />} />
@@ -58,6 +62,7 @@ const App = () => (
           </AppLayout>
           </IconLibraryProvider>
           </LibraryProvider>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
       </NotificationsProvider>
