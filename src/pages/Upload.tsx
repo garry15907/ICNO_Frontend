@@ -608,12 +608,13 @@ export default function Upload() {
   void applyingPresetId; // reserved for future per-preset button states
 
   const [isSaving, setIsSaving] = useState(false);
-  const handleSaveDraft = async () => {
-    if (isSaving) return;
-    if (!requireLogin()) return;
+  // Single save path — reused by 저장하기 and 마켓에 업로드.
+  const saveCurrentPreset = async (): Promise<PresetModel | null> => {
+    if (isSaving) return null;
+    if (!requireLogin()) return null;
     if (wallpaperUploading) {
       toast({ title: "배경화면 업로드 중입니다.", description: "잠시 후 다시 시도해주세요." });
-      return;
+      return null;
     }
     setIsSaving(true);
     try {
@@ -631,6 +632,7 @@ export default function Upload() {
           (model.name || "이름 없는 프리셋") +
           (excluded.length ? ` · ${excluded.length}개 아이콘 제외됨` : ""),
       });
+      return { ...model, ...(saved ?? {}), id: savedId, name: model.name } as PresetModel;
     } catch (err) {
       console.error("[upload] save failed", err);
       toast({
@@ -643,9 +645,18 @@ export default function Upload() {
               : "알 수 없는 오류",
         variant: "destructive",
       });
+      return null;
     } finally {
       setIsSaving(false);
     }
+  };
+  const handleSaveDraft = () => { void saveCurrentPreset(); };
+
+  // 마켓에 업로드: save first so the latest name/layout is what gets published.
+  const [marketTarget, setMarketTarget] = useState<PresetModel | null>(null);
+  const handleMarketUpload = async () => {
+    const saved = await saveCurrentPreset();
+    if (saved) setMarketTarget(saved);
   };
 
   const assetById = useMemo(() => {
