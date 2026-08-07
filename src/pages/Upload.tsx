@@ -572,28 +572,12 @@ export default function Upload() {
 
   const handlePublish = async () => {
     if (!requireLogin()) return;
-    // 1) Upload the wallpaper file if we have a real File (not a stub
-    //    reconstructed from a saved preview URL).
-    let wallpaper_path = "";
-    if (wallpaper?.file && wallpaper.file.size > 0) {
-      try {
-        const res = await uploadWallpaper(wallpaper.file);
-        wallpaper_path = res.wallpaper_path ?? "";
-      } catch (err) {
-        console.error("[upload] wallpaper upload failed", err);
-        toast({
-          title: "배경화면 업로드에 실패했습니다.",
-          description:
-            err instanceof ApiError && err.status === 0
-              ? "ICNO Desktop App이 실행 중인지 확인해주세요."
-              : err instanceof Error
-                ? err.message
-                : "알 수 없는 오류",
-          variant: "destructive",
-        });
-        return;
-      }
+    // 1) The wallpaper is uploaded at pick time — just reuse its engine path.
+    if (wallpaperUploading) {
+      toast({ title: "배경화면 업로드 중입니다.", description: "잠시 후 다시 시도해주세요." });
+      return;
     }
+    const wallpaper_path = wallpaperPath;
 
     // 2) Build spec-shaped payload and warn about excluded emoji-only icons.
     const { model, excluded } = buildPresetPayload(wallpaper_path);
