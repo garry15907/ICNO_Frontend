@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ImageOff } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { localEngineUrl, type PresetModel } from "@/services/localEngineApi";
 
@@ -48,9 +48,7 @@ export function PresetMiniPreview({
           draggable={false}
         />
       ) : (
-        <div className="absolute inset-0 grid place-items-center text-muted-foreground">
-          <ImageOff className="h-6 w-6" />
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
       )}
       <div
         className="absolute top-1/2 left-1/2"
@@ -65,21 +63,32 @@ export function PresetMiniPreview({
         {(preset?.icons ?? []).map((it, i) => {
           const url = it.image_url ? localEngineUrl(it.image_url) : "";
           const size = it.size ?? 72;
-          if (!url) return null;
           return (
-            <img
+            <div
               key={`${it.asset_id || i}-${i}`}
-              src={url}
-              alt=""
-              draggable={false}
-              className="absolute object-contain"
-              style={{
-                left: it.x ?? 0,
-                top: it.y ?? 0,
-                width: size,
-                height: "auto",
-              }}
-            />
+              className="absolute grid place-items-center"
+              style={{ left: it.x ?? 0, top: it.y ?? 0, width: size, height: size }}
+            >
+              {url ? (
+                <img
+                  src={url}
+                  alt=""
+                  draggable={false}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                    const ph = e.currentTarget.nextElementSibling as HTMLElement | null;
+                    if (ph) ph.style.display = "grid";
+                  }}
+                />
+              ) : null}
+              <div
+                className="w-full h-full place-items-center rounded-md bg-white/10 border border-white/15"
+                style={{ display: url ? "none" : "grid" }}
+              >
+                <ImageIcon className="w-1/2 h-1/2 text-white/50" />
+              </div>
+            </div>
           );
         })}
       </div>
