@@ -4,6 +4,9 @@ import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, review
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { useAuth } from "@/lib/auth";
 import { useMarketPresets } from "@/lib/market-presets";
+import { useWishlistedPresets, useDownloadedPresets } from "@/lib/market-collections";
+import { MarketPresetListRow } from "@/components/presets/MarketPresetListRow";
+import { useMarketSocial } from "@/lib/market-social";
 import { supabase } from "@/integrations/supabase/client";
 import { useWishlist } from "@/lib/wishlist";
 import { Button } from "@/components/ui/button";
