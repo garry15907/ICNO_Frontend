@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft, Play, Compass, Download as DownloadIcon } from "lucide-react";
-import { libraryPresets, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
+import { type LibraryPreset, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
 import { useLibrary } from "@/lib/library";
 import { useIconLibrary } from "@/lib/icon-library";
 import { applyUserIconToPreset, getUserIconAssetById } from "@/services/iconLibraryService";
@@ -52,7 +52,9 @@ export default function Library() {
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-  const [presets, setPresets] = useState(libraryPresets);
+  // 프리셋 목록은 로컬 엔진(GET /api/presets)이 유일한 소스입니다.
+  // 이 상태는 아직 저장 전인 로컬 초안 카드만 담습니다.
+  const [presets, setPresets] = useState<LibraryPreset[]>([]);
   const [backendPresets, setBackendPresets] = useState<PresetModel[]>([]);
   const { savedPresets, requestApply } = useLibrary();
   const {
@@ -436,27 +438,29 @@ export default function Library() {
                 const re = new RegExp(`^${escaped}(?:\\((\\d+)\\))?$`);
                 let maxN = 0;
                 let hasPlain = false;
-                libraryPresets.forEach((x) => {
+                presets.forEach((x) => {
                   const m = x.name.match(re);
                   if (!m) return;
                   if (m[1]) maxN = Math.max(maxN, parseInt(m[1], 10));
                   else hasPlain = true;
                 });
                 const name = !hasPlain ? baseName : `${baseName}(${Math.max(maxN, 1) + 1})`;
-                libraryPresets.unshift({
-                  id,
-                  name,
-                  thumbnail: "/placeholder.svg",
-                  iconCount: 0,
-                  mappedCount: 0,
-                  status: "내가 만든 프리셋",
-                  lastModified: new Date().toISOString().slice(0, 10),
-                  description: "새로 만든 빈 프리셋입니다.",
-                  tags: [],
-                  icons: [],
-                });
                 setCreateOpen(false);
-                setPresets([...libraryPresets]);
+                setPresets((prev) => [
+                  {
+                    id,
+                    name,
+                    thumbnail: "/placeholder.svg",
+                    iconCount: 0,
+                    mappedCount: 0,
+                    status: "내가 만든 프리셋",
+                    lastModified: new Date().toISOString().slice(0, 10),
+                    description: "새로 만든 빈 프리셋입니다.",
+                    tags: [],
+                    icons: [],
+                  },
+                  ...prev,
+                ]);
                 nav(`/upload?preset=${id}`);
               }}
             />

@@ -23,7 +23,6 @@ import {
 import {
   MarketplacePreset,
   marketplacePresets,
-  downloadedIds as initialDownloadedIds,
   libraryPresets,
 } from "@/data/mockData";
 
@@ -75,23 +74,13 @@ type LibraryContextValue = {
 
 const LibraryCtx = createContext<LibraryContextValue | null>(null);
 
-const MOCK_USER_ID = "u-local";
-
-function seedSavedFromDownloaded(): SavedPreset[] {
-  return initialDownloadedIds.map((pid, i) => ({
-    id: `sv-seed-${i}`,
-    userId: MOCK_USER_ID,
-    presetId: pid,
-    savedAt: new Date(Date.now() - (i + 1) * 86400_000).toISOString(),
-    source: "download",
-    isApplied: false,
-  }));
-}
+const LOCAL_USER_ID = "u-local";
 
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const nav = useNavigate();
   const { session } = useAuth();
-  const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => seedSavedFromDownloaded());
+  // 마켓 다운로드 기록은 아직 백엔드가 없어 세션 내에서만 유지됩니다.
+  const [savedPresets, setSavedPresets] = useState<SavedPreset[]>([]);
   const [downloadStatus, setDownloadStatus] = useState<Record<string, DownloadStatus>>({});
   const [selectedDownloadPresetId, setSelectedDownloadPresetId] = useState<string | null>(null);
   const [downloadBumps, setDownloadBumps] = useState<Record<string, number>>({});
@@ -139,7 +128,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       await new Promise((r) => setTimeout(r, 400));
       const record: SavedPreset = {
         id: `sv-${Date.now()}`,
-        userId: MOCK_USER_ID,
+        userId: LOCAL_USER_ID,
         presetId: preset.id,
         savedAt: new Date().toISOString(),
         source: opts?.source ?? "download",

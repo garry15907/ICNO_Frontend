@@ -1,7 +1,6 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Home, Compass, Library, Bell, Settings, Sparkles, ChevronUp, User, Heart, Download, Receipt, Store, LogOut, LogIn, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { currentUser } from "@/data/mockData";
 import { useSidebarMode } from "@/lib/sidebar-mode";
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { useNotifications } from "@/lib/notifications";
@@ -22,9 +21,9 @@ export function AppSidebar() {
   const { mode, hovered, setHovered } = useSidebarMode();
   const { profile } = useProfile();
   const { unreadCount } = useNotifications();
-  const { user, displayName, signOut } = useAuth();
+  const { user, displayName, avatarUrl, signOut } = useAuth();
 
-  const shownName = displayName || user?.email?.split("@")[0] || profile.nickname;
+  const shownName = displayName || user?.email?.split("@")[0] || profile.nickname || "게스트";
 
   const expanded =
     mode === "expanded" || (mode === "hover" && hovered);
@@ -109,11 +108,17 @@ export function AppSidebar() {
           <DropdownMenuTrigger className={cn(
             "w-full flex items-center gap-3 rounded-xl p-2.5 hover:bg-sidebar-accent transition-colors text-left"
           )}>
-            <div className="h-9 w-9 rounded-full bg-gradient-primary grid place-items-center text-base">
-              {isImageAvatar(profile.avatar) ? (
-                <img src={profile.avatar} alt="프로필 사진" className="h-full w-full rounded-full object-cover" />
+            <div className="h-9 w-9 rounded-full bg-gradient-primary grid place-items-center text-base overflow-hidden">
+              {avatarUrl || isImageAvatar(profile.avatar) ? (
+                <img
+                  src={avatarUrl || profile.avatar}
+                  alt="프로필 사진"
+                  className="h-full w-full rounded-full object-cover"
+                />
               ) : (
-                profile.avatar
+                <span className="text-sm font-bold text-primary-foreground">
+                  {shownName.slice(0, 1).toUpperCase()}
+                </span>
               )}
             </div>
             {!collapsed && (
@@ -129,7 +134,7 @@ export function AppSidebar() {
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="top" className="w-56">
-            <DropdownMenuLabel className="truncate">{user ? shownName : currentUser.username}</DropdownMenuLabel>
+            <DropdownMenuLabel className="truncate">{user ? shownName : "로그인이 필요합니다"}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {!user && (
               <DropdownMenuItem onClick={() => nav("/auth")}>

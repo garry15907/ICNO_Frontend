@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, currentUser, reviews as mockReviews, followedCreators, marketItems } from "@/data/mockData";
+import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, reviews as mockReviews, followedCreators, marketItems } from "@/data/mockData";
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { useAuth } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist";
@@ -441,6 +441,7 @@ export function Downloads() {
   const [restore, setRestore] = useState<string | null>(null);
   return (
     <ProfileList title="다운로드 목록" subtitle="다운로드한 프리셋을 다시 받거나 원본 상태로 복원할 수 있습니다.">
+      {items.length === 0 && <Empty text="다운로드한 프리셋이 없습니다." />}
       {items.map((p) => {
         const lib = libraryPresets.find((l) => l.sourceMarketId === p.id);
         const status = lib ? (lib.status === "로컬 수정됨" ? "로컬 수정됨" : "보관함에 있음") : "보관함에서 삭제됨";
@@ -486,6 +487,7 @@ export function Purchases() {
   const items = marketplacePresets.filter((p) => purchasedIds.includes(p.id));
   return (
     <ProfileList title="구매 내역" subtitle="구매한 유료 프리셋 목록입니다.">
+      {items.length === 0 && <Empty text="구매 내역이 없습니다." />}
       {items.map((p) => (
         <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
           <img src={p.thumbnail} className="h-16 w-24 object-cover rounded-md" alt="" />
@@ -503,15 +505,15 @@ export function Purchases() {
 }
 
 export function Sales() {
-  const my = marketplacePresets.slice(0, 3);
+  const my = marketplacePresets;
   return (
     <ProfileList title="내 상품" subtitle="내가 업로드한 프리셋을 관리합니다.">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
         {[
           { l: "내 상품 수", v: my.length.toString() },
-          { l: "총 다운로드", v: "12,480" },
-          { l: "평균 평점", v: "4.85" },
-          { l: "이번 달 판매", v: "32" },
+          { l: "총 다운로드", v: "0" },
+          { l: "평균 평점", v: "-" },
+          { l: "이번 달 판매", v: "0" },
           { l: "예상 수익", v: "준비 중" },
         ].map(s => (
           <div key={s.l} className="rounded-xl border border-border bg-card p-4">
@@ -520,6 +522,7 @@ export function Sales() {
           </div>
         ))}
       </div>
+      {my.length === 0 && <Empty text="업로드한 상품이 없습니다. 마켓 업로드는 준비 중입니다." />}
       {my.map(p => (
         <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
           <img src={p.thumbnail} className="h-16 w-24 object-cover rounded-md" alt="" />
@@ -544,25 +547,25 @@ export function Sales() {
 }
 
 export function Reviews() {
-  const myReviews = mockReviews.slice(0, 2);
+  const myReviews = mockReviews;
   const receivedReviews = mockReviews;
-  const myComments = [
-    { id: "c1", preset: "노을", text: "이 색감 정말 좋네요!", date: "2026-04-22" },
-    { id: "c2", preset: "픽셀 게임룸", text: "아이콘 위치 어떻게 잡으셨어요?", date: "2026-04-18" },
-  ];
+  const myComments: { id: string; preset: string; text: string; date: string }[] = [];
   return (
     <div className="space-y-6">
       <Section title="내가 작성한 리뷰">
+        {myReviews.length === 0 && <Empty text="작성한 리뷰가 없습니다." />}
         {myReviews.map((r) => (
           <ReviewRow key={r.id} preset="노을" rating={r.rating} text={r.text} date={r.date} likes={r.likes} />
         ))}
       </Section>
       <Section title="내 상품에 달린 리뷰">
+        {receivedReviews.length === 0 && <Empty text="받은 리뷰가 없습니다." />}
         {receivedReviews.map((r) => (
           <ReviewRow key={r.id} preset="픽셀 게임룸" rating={r.rating} text={r.text} date={r.date} likes={r.likes} reply />
         ))}
       </Section>
       <Section title="내 댓글">
+        {myComments.length === 0 && <Empty text="작성한 댓글이 없습니다." />}
         {myComments.map((c) => (
           <div key={c.id} className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card">
             <MessageSquare className="h-4 w-4 text-primary mt-0.5" />
@@ -609,17 +612,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export function ActivityFeed() {
-  const items = [
-    { icon: Download, text: "노을 프리셋을 다운로드했습니다.", preset: "노을", time: "10분 전" },
-    { icon: Heart, text: "커비 프리셋을 찜했습니다.", preset: "커비", time: "2시간 전" },
-    { icon: Star, text: "심해 프리셋에 리뷰를 남겼습니다.", preset: "심해", time: "어제" },
-    { icon: Upload, text: "미니멀 블랙 프리셋을 업로드했습니다.", preset: "미니멀 블랙", time: "2일 전" },
-    { icon: FolderOpen, text: "노을 프리셋을 보관함에 추가했습니다.", preset: "노을", time: "3일 전" },
-    { icon: Receipt, text: "픽셀 게임룸 프리셋을 구매했습니다.", preset: "픽셀 게임룸", time: "5일 전" },
-    { icon: CheckCircle2, text: "커스텀 아이콘 위치를 저장했습니다.", preset: "노을", time: "1주 전" },
-  ];
+  const items: { icon: typeof Download; text: string; preset: string; time: string }[] = [];
   return (
     <ProfileList title="활동 기록" subtitle="최근 활동 내역입니다.">
+      {items.length === 0 ? (
+        <Empty text="활동 기록은 준비 중입니다." />
+      ) : (
       <div className="relative pl-6 space-y-4 before:content-[''] before:absolute before:left-2 before:top-1 before:bottom-1 before:w-px before:bg-border">
         {items.map((it, i) => (
           <div key={i} className="relative">
@@ -636,6 +634,7 @@ export function ActivityFeed() {
           </div>
         ))}
       </div>
+      )}
     </ProfileList>
   );
 }
