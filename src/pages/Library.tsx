@@ -415,20 +415,6 @@ export default function Library() {
                 <Play className="h-3.5 w-3.5 mr-1.5" />
                 적용하기
               </Button>
-              {(p as any)._backend && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="w-full mt-1.5 h-8 text-primary hover:text-primary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMarketTarget((p as any)._backend as PresetModel);
-                  }}
-                >
-                  <Store className="h-3.5 w-3.5 mr-1.5" />
-                  마켓에 올리기
-                </Button>
-              )}
             </div>
           </div>
         ))}
