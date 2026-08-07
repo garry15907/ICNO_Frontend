@@ -32,12 +32,12 @@ const App = () => (
       <SidebarModeProvider>
       <ProfileProvider>
       <WishlistProvider>
-      <NotificationsProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+          <NotificationsProvider>
           <LibraryProvider>
           <IconLibraryProvider>
           <AppLayout>
