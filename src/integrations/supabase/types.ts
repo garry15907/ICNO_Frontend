@@ -194,6 +194,58 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          preset_id: string | null
+          recipient_id: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          preset_id?: string | null
+          recipient_id: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          preset_id?: string | null
+          recipient_id?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "market_presets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -337,7 +389,7 @@ export type Database = {
       increment_view: { Args: { p_preset_id: string }; Returns: undefined }
     }
     Enums: {
-      [_ in never]: never
+      notification_type: "comment" | "like" | "download" | "rating" | "follow"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -464,6 +516,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      notification_type: ["comment", "like", "download", "rating", "follow"],
+    },
   },
 } as const

@@ -277,20 +277,8 @@ export const libraryIcons: LibraryIcon[] = [];
 
 export const libraryIconPacks: LibraryIconPack[] = [];
 
-export type Notice = {
-  id: string;
-  type: "comment" | "rating" | "download" | "sale" | "report" | "update" | "error";
-  title: string;
-  body: string;
-  time: string;
-  read?: boolean;
-  detail?: string;
-  relatedPresetId?: string;
-  relatedUserId?: string;
-  targetRoute?: string;
-};
 
-export const notifications: Notice[] = [];
+
 
 export type Review = {
   id: string;

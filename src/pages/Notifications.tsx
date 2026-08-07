@@ -1,26 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Notice } from "@/data/mockData";
-import { useNotifications } from "@/lib/notifications";
-import { MessageCircle, Star, Download, DollarSign, Flag, Sparkles, AlertTriangle, Trash2, MailOpen, ArrowUpRight, BellOff } from "lucide-react";
+import { useNotifications, type Notice } from "@/lib/notifications";
+import { MessageCircle, Star, Download, Heart, UserPlus, Trash2, MailOpen, ArrowUpRight, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 const iconFor: Record<Notice["type"], any> = {
-  comment: MessageCircle, rating: Star, download: Download, sale: DollarSign, report: Flag, update: Sparkles, error: AlertTriangle,
+  comment: MessageCircle, rating: Star, download: Download, like: Heart, follow: UserPlus,
 };
 const colorFor: Record<Notice["type"], string> = {
   comment: "text-primary", rating: "text-warning", download: "text-success",
-  sale: "text-success", report: "text-destructive", update: "text-primary", error: "text-destructive",
+  like: "text-destructive", follow: "text-primary",
 };
 const labelFor: Record<Notice["type"], string> = {
-  comment: "댓글", rating: "평점", download: "다운로드", sale: "판매", report: "신고", update: "업데이트", error: "오류",
+  comment: "댓글", rating: "별점", download: "다운로드", like: "찜", follow: "팔로우",
 };
 
 export default function Notifications() {
-  const { items, unreadCount, markRead, markUnread, markAllRead, remove } = useNotifications();
+  const { items, unreadCount, loading, signedIn, markRead, markUnread, markAllRead, remove } = useNotifications();
   const nav = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -50,7 +49,19 @@ export default function Notifications() {
         </Button>
       </div>
 
-      {items.length === 0 ? (
+      {!signedIn ? (
+        <div className="border border-dashed rounded-xl p-12 text-center bg-card/50">
+          <BellOff className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+          <p className="text-sm text-muted-foreground mb-3">로그인하면 알림을 확인할 수 있습니다.</p>
+          <Button size="sm" onClick={() => nav("/auth")}>로그인</Button>
+        </div>
+      ) : loading && items.length === 0 ? (
+        <div className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-[76px] rounded-xl border border-border bg-card animate-pulse" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
         <div className="border border-dashed rounded-xl p-12 text-center bg-card/50">
           <BellOff className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm text-muted-foreground">아직 받은 알림이 없습니다.</p>

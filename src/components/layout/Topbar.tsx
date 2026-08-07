@@ -1,6 +1,7 @@
-import { useLocation } from "react-router-dom";
-import { Search, Minus, Square, X } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Search, Minus, Square, X, Bell } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useNotifications } from "@/lib/notifications";
 
 const titleMap: Record<string, string> = {
   "/": "홈",
@@ -19,6 +20,8 @@ const titleMap: Record<string, string> = {
 
 export function Topbar() {
   const { pathname } = useLocation();
+  const nav = useNavigate();
+  const { unreadCount } = useNotifications();
   const title = titleMap[pathname] ?? "ICNO";
 
   return (
@@ -32,6 +35,18 @@ export function Topbar() {
         />
       </div>
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <button
+          onClick={() => nav("/notifications")}
+          aria-label="알림"
+          className="relative h-8 w-8 grid place-items-center rounded hover:bg-muted text-muted-foreground"
+        >
+          <Bell className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 text-[9px] leading-none font-semibold bg-primary text-primary-foreground rounded-full min-w-[14px] h-[14px] px-1 grid place-items-center">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </button>
         <div className="flex items-center gap-0.5 sm:gap-1">
           <button className="h-7 w-7 grid place-items-center rounded hover:bg-muted text-muted-foreground"><Minus className="h-3.5 w-3.5" /></button>
           <button className="h-7 w-7 grid place-items-center rounded hover:bg-muted text-muted-foreground"><Square className="h-3 w-3" /></button>
