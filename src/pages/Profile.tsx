@@ -19,12 +19,41 @@ import { toast } from "@/hooks/use-toast";
 export function ProfileMain() {
   const nav = useNavigate();
   const { profile, setProfile } = useProfile();
-  const { user, displayName, avatarUrl } = useAuth();
+  const { user, displayName, avatarUrl, username, bio, updateProfile } = useAuth();
   const { wishlist } = useWishlist();
   const [editOpen, setEditOpen] = useState(false);
   const [defaultPickerOpen, setDefaultPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState(profile);
+  const [saving, setSaving] = useState(false);
+
+  const openEdit = () => {
+    setForm({
+      ...profile,
+      name: displayName ?? "",
+      nickname: username ?? "",
+      bio: bio ?? "",
+      avatar: profile.avatar,
+    });
+    setEditOpen(true);
+  };
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    const { error } = await updateProfile({
+      display_name: form.name.trim(),
+      username: form.nickname.trim() || null,
+      bio: form.bio.trim() || null,
+    });
+    setSaving(false);
+    if (error) {
+      toast({ title: "저장 실패", description: error, variant: "destructive" });
+      return;
+    }
+    setProfile({ ...profile, avatar: form.avatar });
+    setEditOpen(false);
+    toast({ title: "프로필이 저장되었습니다" });
+  };
   const defaultAvatars = ["🎤", "🎸", "🥁", "🎹", "🎧", "🎼", "🎺", "🎻", "🪕", "🎷"];
   const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -79,12 +108,13 @@ export function ProfileMain() {
               <h2 className="text-3xl font-bold truncate">{shownName}</h2>
             </div>
             <div className="text-sm text-muted-foreground mt-1 truncate">{user?.email ?? "로그인이 필요합니다"}</div>
-            {profile.bio && <p className="text-sm text-foreground/80 mt-3 line-clamp-1">{profile.bio}</p>}
+            {username && <div className="text-xs text-muted-foreground mt-0.5">@{username}</div>}
+            {bio && <p className="text-sm text-foreground/80 mt-3 line-clamp-2">{bio}</p>}
             <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground flex-wrap">
               <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> 가입 {joinedAt}</span>
             </div>
           </div>
-          <Button variant="outline" onClick={() => { setForm(profile); setEditOpen(true); }}>프로필 편집</Button>
+          <Button variant="outline" onClick={openEdit}>프로필 편집</Button>
         </div>
       </div>
 
@@ -221,13 +251,10 @@ export function ProfileMain() {
               <Button
                 size="sm"
                 className="bg-primary/20 text-primary hover:bg-primary/30 rounded-full"
-                onClick={() => {
-                  setProfile(form);
-                  setEditOpen(false);
-                  toast({ title: "프로필이 저장되었습니다" });
-                }}
+                disabled={saving}
+                onClick={handleSaveProfile}
               >
-                저장
+                {saving ? "저장 중…" : "저장"}
               </Button>
             </div>
             <DialogDescription className="sr-only">프로필 정보를 수정합니다.</DialogDescription>
