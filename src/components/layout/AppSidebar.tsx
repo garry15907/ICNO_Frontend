@@ -1,10 +1,11 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Home, Compass, Library, Bell, Settings, Sparkles, ChevronUp, User, Heart, Download, Receipt, Store, LogOut, Users } from "lucide-react";
+import { Home, Compass, Library, Bell, Settings, Sparkles, ChevronUp, User, Heart, Download, Receipt, Store, LogOut, LogIn, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { currentUser } from "@/data/mockData";
 import { useSidebarMode } from "@/lib/sidebar-mode";
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { useNotifications } from "@/lib/notifications";
+import { useAuth } from "@/lib/auth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const navItems = [
@@ -21,6 +22,9 @@ export function AppSidebar() {
   const { mode, hovered, setHovered } = useSidebarMode();
   const { profile } = useProfile();
   const { unreadCount } = useNotifications();
+  const { user, displayName, signOut } = useAuth();
+
+  const shownName = displayName || user?.email?.split("@")[0] || profile.nickname;
 
   const expanded =
     mode === "expanded" || (mode === "hover" && hovered);
@@ -115,24 +119,43 @@ export function AppSidebar() {
             {!collapsed && (
               <div className="flex items-center gap-3 flex-1 min-w-0 opacity-0 animate-[fade-in_0.25s_ease-out_220ms_forwards]">
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-sidebar-foreground truncate">{profile.nickname}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">{currentUser.role}</div>
+                  <div className="text-sm font-semibold text-sidebar-foreground truncate">{shownName}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">
+                    {user ? user.email : "로그인이 필요합니다"}
+                  </div>
                 </div>
                 <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
               </div>
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="top" className="w-56">
-            <DropdownMenuLabel>{currentUser.username}</DropdownMenuLabel>
+            <DropdownMenuLabel className="truncate">{user ? shownName : currentUser.username}</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {!user && (
+              <DropdownMenuItem onClick={() => nav("/auth")}>
+                <LogIn className="h-4 w-4 mr-2" />로그인 / 회원가입
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => nav("/profile")}><User className="h-4 w-4 mr-2" />내 프로필</DropdownMenuItem>
             <DropdownMenuItem onClick={() => nav("/profile/wishlist")}><Heart className="h-4 w-4 mr-2" />찜한 프리셋</DropdownMenuItem>
             <DropdownMenuItem onClick={() => nav("/profile/downloads")}><Download className="h-4 w-4 mr-2" />다운로드 목록</DropdownMenuItem>
             <DropdownMenuItem onClick={() => nav("/profile/purchases")}><Receipt className="h-4 w-4 mr-2" />구매 내역</DropdownMenuItem>
             <DropdownMenuItem onClick={() => nav("/profile/sales")}><Store className="h-4 w-4 mr-2" />판매/업로드 관리</DropdownMenuItem>
             <DropdownMenuItem onClick={() => nav("/profile/following")}><Users className="h-4 w-4 mr-2" />팔로우 목록</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive"><LogOut className="h-4 w-4 mr-2" />로그아웃</DropdownMenuItem>
+            {user && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={async () => {
+                    await signOut();
+                    nav("/auth");
+                  }}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />로그아웃
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

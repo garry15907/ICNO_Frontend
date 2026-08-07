@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 import { Download, LogIn, MonitorSmartphone, Loader2 } from "lucide-react";
 import {
   ApiError,
@@ -47,7 +48,6 @@ type LibraryContextValue = {
   downloadStatus: Record<string, DownloadStatus>;
   selectedDownloadPresetId: string | null;
   isLoggedIn: boolean;
-  setLoggedIn: (v: boolean) => void;
   downloadCount: (preset: MarketplacePreset) => number;
   /** Attempts to save a preset to the library. Handles login gating + toast. */
   downloadPreset: (
@@ -90,11 +90,12 @@ function seedSavedFromDownloaded(): SavedPreset[] {
 
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const nav = useNavigate();
+  const { session } = useAuth();
   const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => seedSavedFromDownloaded());
   const [downloadStatus, setDownloadStatus] = useState<Record<string, DownloadStatus>>({});
   const [selectedDownloadPresetId, setSelectedDownloadPresetId] = useState<string | null>(null);
   const [downloadBumps, setDownloadBumps] = useState<Record<string, number>>({});
-  const [isLoggedIn, setLoggedIn] = useState(true); // mock; swap for real auth later
+  const isLoggedIn = !!session;
 
   // login modal state
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
@@ -247,7 +248,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       downloadStatus,
       selectedDownloadPresetId,
       isLoggedIn,
-      setLoggedIn,
       downloadCount,
       downloadPreset,
       requestApply,
@@ -297,9 +297,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             <Button
               className="bg-gradient-primary text-primary-foreground"
               onClick={() => {
-                setLoggedIn(true);
                 setLoginPromptOpen(false);
-                toast({ title: "로그인되었습니다" });
+                nav("/auth?redirect=" + encodeURIComponent(window.location.pathname));
               }}
             >
               <LogIn className="h-4 w-4 mr-1.5" />

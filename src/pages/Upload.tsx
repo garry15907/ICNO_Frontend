@@ -37,6 +37,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { libraryPresets, marketplacePresets } from "@/data/mockData";
 import { classifyResolutionType, creatorResolutionLabelOf, type CreatorResolutionType } from "@/data/mockData";
 import { useIconLibrary } from "@/lib/icon-library";
+import { useAuth } from "@/lib/auth";
 import type { UserIconAsset } from "@/services/iconLibraryService";
 import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
@@ -246,6 +247,19 @@ export default function Upload() {
   const presetIdParam = searchParams.get("preset");
   const { applyEditedPreset, isApplying, applyingPresetId } = useLibrary();
   const { userIcons } = useIconLibrary();
+  const { session } = useAuth();
+
+  // 로그인이 필요한 동작을 실제 세션으로 게이팅
+  const requireLogin = () => {
+    if (session) return true;
+    toast({
+      title: "로그인이 필요합니다",
+      description: "프리셋을 저장하거나 적용하려면 로그인해주세요.",
+      variant: "destructive",
+    });
+    navigate("/auth?redirect=" + encodeURIComponent(window.location.pathname + window.location.search));
+    return false;
+  };
 
   const [wallpaper, setWallpaper] = useState<{ file: File; url: string } | null>(null);
   const [iconAssets, setIconAssets] = useState<IconAsset[]>([]);
@@ -528,6 +542,7 @@ export default function Upload() {
   };
 
   const handlePublish = async () => {
+    if (!requireLogin()) return;
     // 1) Upload the wallpaper file if we have a real File (not a stub
     //    reconstructed from a saved preview URL).
     let wallpaper_path = "";
@@ -579,6 +594,7 @@ export default function Upload() {
   const [isSaving, setIsSaving] = useState(false);
   const handleSaveDraft = async () => {
     if (isSaving) return;
+    if (!requireLogin()) return;
     setIsSaving(true);
     try {
       let wallpaper_path = "";
