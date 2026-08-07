@@ -528,6 +528,7 @@ export default function Upload() {
   };
 
   const handlePublish = async () => {
+    if (!requireLogin()) return;
     // 1) Upload the wallpaper file if we have a real File (not a stub
     //    reconstructed from a saved preview URL).
     let wallpaper_path = "";
@@ -579,6 +580,7 @@ export default function Upload() {
   const [isSaving, setIsSaving] = useState(false);
   const handleSaveDraft = async () => {
     if (isSaving) return;
+    if (!requireLogin()) return;
     setIsSaving(true);
     try {
       let wallpaper_path = "";
