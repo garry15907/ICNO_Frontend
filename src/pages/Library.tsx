@@ -34,11 +34,30 @@ const statusStyles: Record<LibraryStatus, string> = {
 
 const visibleStatuses: LibraryStatus[] = ["현재 적용 중", "매핑 필요"];
 
+/** Pinned preset ids persist across navigation/remounts. */
+const PINNED_KEY = "icno.pinnedPresets";
+function readPinned(): string[] {
+  try {
+    const raw = localStorage.getItem(PINNED_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function writePinned(ids: string[]) {
+  try {
+    localStorage.setItem(PINNED_KEY, JSON.stringify(ids));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 export default function Library() {
   const nav = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
-  const [pinned, setPinned] = useState<string[]>([]);
+  const [pinned, setPinned] = useState<string[]>(() => readPinned());
   const [tab, setTab] = useState<"presets" | "icons">(
     () => (searchParams.get("tab") === "icons" ? "icons" : "presets"),
   );
@@ -132,7 +151,18 @@ export default function Library() {
   }, []);
 
   const togglePin = (id: string) =>
-    setPinned((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+    setPinned((p) => {
+      const next = p.includes(id) ? p.filter((x) => x !== id) : [...p, id];
+      writePinned(next);
+      return next;
+    });
+
+  // Restore pins written by another tab/mount.
+  useEffect(() => {
+    const sync = () => setPinned(readPinned());
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
 
   // Fetch presets stored on the local FastAPI engine so save-only (not
   // applied) presets show up alongside the seed/mock library. Silently

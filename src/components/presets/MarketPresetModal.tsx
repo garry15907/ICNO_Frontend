@@ -5,7 +5,6 @@ import {
   Download,
   Loader2,
   Heart,
-  Bookmark,
   Share2,
   Flag,
   Star,
@@ -74,10 +73,8 @@ export function MarketPresetModal({
   const [reportBusy, setReportBusy] = useState(false);
 
   const {
-    isLiked,
     isWishlisted,
     myRating,
-    toggleLike,
     toggleWishlist,
     rate,
     registerDownload,
@@ -190,8 +187,7 @@ export function MarketPresetModal({
               <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                 <span className="inline-flex items-center gap-1"><Eye className="h-3.5 w-3.5" />{preset.views}</span>
                 <span className="inline-flex items-center gap-1"><Download className="h-3.5 w-3.5" />{preset.downloads}</span>
-                <span className="inline-flex items-center gap-1"><Heart className="h-3.5 w-3.5" />{preset.likes}</span>
-                <span className="inline-flex items-center gap-1"><Bookmark className="h-3.5 w-3.5" />{preset.wishlist_count}</span>
+                <span className="inline-flex items-center gap-1"><Heart className="h-3.5 w-3.5" />{preset.wishlist_count}</span>
                 <span className="inline-flex items-center gap-1"><MessageSquare className="h-3.5 w-3.5" />{preset.comment_count}</span>
                 {avg > 0 && (
                   <span className="inline-flex items-center gap-1 text-yellow-500">
@@ -237,24 +233,15 @@ export function MarketPresetModal({
                   </>
                 )}
               </Button>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={isLiked(preset.id) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => void toggleLike(preset.id)}
-                >
-                  <Heart className={cn("h-3.5 w-3.5 mr-1.5", isLiked(preset.id) && "fill-current")} />
-                  {preset.likes}
-                </Button>
-                <Button
-                  variant={isWishlisted(preset.id) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => void toggleWishlist(preset.id)}
-                >
-                  <Bookmark className={cn("h-3.5 w-3.5 mr-1.5", isWishlisted(preset.id) && "fill-current")} />
-                  찜
-                </Button>
-              </div>
+              <Button
+                variant={isWishlisted(preset.id) ? "default" : "outline"}
+                size="sm"
+                className="w-full"
+                onClick={() => void toggleWishlist(preset.id)}
+              >
+                <Heart className={cn("h-3.5 w-3.5 mr-1.5", isWishlisted(preset.id) && "fill-current")} />
+                찜 {preset.wishlist_count}
+              </Button>
               <div className="rounded-xl bg-muted/40 p-3 space-y-1">
                 <div className="text-[11px] font-semibold text-muted-foreground">내 별점</div>
                 <StarRating value={mine} onRate={(n) => void rate(preset.id, n)} />
