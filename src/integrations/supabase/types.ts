@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      market_presets: {
+        Row: {
+          canvas: Json
+          created_at: string
+          description: string | null
+          icons: Json
+          id: string
+          is_public: boolean
+          name: string
+          owner_id: string
+          tags: string[]
+          updated_at: string
+          wallpaper_path: string | null
+        }
+        Insert: {
+          canvas?: Json
+          created_at?: string
+          description?: string | null
+          icons?: Json
+          id?: string
+          is_public?: boolean
+          name: string
+          owner_id: string
+          tags?: string[]
+          updated_at?: string
+          wallpaper_path?: string | null
+        }
+        Update: {
+          canvas?: Json
+          created_at?: string
+          description?: string | null
+          icons?: Json
+          id?: string
+          is_public?: boolean
+          name?: string
+          owner_id?: string
+          tags?: string[]
+          updated_at?: string
+          wallpaper_path?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, reviews as mockReviews, followedCreators, marketItems } from "@/data/mockData";
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { useAuth } from "@/lib/auth";
+import { useMarketPresets } from "@/lib/market-presets";
+import { supabase } from "@/integrations/supabase/client";
 import { useWishlist } from "@/lib/wishlist";
 import { Button } from "@/components/ui/button";
 import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft, TrendingUp, MessageSquare, Activity, Calendar, Shield, Upload, Eye, EyeOff, Pencil, Trash2, Flag, CheckCircle2, Info, ChevronRight, Users, UserMinus } from "lucide-react";
@@ -532,7 +534,7 @@ export function Purchases() {
 }
 
 export function Sales() {
-  const my = marketplacePresets;
+  const { presets: my, loading, reload } = useMarketPresets({ mine: true });
   return (
     <ProfileList title="내 상품" subtitle="내가 업로드한 프리셋을 관리합니다.">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
@@ -549,24 +551,42 @@ export function Sales() {
           </div>
         ))}
       </div>
-      {my.length === 0 && <Empty text="업로드한 상품이 없습니다. 마켓 업로드는 준비 중입니다." />}
-      {my.map(p => (
+      {!loading && my.length === 0 && (
+        <Empty text="업로드한 상품이 없습니다. 보관함에서 '마켓에 올리기'로 등록해보세요." />
+      )}
+      {my.map((p) => (
         <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
-          <img src={p.thumbnail} className="h-16 w-24 object-cover rounded-md" alt="" />
+          {p.thumbnailUrl ? (
+            <img src={p.thumbnailUrl} className="h-16 w-24 object-cover rounded-md" alt="" />
+          ) : (
+            <div className="h-16 w-24 rounded-md bg-muted" />
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <div className="font-semibold text-sm truncate">{p.name}</div>
-              <Badge variant="outline" className="text-[10px]">{p.price === 0 ? "무료" : "유료"}</Badge>
-              <Badge variant="secondary" className="text-[10px]">공개</Badge>
+              <Badge variant="secondary" className="text-[10px]">{p.is_public ? "공개" : "비공개"}</Badge>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {p.price === 0 ? "무료" : `₩${p.price.toLocaleString()}`} · {p.downloads.toLocaleString()} 다운로드 · 판매 {Math.floor(p.downloads / 10)} · ★{p.rating} ({p.reviews}) · 댓글 {p.reviews} · 신고 0
+            <div className="text-xs text-muted-foreground mt-1 truncate">
+              아이콘 {p.icons.length}개 · 등록 {p.created_at.slice(0, 10)}
+              {p.tags.length > 0 && <> · {p.tags.map((t) => `#${t}`).join(" ")}</>}
             </div>
           </div>
-          <Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5 mr-1" />마켓</Button>
-          <Button size="sm" variant="outline"><Pencil className="h-3.5 w-3.5 mr-1" />수정</Button>
-          <Button size="sm" variant="ghost"><EyeOff className="h-3.5 w-3.5" /></Button>
-          <Button size="sm" variant="ghost" className="text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive"
+            onClick={async () => {
+              const { error } = await supabase.from("market_presets").delete().eq("id", p.id);
+              if (error) {
+                toast({ title: "삭제에 실패했습니다", description: error.message, variant: "destructive" });
+                return;
+              }
+              toast({ title: "마켓에서 내렸습니다", description: p.name });
+              void reload();
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" />내리기
+          </Button>
         </div>
       ))}
     </ProfileList>
