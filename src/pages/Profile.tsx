@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, reviews as mockReviews, followedCreators, marketItems } from "@/data/mockData";
 import { useProfile, isImageAvatar } from "@/lib/profile";
@@ -19,12 +19,41 @@ import { toast } from "@/hooks/use-toast";
 export function ProfileMain() {
   const nav = useNavigate();
   const { profile, setProfile } = useProfile();
-  const { user, displayName, avatarUrl } = useAuth();
+  const { user, displayName, avatarUrl, username, bio, updateProfile } = useAuth();
   const { wishlist } = useWishlist();
   const [editOpen, setEditOpen] = useState(false);
   const [defaultPickerOpen, setDefaultPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState(profile);
+  const [saving, setSaving] = useState(false);
+
+  const openEdit = () => {
+    setForm({
+      ...profile,
+      name: displayName ?? "",
+      nickname: username ?? "",
+      bio: bio ?? "",
+      avatar: profile.avatar,
+    });
+    setEditOpen(true);
+  };
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    const { error } = await updateProfile({
+      display_name: form.name.trim(),
+      username: form.nickname.trim() || null,
+      bio: form.bio.trim() || null,
+    });
+    setSaving(false);
+    if (error) {
+      toast({ title: "저장 실패", description: error, variant: "destructive" });
+      return;
+    }
+    setProfile({ ...profile, avatar: form.avatar });
+    setEditOpen(false);
+    toast({ title: "프로필이 저장되었습니다" });
+  };
   const defaultAvatars = ["🎤", "🎸", "🥁", "🎹", "🎧", "🎼", "🎺", "🎻", "🪕", "🎷"];
   const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
