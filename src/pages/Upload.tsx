@@ -741,6 +741,20 @@ export default function Upload() {
       </div>
 
       <section className="rounded-2xl border border-border/60 bg-card/50 p-5">
+        <Label htmlFor="preset-name" className="text-sm font-semibold">프리셋 이름</Label>
+        <Input
+          id="preset-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="예: 감자탕"
+          className="mt-2 max-w-md"
+        />
+        <p className="text-[11px] text-muted-foreground mt-2">
+          저장하기를 누르면 변경한 이름이 함께 저장됩니다.
+        </p>
+      </section>
+
+      <section className="rounded-2xl border border-border/60 bg-card/50 p-5">
             <div className="flex items-center gap-2 mb-4">
               <Monitor className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold">데스크탑 미리보기</h2>
