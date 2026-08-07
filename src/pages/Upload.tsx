@@ -696,8 +696,7 @@ export default function Upload() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              프리셋 편집
-              {presetIdParam && name ? <span className="text-muted-foreground font-semibold"> · {name}</span> : null}
+              {name.trim() || "새 프리셋"}
             </h1>
             <p className="text-muted-foreground mt-1.5 text-sm">
               배경화면과 아이콘 배치를 자유롭게 편집해보세요.
@@ -707,6 +706,14 @@ export default function Upload() {
         <div className="flex items-center gap-2">
           <Button variant="outline" className="rounded-lg" onClick={handleSaveDraft} disabled={isSaving}>
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} 저장하기
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-lg"
+            onClick={handleMarketUpload}
+            disabled={isSaving}
+          >
+            <Store className="h-4 w-4" /> 마켓에 업로드
           </Button>
           <Button
             variant="secondary"
