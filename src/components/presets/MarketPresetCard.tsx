@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Heart, Bookmark, Download, Eye, Star } from "lucide-react";
+import { Heart, Download, Eye, Star } from "lucide-react";
 import { presetAverageRating, type MarketPresetRow } from "@/lib/market-presets";
 import { useMarketSocial } from "@/lib/market-social";
 import { PresetThumbnail } from "@/components/presets/PresetThumbnail";
@@ -16,7 +16,7 @@ export function MarketPresetCard({
   onClick: () => void;
   showFollow?: boolean;
 }) {
-  const { isLiked, isWishlisted, toggleLike, toggleWishlist } = useMarketSocial();
+  const { isWishlisted, toggleWishlist } = useMarketSocial();
   const avg = presetAverageRating(preset);
 
   const icons = useMemo(
@@ -51,17 +51,6 @@ export function MarketPresetCard({
       <div className="absolute top-3 right-3 flex gap-1.5">
         <button
           type="button"
-          aria-label="좋아요"
-          onClick={(e) => {
-            e.stopPropagation();
-            void toggleLike(preset.id);
-          }}
-          className="h-7 w-7 grid place-items-center rounded-md bg-background/80 backdrop-blur hover:bg-background shadow-card"
-        >
-          <Heart className={cn("h-3.5 w-3.5", isLiked(preset.id) && "fill-red-500 text-red-500")} />
-        </button>
-        <button
-          type="button"
           aria-label="찜하기"
           onClick={(e) => {
             e.stopPropagation();
@@ -69,7 +58,7 @@ export function MarketPresetCard({
           }}
           className="h-7 w-7 grid place-items-center rounded-md bg-background/80 backdrop-blur hover:bg-background shadow-card"
         >
-          <Bookmark className={cn("h-3.5 w-3.5", isWishlisted(preset.id) && "fill-primary text-primary")} />
+          <Heart className={cn("h-3.5 w-3.5", isWishlisted(preset.id) && "fill-red-500 text-red-500")} />
         </button>
       </div>
 
@@ -85,7 +74,7 @@ export function MarketPresetCard({
         </button>
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground pt-1">
           <span className="inline-flex items-center gap-1"><Download className="h-3 w-3" />{preset.downloads}</span>
-          <span className="inline-flex items-center gap-1"><Heart className="h-3 w-3" />{preset.likes}</span>
+          <span className="inline-flex items-center gap-1"><Heart className="h-3 w-3" />{preset.wishlist_count}</span>
           <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" />{preset.views}</span>
           {avg > 0 && (
             <span className="inline-flex items-center gap-1 text-yellow-500">
