@@ -669,7 +669,10 @@ export default function Upload() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">프리셋 편집</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              프리셋 편집
+              {presetIdParam && name ? <span className="text-muted-foreground font-semibold"> · {name}</span> : null}
+            </h1>
             <p className="text-muted-foreground mt-1.5 text-sm">
               배경화면과 아이콘 배치를 자유롭게 편집해보세요.
             </p>
@@ -716,6 +719,8 @@ export default function Upload() {
             >
               {wallpaper ? (
                 <img src={wallpaper.url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              ) : placed.length > 0 ? (
+                <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
               ) : (
                 <div className="absolute inset-0 grid place-items-center text-center px-6 bg-gradient-to-br from-muted/40 to-muted/10">
                   <div className="text-muted-foreground">
@@ -725,7 +730,7 @@ export default function Upload() {
                   </div>
                 </div>
               )}
-              {wallpaper && (
+              {(wallpaper || placed.length > 0) && (
                 <div
                   className="absolute top-0 left-0 pointer-events-none"
                   style={{
