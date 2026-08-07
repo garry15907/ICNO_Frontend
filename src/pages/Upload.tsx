@@ -887,6 +887,12 @@ export default function Upload() {
           }}
         />
       )}
+
+      <MarketUploadModal
+        preset={marketTarget}
+        open={!!marketTarget}
+        onOpenChange={(o) => !o && setMarketTarget(null)}
+      />
     </div>
   );
 }
