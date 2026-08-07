@@ -27,6 +27,9 @@ export type PresetThumbnailProps = {
   className?: string;
   /** Rendered when there is neither a wallpaper nor a placed icon. */
   emptyState?: React.ReactNode;
+  /** Viewer-only: outline each real placed icon so it can be told apart
+   *  from artwork baked into the wallpaper. Never mutates preset data. */
+  highlightIcons?: boolean;
 };
 
 /**
@@ -45,6 +48,7 @@ export function PresetThumbnail({
   fit = "cover",
   className,
   emptyState,
+  highlightIcons = false,
 }: PresetThumbnailProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -119,6 +123,21 @@ export function PresetThumbnail({
                 }
               >
                 <div className="desktopIconImageBox">
+                  {highlightIcons ? (
+                    <div
+                      aria-hidden
+                      className="absolute rounded-lg border-primary bg-primary/10"
+                      style={{
+                        left: -Math.round(size * 0.06),
+                        top: -Math.round(size * 0.06),
+                        width: size + Math.round(size * 0.12),
+                        height: size + Math.round(size * 0.12),
+                        borderWidth: Math.max(2, Math.round(size / 24)),
+                        pointerEvents: "none",
+                        zIndex: 2,
+                      }}
+                    />
+                  ) : null}
                   {ic.imageUrl ? (
                     <img
                       src={ic.imageUrl}

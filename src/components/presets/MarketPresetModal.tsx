@@ -14,6 +14,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { importMarketPreset } from "@/services/marketPresetDownload";
@@ -71,6 +72,7 @@ export function MarketPresetModal({
   const [reportReason, setReportReason] = useState<ReportReason>("spam");
   const [reportDetail, setReportDetail] = useState("");
   const [reportBusy, setReportBusy] = useState(false);
+  const [showIconBounds, setShowIconBounds] = useState(false);
 
   const {
     isWishlisted,
@@ -168,7 +170,16 @@ export function MarketPresetModal({
               icons={thumbIcons}
               canvasW={preset.canvas?.w ?? 1920}
               canvasH={preset.canvas?.h ?? 1080}
+              highlightIcons={showIconBounds}
             />
+            <div className="absolute top-3 right-3 flex items-center gap-2 rounded-full bg-background/80 backdrop-blur px-3 py-1.5 border border-border shadow-sm">
+              <span className="text-[11px] font-semibold text-foreground/80">아이콘 표시</span>
+              <Switch
+                checked={showIconBounds}
+                onCheckedChange={setShowIconBounds}
+                aria-label="실제 아이콘 위치 표시"
+              />
+            </div>
           </div>
 
           <div className="grid md:grid-cols-[1fr_240px] gap-5">
