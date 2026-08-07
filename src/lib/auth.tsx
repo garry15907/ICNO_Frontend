@@ -4,12 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 
 type AuthResult = { error: string | null };
 
+type ProfileUpdate = { display_name?: string; username?: string | null; bio?: string | null };
+
 type AuthContextValue = {
   user: User | null;
   session: Session | null;
   loading: boolean;
   displayName: string | null;
   avatarUrl: string | null;
+  username: string | null;
+  bio: string | null;
+  refreshProfile: () => Promise<void>;
+  updateProfile: (patch: ProfileUpdate) => Promise<AuthResult>;
   signUp: (email: string, password: string, displayName: string) => Promise<AuthResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
@@ -29,12 +35,35 @@ function translateError(message: string): string {
   return message;
 }
 
+function translateProfileError(message: string, code?: string): string {
+  if (code === "23505" || message.toLowerCase().includes("duplicate key")) return "이미 사용 중인 닉네임입니다.";
+  return message;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [bio, setBio] = useState<string | null>(null);
+
+  const loadProfile = useCallback(async (uid: string) => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("display_name, avatar_url, username, bio")
+      .eq("id", uid)
+      .maybeSingle();
+    if (error) {
+      console.error("[auth] profile load failed", error);
+      return;
+    }
+    setDisplayName(data?.display_name ?? null);
+    setAvatarUrl(data?.avatar_url ?? null);
+    setUsername(data?.username ?? null);
+    setBio(data?.bio ?? null);
+  }, []);
 
   useEffect(() => {
     // 1) 세션 변화 구독 (먼저 등록)
@@ -60,27 +89,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!uid) {
       setDisplayName(null);
       setAvatarUrl(null);
+      setUsername(null);
+      setBio(null);
       return;
     }
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("display_name, avatar_url")
-        .eq("id", uid)
-        .maybeSingle();
-      if (cancelled) return;
-      if (error) {
-        console.error("[auth] profile load failed", error);
-        return;
-      }
-      setDisplayName(data?.display_name ?? null);
-      setAvatarUrl(data?.avatar_url ?? null);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
+    void loadProfile(uid);
+  }, [user?.id, loadProfile]);
+
+  const refreshProfile = useCallback(async () => {
+    if (user?.id) await loadProfile(user.id);
+  }, [user?.id, loadProfile]);
+
+  const updateProfile = useCallback<AuthContextValue["updateProfile"]>(
+    async (patch) => {
+      if (!user?.id) return { error: "로그인이 필요합니다." };
+      const { error } = await supabase.from("profiles").update(patch).eq("id", user.id);
+      if (error) return { error: translateProfileError(error.message, (error as { code?: string }).code) };
+      await loadProfile(user.id);
+      return { error: null };
+    },
+    [user?.id, loadProfile],
+  );
 
   const signUp = useCallback<AuthContextValue["signUp"]>(async (email, password, name) => {
     const { error } = await supabase.auth.signUp({
@@ -106,7 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthCtx.Provider value={{ user, session, loading, displayName, avatarUrl, signUp, signIn, signOut }}>
+    <AuthCtx.Provider
+      value={{ user, session, loading, displayName, avatarUrl, username, bio, refreshProfile, updateProfile, signUp, signIn, signOut }}
+    >
       {children}
     </AuthCtx.Provider>
   );
