@@ -9,6 +9,12 @@ export type MarketPresetIcon = {
   y?: number;
   size?: number;
   show_name?: boolean;
+  font_family?: string | null;
+  font_size?: number | null;
+  font_bold?: boolean | null;
+  font_italic?: boolean | null;
+  font_color?: string | null;
+  outline_color?: string | null;
 };
 
 export type MarketPresetRow = {

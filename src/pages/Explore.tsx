@@ -8,6 +8,7 @@ import { marketItems, type CreatorResolutionType } from "@/data/mockData";
 import { useMarketPresets } from "@/lib/market-presets";
 import { useWishlist } from "@/lib/wishlist";
 import { MarketItemModal } from "@/components/presets/MarketItemModal";
+import { MarketPresetModal } from "@/components/presets/MarketPresetModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -65,6 +66,8 @@ export default function Explore() {
 
   const openId = params.get("item") ?? params.get("preset");
   const openItem = marketItems.find((p) => p.id === openId);
+  const openCloudId = params.get("market");
+  const openCloud = cloudPresets.find((p) => p.id === openCloudId);
 
   const items = useMemo(() => {
     let list = [...marketItems];
@@ -251,7 +254,12 @@ export default function Explore() {
           <h3 className="text-lg font-semibold">마켓 프리셋</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {cloudMatches.map((p) => (
-              <div key={p.id} className="rounded-2xl overflow-hidden bg-card border border-border shadow-card">
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setParams({ market: p.id })}
+                className="text-left rounded-2xl overflow-hidden bg-card border border-border shadow-card transition hover:border-primary/40 hover:shadow-glow"
+              >
                 <div className="aspect-[16/10] bg-muted overflow-hidden">
                   {p.thumbnailUrl ? (
                     <img src={p.thumbnailUrl} alt={p.name} className="w-full h-full object-cover" />
@@ -277,7 +285,7 @@ export default function Explore() {
                     </div>
                   )}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -314,6 +322,8 @@ export default function Explore() {
           onClose={() => setParams({})}
         />
       )}
+
+      {openCloud && <MarketPresetModal preset={openCloud} onClose={() => setParams({})} />}
     </div>
   );
 }
