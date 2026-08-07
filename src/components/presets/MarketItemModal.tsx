@@ -150,6 +150,11 @@ function ReviewsSection() {
         <Button variant="outline" size="sm"><MessageCircle className="h-4 w-4 mr-1.5" />리뷰 작성</Button>
       </div>
       <div className="space-y-3">
+        {reviews.length === 0 && (
+          <div className="border border-dashed rounded-xl p-8 text-center text-sm text-muted-foreground">
+            아직 등록된 리뷰가 없습니다.
+          </div>
+        )}
         {reviews.map((r) => (
           <div key={r.id} className="rounded-xl border border-border p-4 bg-card/50">
             <div className="flex items-start gap-3">

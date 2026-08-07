@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { currentUser } from "@/data/mockData";
 
 export type ProfileData = {
   name: string;
@@ -9,12 +8,14 @@ export type ProfileData = {
   avatar: string;
 };
 
+// 신원 정보(표시이름/아바타/이메일)는 Supabase 인증 + profiles 테이블이 소유합니다.
+// 여기 남는 값은 아직 백엔드가 없는 로컬 전용 부가 필드(상태메시지/소개)입니다.
 const DEFAULTS: ProfileData = {
-  name: currentUser.name,
-  nickname: "Yuri",
-  status: "오늘도 새벽합주 준비해볼까요?",
-  bio: "인디/모던록 좋아하는 보컬. 합주 기록 꼼꼼하게 남기는 편.",
-  avatar: currentUser.avatar,
+  name: "",
+  nickname: "",
+  status: "",
+  bio: "",
+  avatar: "",
 };
 
 const KEY = "icno.profile";

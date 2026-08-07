@@ -237,7 +237,9 @@ export default function Explore() {
       {/* Grid */}
       {items.length === 0 ? (
         <div className="border border-dashed rounded-2xl p-16 text-center text-muted-foreground">
-          조건에 맞는 상품이 없습니다.
+          {marketItems.length === 0
+            ? "아직 마켓에 올라온 항목이 없습니다."
+            : "조건에 맞는 상품이 없습니다."}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
