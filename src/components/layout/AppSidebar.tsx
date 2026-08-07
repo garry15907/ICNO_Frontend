@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Home, Compass, Library, Bell, Settings, Sparkles, ChevronUp, User, Heart, Download, Receipt, Store, LogOut, Users } from "lucide-react";
+import { Home, Compass, Library, Bell, Settings, Sparkles, ChevronUp, User, Heart, Download, Receipt, Store, LogOut, LogIn, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { currentUser } from "@/data/mockData";
 import { useSidebarMode } from "@/lib/sidebar-mode";
