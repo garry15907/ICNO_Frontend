@@ -123,6 +123,9 @@ export function ProfileMain() {
           <Activity className="h-4 w-4 text-muted-foreground" />
         </div>
         <ul className="divide-y divide-border">
+          {recent.length === 0 && (
+            <li className="py-8 text-center text-sm text-muted-foreground">활동 기록은 준비 중입니다.</li>
+          )}
           {recent.map((it, i) => (
             <li key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
               <div className="h-8 w-8 rounded-full bg-primary/10 grid place-items-center shrink-0">
@@ -148,7 +151,7 @@ export function ProfileMain() {
         </div>
         {following.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
-            아직 팔로우한 크리에이터가 없습니다.
+            팔로우 기능은 준비 중입니다.
           </div>
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
