@@ -48,7 +48,6 @@ type LibraryContextValue = {
   downloadStatus: Record<string, DownloadStatus>;
   selectedDownloadPresetId: string | null;
   isLoggedIn: boolean;
-  setLoggedIn: (v: boolean) => void;
   downloadCount: (preset: MarketplacePreset) => number;
   /** Attempts to save a preset to the library. Handles login gating + toast. */
   downloadPreset: (
@@ -249,7 +248,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       downloadStatus,
       selectedDownloadPresetId,
       isLoggedIn,
-      setLoggedIn,
       downloadCount,
       downloadPreset,
       requestApply,
@@ -299,9 +297,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             <Button
               className="bg-gradient-primary text-primary-foreground"
               onClick={() => {
-                setLoggedIn(true);
                 setLoginPromptOpen(false);
-                toast({ title: "로그인되었습니다" });
+                nav("/auth?redirect=" + encodeURIComponent(window.location.pathname));
               }}
             >
               <LogIn className="h-4 w-4 mr-1.5" />
