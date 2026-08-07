@@ -262,6 +262,10 @@ export default function Upload() {
   };
 
   const [wallpaper, setWallpaper] = useState<{ file: File; url: string } | null>(null);
+  // Engine-side absolute path of the wallpaper (from POST /api/wallpaper/upload
+  // or a loaded PresetModel). This — not `wallpaper.file` — is what gets saved.
+  const [wallpaperPath, setWallpaperPath] = useState<string>("");
+  const [wallpaperUploading, setWallpaperUploading] = useState(false);
   const [iconAssets, setIconAssets] = useState<IconAsset[]>([]);
   const [placed, setPlaced] = useState<PlacedIcon[]>([]);
 
@@ -316,6 +320,7 @@ export default function Upload() {
             const stub = new File([], "wallpaper", { type: "image/*" });
             setWallpaper((prev) => prev ?? { file: stub, url: wpUrl });
           }
+          if (model.wallpaper_path) setWallpaperPath((prev) => prev || model.wallpaper_path!);
           const nextAssets: IconAsset[] = [];
           const nextPlaced: PlacedIcon[] = (model.icons ?? []).map((it, i) => {
             const libAsset = it.asset_id
