@@ -475,39 +475,29 @@ export function Sales() {
         <Empty text="업로드한 상품이 없습니다. 보관함에서 '마켓에 올리기'로 등록해보세요." />
       )}
       {my.map((p) => (
-        <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
-          {p.thumbnailUrl ? (
-            <img src={p.thumbnailUrl} className="h-16 w-24 object-cover rounded-md" alt="" />
-          ) : (
-            <div className="h-16 w-24 rounded-md bg-muted" />
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <div className="font-semibold text-sm truncate">{p.name}</div>
-              <Badge variant="secondary" className="text-[10px]">{p.is_public ? "공개" : "비공개"}</Badge>
-            </div>
-            <div className="text-xs text-muted-foreground mt-1 truncate">
-              아이콘 {p.icons.length}개 · 등록 {p.created_at.slice(0, 10)}
-              {p.tags.length > 0 && <> · {p.tags.map((t) => `#${t}`).join(" ")}</>}
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-destructive"
-            onClick={async () => {
-              const { error } = await supabase.from("market_presets").delete().eq("id", p.id);
-              if (error) {
-                toast({ title: "삭제에 실패했습니다", description: error.message, variant: "destructive" });
-                return;
-              }
-              toast({ title: "마켓에서 내렸습니다", description: p.name });
-              void reload();
-            }}
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-1" />내리기
-          </Button>
-        </div>
+        <MarketPresetListRow
+          key={p.id}
+          preset={p}
+          badge={p.is_public ? "공개" : "비공개"}
+          actions={
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-destructive"
+              onClick={async () => {
+                const { error } = await supabase.from("market_presets").delete().eq("id", p.id);
+                if (error) {
+                  toast({ title: "삭제에 실패했습니다", description: error.message, variant: "destructive" });
+                  return;
+                }
+                toast({ title: "마켓에서 내렸습니다", description: p.name });
+                void reload();
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" />내리기
+            </Button>
+          }
+        />
       ))}
     </ProfileList>
   );
