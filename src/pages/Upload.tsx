@@ -608,14 +608,13 @@ export default function Upload() {
   const handleSaveDraft = async () => {
     if (isSaving) return;
     if (!requireLogin()) return;
+    if (wallpaperUploading) {
+      toast({ title: "배경화면 업로드 중입니다.", description: "잠시 후 다시 시도해주세요." });
+      return;
+    }
     setIsSaving(true);
     try {
-      let wallpaper_path = "";
-      if (wallpaper?.file && wallpaper.file.size > 0) {
-        const res = await uploadWallpaper(wallpaper.file);
-        wallpaper_path = res.wallpaper_path ?? "";
-      }
-      const { model, excluded } = buildPresetPayload(wallpaper_path);
+      const { model, excluded } = buildPresetPayload(wallpaperPath);
       const saved = backendPresetId
         ? await updatePreset(backendPresetId, model)
         : await createPreset(model);
