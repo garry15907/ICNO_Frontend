@@ -91,11 +91,12 @@ function seedSavedFromDownloaded(): SavedPreset[] {
 
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const nav = useNavigate();
+  const { session } = useAuth();
   const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => seedSavedFromDownloaded());
   const [downloadStatus, setDownloadStatus] = useState<Record<string, DownloadStatus>>({});
   const [selectedDownloadPresetId, setSelectedDownloadPresetId] = useState<string | null>(null);
   const [downloadBumps, setDownloadBumps] = useState<Record<string, number>>({});
-  const [isLoggedIn, setLoggedIn] = useState(true); // mock; swap for real auth later
+  const isLoggedIn = !!session;
 
   // login modal state
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
