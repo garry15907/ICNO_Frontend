@@ -46,7 +46,7 @@ export function presetAverageRating(p: Pick<MarketPresetRow, "rating_sum" | "rat
   return p.rating_count > 0 ? p.rating_sum / p.rating_count : 0;
 }
 
-async function signAssets(rows: MarketPresetRow[]): Promise<MarketPresetRow[]> {
+export async function signAssets(rows: MarketPresetRow[]): Promise<MarketPresetRow[]> {
   const paths = [
     ...rows.map((r) => r.wallpaper_path),
     ...rows.flatMap((r) => (r.icons ?? []).map((ic) => ic.image_path ?? null)),
