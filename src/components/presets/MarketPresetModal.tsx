@@ -1,92 +1,57 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Download, Image as ImageIcon, Loader2 } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Download,
+  Loader2,
+  Heart,
+  Bookmark,
+  Share2,
+  Flag,
+  Star,
+  Eye,
+  MessageSquare,
+} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { MARKET_BUCKET } from "@/services/marketPresetUpload";
 import { importMarketPreset } from "@/services/marketPresetDownload";
-import type { MarketPresetRow } from "@/lib/market-presets";
+import { presetAverageRating, type MarketPresetRow } from "@/lib/market-presets";
+import { useMarketSocial, type ReportReason } from "@/lib/market-social";
+import { PresetThumbnail } from "@/components/presets/PresetThumbnail";
+import { PresetComments } from "@/components/presets/PresetComments";
+import { FollowButton } from "@/components/presets/FollowButton";
+import { cn } from "@/lib/utils";
 
-/** Big canvas preview: wallpaper + icon placement, scaled to the box. */
-function MarketPresetPreview({
-  preset,
-  wallpaperUrl,
-  iconUrls,
+const reportReasons: { id: ReportReason; label: string }[] = [
+  { id: "spam", label: "스팸/광고" },
+  { id: "inappropriate", label: "부적절한 콘텐츠" },
+  { id: "copyright", label: "저작권 침해" },
+  { id: "malware", label: "악성 파일 의심" },
+  { id: "other", label: "기타" },
+];
+
+function StarRating({
+  value,
+  onRate,
 }: {
-  preset: MarketPresetRow;
-  wallpaperUrl?: string | null;
-  iconUrls: Record<number, string>;
+  value: number;
+  onRate: (score: number) => void;
 }) {
-  const boxRef = useRef<HTMLDivElement>(null);
-  const w = preset.canvas?.w ?? 1920;
-  const h = preset.canvas?.h ?? 1080;
-  const [scale, setScale] = useState(0.1);
-
-  useEffect(() => {
-    const el = boxRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      const r = el.getBoundingClientRect();
-      const s = Math.min(r.width / w, r.height / h);
-      if (s > 0) setScale(s);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [w, h]);
-
   return (
-    <div
-      ref={boxRef}
-      className="relative w-full rounded-xl overflow-hidden border border-border bg-muted"
-      style={{ aspectRatio: `${w} / ${h}` }}
-    >
-      {wallpaperUrl ? (
-        <img src={wallpaperUrl} alt={preset.name} className="absolute inset-0 w-full h-full object-cover" />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
-      )}
-      <div
-        className="absolute top-1/2 left-1/2"
-        style={{
-          width: w,
-          height: h,
-          transform: `translate(-50%, -50%) scale(${scale})`,
-          transformOrigin: "center center",
-          pointerEvents: "none",
-        }}
-      >
-        {(preset.icons ?? []).map((ic, i) => {
-          const size = ic.size ?? 72;
-          const url = iconUrls[i];
-          return (
-            <div
-              key={i}
-              className="absolute flex flex-col items-center gap-1"
-              style={{ left: ic.x ?? 0, top: ic.y ?? 0, width: size }}
-            >
-              <div className="grid place-items-center" style={{ width: size, height: size }}>
-                {url ? (
-                  <img src={url} alt="" className="w-full h-full object-contain" />
-                ) : (
-                  <div className="w-full h-full grid place-items-center rounded-md bg-white/10 border border-white/15">
-                    <ImageIcon className="w-1/2 h-1/2 text-white/50" />
-                  </div>
-                )}
-              </div>
-              {ic.show_name && ic.icon_name ? (
-                <span
-                  className="text-white drop-shadow max-w-full truncate"
-                  style={{ fontSize: ic.font_size ?? Math.round(size / 4) }}
-                >
-                  {ic.icon_name}
-                </span>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button key={n} onClick={() => onRate(n)} aria-label={`${n}점`} className="p-0.5">
+          <Star
+            className={cn(
+              "h-4 w-4 transition-colors",
+              n <= value ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground",
+            )}
+          />
+        </button>
+      ))}
     </div>
   );
 }
