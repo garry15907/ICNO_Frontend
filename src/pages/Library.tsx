@@ -886,6 +886,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
   };
   // 팩 이름 변경 (UI 다이얼로그) / 팩에 아이콘 추가·제거
   const [packRenameTarget, setPackRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [packRemoveTarget, setPackRemoveTarget] = useState<{ packId: string; filename: string; title: string } | null>(null);
   const [packRenameValue, setPackRenameValue] = useState("");
   const [addToPackId, setAddToPackId] = useState<string | null>(null);
   const openPackRename = (id: string, name: string) => {
