@@ -864,7 +864,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           .map((f) => iconByStorage.get(f))
           .filter((x): x is (typeof userIcons)[number] => !!x),
       }))
-      .filter((pc) => pc.icons.length > 0 && (!q || pc.pack.name.toLowerCase().includes(q)));
+      .filter((pc) => !q || pc.pack.name.toLowerCase().includes(q));
   }, [libPacks, iconByStorage, iconSearch]);
   const packedFilenames = useMemo(() => new Set(libPacks.flatMap((p) => p.storageFilenames)), [libPacks]);
   const ungroupedIcons = useMemo(
@@ -1681,9 +1681,9 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                       size="sm"
                       variant="ghost"
                       className="h-7 text-[11px] px-2 text-destructive hover:text-destructive"
-                      onClick={() => ic.storage_filename && removeIconFromPack(openLibPack.pack.id, ic.storage_filename)}
+                      onClick={() => ic.storage_filename && setPackRemoveTarget({ packId: openLibPack.pack.id, filename: ic.storage_filename, title: ic.title })}
                     >
-                      빼기
+                      삭제
                     </Button>
                   </div>
                 </div>
