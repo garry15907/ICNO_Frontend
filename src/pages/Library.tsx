@@ -25,6 +25,9 @@ import { PresetMiniPreview } from "@/components/presets/PresetMiniPreview";
 import { MarketUploadModal } from "@/components/presets/MarketUploadModal";
 import { MarketIconUploadModal } from "@/components/presets/MarketIconUploadModal";
 import type { IconToUpload } from "@/services/marketIconUpload";
+import { getPacks, addPack, renamePack, deletePack, addIconsToPack, removeIconFromPack, getIconOrigin, type LibraryIconPack } from "@/lib/icon-meta";
+import { CreatorCard } from "@/components/presets/CreatorCard";
+import { GroupIconsModal } from "@/components/presets/GroupIconsModal";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -833,21 +836,68 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
     });
   }, [userIcons, iconSearch, iconSort, pinnedIcons]);
 
-  // 선택 모드 + 마켓 업로드
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedIconIds, setSelectedIconIds] = useState<string[]>([]);
-  const [iconMarketUpload, setIconMarketUpload] = useState<IconToUpload[] | null>(null);
-  const toggleSelectIcon = (id: string) =>
-    setSelectedIconIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  const exitSelectMode = () => {
-    setSelectMode(false);
-    setSelectedIconIds([]);
+  // 마켓 업로드 모달 (모달 안 피커에서 담기). null=닫힘, 배열=열림(초기 담긴 id)
+  const [iconMarketSeed, setIconMarketSeed] = useState<string[] | null>(null);
+
+  // 팩(그룹) — icon-meta(localStorage) 기반
+  const [libPacks, setLibPacks] = useState<LibraryIconPack[]>(() => getPacks());
+  useEffect(() => {
+    const on = () => setLibPacks(getPacks());
+    window.addEventListener("icon-meta:refresh", on);
+    window.addEventListener("storage", on);
+    return () => {
+      window.removeEventListener("icon-meta:refresh", on);
+      window.removeEventListener("storage", on);
+    };
+  }, []);
+  const iconByStorage = useMemo(() => {
+    const m = new Map<string, (typeof userIcons)[number]>();
+    for (const ic of userIcons) if (ic.storage_filename) m.set(ic.storage_filename, ic);
+    return m;
+  }, [userIcons]);
+  const packCards = useMemo(() => {
+    const q = iconSearch.trim().toLowerCase();
+    return libPacks
+      .map((p) => ({
+        pack: p,
+        icons: p.storageFilenames
+          .map((f) => iconByStorage.get(f))
+          .filter((x): x is (typeof userIcons)[number] => !!x),
+      }))
+      .filter((pc) => pc.icons.length > 0 && (!q || pc.pack.name.toLowerCase().includes(q)));
+  }, [libPacks, iconByStorage, iconSearch]);
+  const packedFilenames = useMemo(() => new Set(libPacks.flatMap((p) => p.storageFilenames)), [libPacks]);
+  const ungroupedIcons = useMemo(
+    () => visibleUserIcons.filter((ic) => !ic.storage_filename || !packedFilenames.has(ic.storage_filename)),
+    [visibleUserIcons, packedFilenames],
+  );
+  const [openLibPackId, setOpenLibPackId] = useState<string | null>(null);
+  const openLibPack = packCards.find((pc) => pc.pack.id === openLibPackId) ?? null;
+
+  // 팩으로 묶기 — 모달(마켓 업로드와 동일한 선택 UI)
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const createPackFromModal = (name: string, ids: string[]) => {
+    const filenames = ids
+      .map((id) => userIcons.find((u) => u.id === id)?.storage_filename)
+      .filter((f): f is string => !!f);
+    if (filenames.length < 1 || !name.trim()) return;
+    addPack(name, filenames);
+    setGroupModalOpen(false);
   };
-  const openMarketUploadFor = (ids: string[]) => {
-    const chosen = userIcons
-      .filter((u) => ids.includes(u.id))
-      .map((u) => ({ id: u.id, title: u.title, imageUrl: u.imageUrl }));
-    if (chosen.length > 0) setIconMarketUpload(chosen);
+  // 팩 이름 변경 (UI 다이얼로그) / 팩에 아이콘 추가·제거
+  const [packRenameTarget, setPackRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [packRenameValue, setPackRenameValue] = useState("");
+  const [addToPackId, setAddToPackId] = useState<string | null>(null);
+  const openPackRename = (id: string, name: string) => {
+    setPackRenameTarget({ id, name });
+    setPackRenameValue(name);
+  };
+  const addIconsToExistingPack = (packId: string, ids: string[]) => {
+    const filenames = ids
+      .map((id) => userIcons.find((u) => u.id === id)?.storage_filename)
+      .filter((f): f is string => !!f);
+    if (filenames.length > 0) addIconsToPack(packId, filenames);
+    setAddToPackId(null);
   };
   const filters: { value: IconFilter; label: string }[] = [
     { value: "all", label: "전체" },
@@ -1139,11 +1189,20 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         </Select>
         <Button
           size="sm"
-          variant={selectMode ? "default" : "outline"}
+          variant="outline"
           className="h-9"
-          onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+          onClick={() => setGroupModalOpen(true)}
+          disabled={ungroupedIcons.length === 0}
         >
-          {selectMode ? "선택 취소" : "선택"}
+          <Package className="h-3.5 w-3.5 mr-1" /> 묶기
+        </Button>
+        <Button
+          size="sm"
+          className="h-9 gap-1.5"
+          onClick={() => setIconMarketSeed([])}
+          disabled={userIcons.length === 0}
+        >
+          <Store className="h-3.5 w-3.5" /> 마켓에 올리기
         </Button>
         <input
           ref={fileRef}
@@ -1183,41 +1242,71 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
               <Upload className="h-6 w-6" />
               <span className="text-xs font-medium">아이콘 업로드</span>
             </button>
-            {visibleUserIcons.length === 0 && iconSearch.trim() && (
+            {packCards.length === 0 && ungroupedIcons.length === 0 && iconSearch.trim() && (
               <div className="col-span-full text-center text-sm text-muted-foreground py-8">
                 '{iconSearch}'에 맞는 아이콘이 없습니다.
               </div>
             )}
-            {visibleUserIcons.map((ic) => (
+            {packCards.map(({ pack, icons }) => {
+              const shown = icons.slice(0, 4);
+              return (
+                <div key={pack.id} className="relative rounded-xl bg-card border border-border p-3 flex flex-col hover:shadow-glow hover:border-primary/40 transition-all">
+                  <button
+                    type="button"
+                    onClick={() => setOpenLibPackId(pack.id)}
+                    className="aspect-square rounded-lg overflow-hidden mb-2 bg-muted/30 p-2 cursor-pointer hover:opacity-90 transition"
+                  >
+                    <div className="grid grid-cols-2 grid-rows-2 gap-1.5 h-full">
+                      {shown.map((ic) => (
+                        <div key={ic.id} className="rounded-md bg-white dark:bg-black flex items-center justify-center overflow-hidden p-0.5">
+                          {ic.imageUrl ? <img src={ic.imageUrl} alt="" className="max-w-full max-h-full object-contain" /> : null}
+                        </div>
+                      ))}
+                    </div>
+                  </button>
+                  <div className="flex items-start justify-between gap-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="inline-flex items-center gap-1 text-[9px] font-semibold px-1 py-0.5 rounded bg-primary/15 text-primary mb-0.5">
+                        <Package className="h-2.5 w-2.5" /> 팩 {icons.length}개
+                      </div>
+                      <div className="text-xs font-semibold truncate">{pack.name}</div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="h-6 w-6 -mr-1 grid place-items-center rounded-md hover:bg-muted shrink-0" aria-label="더보기">
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={() => setOpenLibPackId(pack.id)}>
+                          <Pencil className="h-3.5 w-3.5 mr-2" /> 팩 열기
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openPackRename(pack.id, pack.name)}>
+                          <Edit className="h-3.5 w-3.5 mr-2" /> 이름 변경
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deletePack(pack.id)}>
+                          <Trash2 className="h-3.5 w-3.5 mr-2" /> 그룹 해제
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              );
+            })}
+            {ungroupedIcons.map((ic) => (
               <div
                 key={ic.id}
-                className={cn(
-                  "relative rounded-xl bg-card border p-3 flex flex-col hover:shadow-glow transition-all",
-                  selectMode && selectedIconIds.includes(ic.id)
-                    ? "border-primary ring-2 ring-primary"
-                    : "border-border hover:border-primary/40",
-                )}
+                className="relative rounded-xl bg-card border border-border p-3 flex flex-col hover:shadow-glow hover:border-primary/40 transition-all"
               >
                 {pinnedIcons.includes(ic.id) && (
                   <div className="absolute top-2 left-2 z-10 h-5 w-5 grid place-items-center rounded-full bg-primary text-primary-foreground shadow">
                     <Pin className="h-3 w-3" />
                   </div>
                 )}
-                {selectMode && (
-                  <div
-                    className={cn(
-                      "absolute top-2 right-2 z-10 h-5 w-5 rounded-full border grid place-items-center",
-                      selectedIconIds.includes(ic.id)
-                        ? "bg-primary border-primary text-primary-foreground"
-                        : "bg-background/80 border-border",
-                    )}
-                  >
-                    {selectedIconIds.includes(ic.id) && <Check className="h-3 w-3" />}
-                  </div>
-                )}
                 <button
                   type="button"
-                  onClick={() => (selectMode ? toggleSelectIcon(ic.id) : setUserIconDetailId(ic.id))}
+                  onClick={() => setUserIconDetailId(ic.id)}
                   className="aspect-square rounded-lg grid place-items-center text-5xl overflow-hidden mb-2 cursor-pointer hover:opacity-90 transition bg-white dark:bg-black"
                 >
                   {ic.imageUrl ? (
@@ -1246,10 +1335,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                       <DropdownMenuItem onClick={() => setUserIconDetailId(ic.id)}>
                         <Pencil className="h-3.5 w-3.5 mr-2" /> 상세 보기
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => applyIconToCurrentPreset(ic.id)}>
-                        <Sparkles className="h-3.5 w-3.5 mr-2" /> 프리셋에 사용
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openMarketUploadFor([ic.id])}>
+                      <DropdownMenuItem onClick={() => setIconMarketSeed([ic.id])}>
                         <Store className="h-3.5 w-3.5 mr-2" /> 마켓에 올리기
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setIconShareTarget({ id: ic.id, name: ic.title })}>
@@ -1268,34 +1354,9 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                <Button
-                  size="sm"
-                  className="h-7 text-[11px] bg-gradient-primary text-primary-foreground hover:opacity-90 mt-2"
-                  onClick={() => applyIconToCurrentPreset(ic.id)}
-                >
-                  프리셋에 사용
-                </Button>
               </div>
             ))}
           </div>
-          {selectMode && (
-            <div className="sticky bottom-3 z-20 flex items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary/10 backdrop-blur px-4 py-2.5">
-              <span className="text-sm font-medium">{selectedIconIds.length}개 선택됨</span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={exitSelectMode}>
-                  취소
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => openMarketUploadFor(selectedIconIds)}
-                  disabled={selectedIconIds.length === 0}
-                  className="gap-1.5"
-                >
-                  <Store className="h-3.5 w-3.5" /> 마켓에 올리기
-                </Button>
-              </div>
-            </div>
-          )}
         </section>
 
       {groupIcons.length > 0 && (
@@ -1495,65 +1556,141 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                   <span>{userIconDetail.emoji ?? "🖼️"}</span>
                 )}
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-xs text-muted-foreground truncate">{userIconDetail.creatorName}</div>
-                <button
-                  type="button"
-                  onClick={() => setShowIconDetailInfo((v) => !v)}
-                  className="text-xs font-medium text-primary hover:underline shrink-0"
-                >
-                  {showIconDetailInfo ? "간단히 보기" : "자세히 보기"}
-                </button>
-              </div>
-              {showIconDetailInfo && (
-                <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
-                  <dl className="grid grid-cols-3 gap-y-2 text-xs">
-                    <dt className="text-muted-foreground">파일 형식</dt>
-                    <dd className="col-span-2 font-medium">{userIconDetail.fileFormat}</dd>
-                    <dt className="text-muted-foreground">크기</dt>
-                    <dd className="col-span-2 font-medium">{userIconDetail.width} × {userIconDetail.height}</dd>
-                    <dt className="text-muted-foreground">배경</dt>
-                    <dd className="col-span-2 font-medium">{userIconDetail.hasTransparentBackground ? "투명" : "불투명"}</dd>
-                    <dt className="text-muted-foreground">카테고리</dt>
-                    <dd className="col-span-2 font-medium">{userIconDetail.category}</dd>
-                    <dt className="text-muted-foreground">라이선스</dt>
-                    <dd className="col-span-2 font-medium">{userIconDetail.license}</dd>
-                    <dt className="text-muted-foreground">파일명</dt>
-                    <dd className="col-span-2 font-medium truncate">{userIconDetail.fileName}</dd>
-                    <dt className="text-muted-foreground">저장 일시</dt>
-                    <dd className="col-span-2 font-medium">{userIconDetail.downloadedAt.slice(0, 10)}</dd>
-                  </dl>
-                  {userIconDetail.tags?.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {userIconDetail.tags.map((t) => (
-                        <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">#{t}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              {(() => {
+                const origin = getIconOrigin(userIconDetail.storage_filename);
+                return origin?.ownerId ? (
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground mb-1.5">올린 사람</div>
+                    <CreatorCard userId={origin.ownerId} />
+                  </div>
+                ) : null;
+              })()}
             </div>
           )}
           <DialogFooter className="gap-2 sm:gap-2">
             <Button
-              className="bg-gradient-primary text-primary-foreground"
+              variant="outline"
               onClick={() => {
-                if (userIconDetail) applyIconToCurrentPreset(userIconDetail.id);
-                setUserIconDetailId(null);
+                if (userIconDetail) {
+                  setIconRenameTarget({ id: userIconDetail.id, name: userIconDetail.title });
+                  setIconRenameValue(userIconDetail.title);
+                }
               }}
             >
-              <Sparkles className="h-3.5 w-3.5 mr-1" /> 프리셋에 사용
+              <Edit className="h-3.5 w-3.5 mr-1" /> 이름 변경
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {iconMarketUpload && (
+      {iconMarketSeed !== null && (
         <MarketIconUploadModal
-          icons={iconMarketUpload}
-          onClose={() => setIconMarketUpload(null)}
-          onDone={exitSelectMode}
+          allIcons={userIcons.map((u) => ({ id: u.id, title: u.title, imageUrl: u.imageUrl }))}
+          initialIds={iconMarketSeed}
+          onClose={() => setIconMarketSeed(null)}
         />
+      )}
+
+      {groupModalOpen && (
+        <GroupIconsModal
+          icons={ungroupedIcons.map((u) => ({ id: u.id, title: u.title, imageUrl: u.imageUrl }))}
+          onCreate={createPackFromModal}
+          onClose={() => setGroupModalOpen(false)}
+        />
+      )}
+
+      {addToPackId && (
+        <GroupIconsModal
+          mode="add"
+          icons={ungroupedIcons.map((u) => ({ id: u.id, title: u.title, imageUrl: u.imageUrl }))}
+          onCreate={(_, ids) => addToPackId && addIconsToExistingPack(addToPackId, ids)}
+          onClose={() => setAddToPackId(null)}
+        />
+      )}
+
+      {packRenameTarget && (
+        <Dialog open onOpenChange={(o) => { if (!o) setPackRenameTarget(null); }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>팩 이름 변경</DialogTitle>
+              <DialogDescription>팩 이름을 입력하세요.</DialogDescription>
+            </DialogHeader>
+            <Input
+              value={packRenameValue}
+              onChange={(e) => setPackRenameValue(e.target.value)}
+              placeholder="팩 이름"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && packRenameValue.trim()) {
+                  renamePack(packRenameTarget.id, packRenameValue);
+                  setPackRenameTarget(null);
+                }
+              }}
+            />
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setPackRenameTarget(null)}>취소</Button>
+              <Button
+                disabled={!packRenameValue.trim()}
+                onClick={() => { renamePack(packRenameTarget.id, packRenameValue); setPackRenameTarget(null); }}
+              >
+                저장
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* 팩 상세 */}
+      {openLibPack && (
+        <Dialog open onOpenChange={(o) => { if (!o) setOpenLibPackId(null); }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-primary" /> {openLibPack.pack.name}
+                <span className="text-xs font-normal text-muted-foreground">({openLibPack.icons.length}개)</span>
+              </DialogTitle>
+              <DialogDescription>팩 안의 아이콘을 개별로 프리셋에 사용하거나 이름을 바꿀 수 있습니다.</DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setAddToPackId(openLibPack.pack.id)}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> 아이콘 추가
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => openPackRename(openLibPack.pack.id, openLibPack.pack.name)}>
+                <Edit className="h-3.5 w-3.5 mr-1" /> 팩 이름 변경
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[55vh] overflow-y-auto pr-1">
+              {openLibPack.icons.map((ic) => (
+                <div key={ic.id} className="rounded-xl border border-border p-3 flex flex-col">
+                  <div className="relative aspect-square bg-white dark:bg-black rounded-lg overflow-hidden mb-2">
+                    <div className="absolute inset-0 flex items-center justify-center p-3">
+                      {ic.imageUrl ? <img src={ic.imageUrl} alt={ic.title} className="max-w-full max-h-full object-contain" /> : null}
+                    </div>
+                  </div>
+                  <div className="text-xs font-semibold truncate mb-2">{ic.title}</div>
+                  <div className="flex gap-1.5 mt-auto">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[11px] flex-1"
+                      onClick={() => { setIconRenameTarget({ id: ic.id, name: ic.title }); setIconRenameValue(ic.title); }}
+                    >
+                      <Edit className="h-3 w-3 mr-1" /> 이름
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-[11px] px-2 text-destructive hover:text-destructive"
+                      onClick={() => ic.storage_filename && removeIconFromPack(openLibPack.pack.id, ic.storage_filename)}
+                    >
+                      빼기
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* ============= 아이콘 업로드 다이얼로그 ============= */}

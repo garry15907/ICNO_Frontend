@@ -44,7 +44,8 @@ import type { IconAssetSource } from "@/types/preset";
 import { useLibrary } from "@/lib/library";
 import { PresetThumbnail } from "@/components/presets/PresetThumbnail";
 import { MarketUploadModal } from "@/components/presets/MarketUploadModal";
-import { Loader2 } from "lucide-react";
+import { Loader2, Package, ChevronLeft } from "lucide-react";
+import { getPacks } from "@/lib/icon-meta";
 import {
   uploadIconImage,
   uploadWallpaper,
@@ -879,6 +880,7 @@ export default function Upload() {
           onWallpaper={handleWallpaper}
           onAddIcons={handleIcons}
           onAddIconAssets={(assets) => setIconAssets((prev) => [...prev, ...assets])}
+          onRemoveIconAsset={(a) => setIconAssets((prev) => prev.filter((x) => x.id !== a.id))}
           onClose={() => setEditorOpen(false)}
           onSave={(next) => {
             setPlaced(next);
@@ -937,6 +939,7 @@ function FullscreenEditor({
   onWallpaper,
   onAddIcons,
   onAddIconAssets,
+  onRemoveIconAsset,
   onClose,
   onSave,
 }: {
@@ -946,6 +949,7 @@ function FullscreenEditor({
   onWallpaper: (f?: File) => void;
   onAddIcons: (f: FileList | File[]) => void;
   onAddIconAssets: (assets: IconAsset[]) => void;
+  onRemoveIconAsset: (a: IconAsset) => void;
   onClose: () => void;
   onSave: (next: PlacedIcon[]) => void;
 }) {
@@ -1453,6 +1457,17 @@ function FullscreenEditor({
                           </>
                         )}
                       </div>
+                      {isSel && !previewMode && (
+                        <button
+                          type="button"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); setItems((a) => a.filter((i) => i.id !== ic.id)); setSelectedId(null); }}
+                          className="absolute -top-2.5 -right-2.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground grid place-items-center shadow z-20"
+                          aria-label="아이콘 삭제"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
                       {ic.show_name && (
                         <div
                           className="desktopIconLabel"
@@ -1492,6 +1507,14 @@ function FullscreenEditor({
                   return a ? <img src={a.previewUrl} alt="" className="max-h-[70%] max-w-[70%] object-contain" /> : <ImageIcon className="h-8 w-8 text-muted-foreground" />;
                 })()}
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-destructive hover:text-destructive"
+                onClick={() => { setItems((a) => a.filter((i) => i.id !== selected.id)); setSelectedId(null); }}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" /> 아이콘 삭제
+              </Button>
               <div>
                 <Label className="text-[11px]">아이콘 이름</Label>
                 <Input className="mt-1 h-8 text-xs" value={selected.name} onChange={(e) => update(selected.id, { name: e.target.value })} />
@@ -1603,6 +1626,7 @@ function FullscreenEditor({
           onWallpaper={onWallpaper}
           onAddIcons={onAddIcons}
           onAddToCanvas={addToCanvas}
+          onRemoveSessionIcon={onRemoveIconAsset}
           openFilePicker={safeOpenFilePicker}
           libraryIcons={userIcons}
           onPickLibraryIcon={pickLibraryIcon}
@@ -1693,6 +1717,7 @@ function AssetModal({
   onWallpaper,
   onAddIcons,
   onAddToCanvas,
+  onRemoveSessionIcon,
   openFilePicker,
   libraryIcons,
   onPickLibraryIcon,
@@ -1706,6 +1731,7 @@ function AssetModal({
   onWallpaper: (f?: File) => void;
   onAddIcons: (f: FileList | File[]) => void;
   onAddToCanvas: (a: IconAsset) => void;
+  onRemoveSessionIcon: (a: IconAsset) => void;
   openFilePicker: (input: HTMLInputElement | null) => void;
   libraryIcons: UserIconAsset[];
   onPickLibraryIcon: (u: UserIconAsset) => void;
@@ -1716,6 +1742,42 @@ function AssetModal({
   const [active, setActive] = useState<string>(tab);
   const wallpaperInput = useRef<HTMLInputElement>(null);
   const iconsInput = useRef<HTMLInputElement>(null);
+
+  // 보관함과 동일한 팩 섹션 그룹화
+  const iconPacks = useMemo(() => {
+    const byStorage = new Map<string, UserIconAsset>();
+    for (const u of libraryIcons) if (u.storage_filename) byStorage.set(u.storage_filename, u);
+    return getPacks()
+      .map((p) => ({
+        pack: p,
+        icons: p.storageFilenames.map((f) => byStorage.get(f)).filter((x): x is UserIconAsset => !!x),
+      }))
+      .filter((pc) => pc.icons.length > 0);
+  }, [libraryIcons]);
+  const ungroupedLibraryIcons = useMemo(() => {
+    const packed = new Set(getPacks().flatMap((p) => p.storageFilenames));
+    return libraryIcons.filter((u) => !u.storage_filename || !packed.has(u.storage_filename));
+  }, [libraryIcons]);
+  const renderIconBtn = (u: UserIconAsset) => (
+    <button
+      key={u.id}
+      onClick={() => onPickLibraryIcon(u)}
+      className="rounded-lg border border-border/60 bg-background/40 hover:border-primary p-2 text-left transition-colors group"
+      title={u.title}
+    >
+      <div className="aspect-square rounded-md bg-white dark:bg-black grid place-items-center overflow-hidden text-3xl">
+        {u.imageUrl ? (
+          <img src={u.imageUrl} alt="" className="max-h-[80%] max-w-[80%] object-contain" />
+        ) : (
+          <span>{u.emoji ?? "🖼️"}</span>
+        )}
+      </div>
+      <div className="mt-1.5 text-[11px] truncate">{u.title}</div>
+      <div className="text-[10px] text-primary opacity-0 group-hover:opacity-100 mt-0.5">+ 캔버스에 추가</div>
+    </button>
+  );
+  const [pickerPackId, setPickerPackId] = useState<string | null>(null);
+  const activePickerPack = iconPacks.find((pc) => pc.pack.id === pickerPackId) ?? null;
 
   const dropZone = (handler: (f: File[]) => void) => ({
     onDragOver: (e: DragEvent<HTMLDivElement>) => e.preventDefault(),
@@ -1837,15 +1899,24 @@ function AssetModal({
             {iconAssets.length > 0 ? (
               <div className="grid grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1">
                 {iconAssets.map((a) => (
-                  <button key={a.id} onClick={() => onAddToCanvas(a)}
-                    className="rounded-lg border border-border/60 bg-background/40 hover:border-primary p-2 text-left transition-colors group">
-                    <div className="aspect-square rounded-md bg-muted/40 grid place-items-center overflow-hidden">
-                      <img src={a.previewUrl} alt="" className="max-h-[80%] max-w-[80%] object-contain" />
-                    </div>
-                    <div className="mt-1.5 text-[11px] truncate">{a.file.name}</div>
-                    <div className="text-[10px] text-muted-foreground">이번 세션 업로드 · {extOf(a.file.name)}</div>
-                    <div className="text-[10px] text-primary opacity-0 group-hover:opacity-100 mt-0.5">+ 캔버스에 추가</div>
-                  </button>
+                  <div key={a.id} className="relative rounded-lg border border-border/60 bg-background/40 hover:border-primary p-2 transition-colors group">
+                    <button
+                      type="button"
+                      onClick={() => onRemoveSessionIcon(a)}
+                      className="absolute top-1 right-1 z-10 h-5 w-5 rounded-full bg-destructive text-destructive-foreground grid place-items-center shadow opacity-0 group-hover:opacity-100"
+                      aria-label="삭제"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    <button type="button" onClick={() => onAddToCanvas(a)} className="text-left w-full">
+                      <div className="aspect-square rounded-md bg-muted/40 grid place-items-center overflow-hidden">
+                        <img src={a.previewUrl} alt="" className="max-h-[80%] max-w-[80%] object-contain" />
+                      </div>
+                      <div className="mt-1.5 text-[11px] truncate">{a.file.name}</div>
+                      <div className="text-[10px] text-muted-foreground">이번 세션 업로드 · {extOf(a.file.name)}</div>
+                      <div className="text-[10px] text-primary opacity-0 group-hover:opacity-100 mt-0.5">+ 캔버스에 추가</div>
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -1860,29 +1931,47 @@ function AssetModal({
                 <div className="text-[10px] text-muted-foreground">클릭하면 캔버스에 추가됩니다</div>
               </div>
               {libraryIcons.length > 0 ? (
-                <div className="grid grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1">
-                  {libraryIcons.map((u) => (
+                activePickerPack ? (
+                  <div className="max-h-72 overflow-y-auto pr-1 space-y-2">
                     <button
-                      key={u.id}
-                      onClick={() => onPickLibraryIcon(u)}
-                      className="rounded-lg border border-border/60 bg-background/40 hover:border-primary p-2 text-left transition-colors group"
-                      title={u.title}
+                      onClick={() => setPickerPackId(null)}
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      <div className="aspect-square rounded-md bg-muted/40 grid place-items-center overflow-hidden text-3xl">
-                        {u.imageUrl ? (
-                          <img src={u.imageUrl} alt="" className="max-h-[80%] max-w-[80%] object-contain" />
-                        ) : (
-                          <span>{u.emoji ?? "🖼️"}</span>
-                        )}
-                      </div>
-                      <div className="mt-1.5 text-[11px] truncate">{u.title}</div>
-                      <div className="text-[10px] text-muted-foreground truncate">
-                        보관함 · {u.fileFormat}{u.packId ? " · 팩" : ""}
-                      </div>
-                      <div className="text-[10px] text-primary opacity-0 group-hover:opacity-100 mt-0.5">+ 캔버스에 추가</div>
+                      <ChevronLeft className="h-3.5 w-3.5" /> 뒤로
                     </button>
-                  ))}
-                </div>
+                    <div className="flex items-center gap-1 text-[11px] font-semibold text-primary">
+                      <Package className="h-3 w-3" /> {activePickerPack.pack.name}
+                      <span className="text-muted-foreground font-normal">({activePickerPack.icons.length})</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">{activePickerPack.icons.map(renderIconBtn)}</div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1">
+                    {iconPacks.map(({ pack, icons }) => (
+                      <button
+                        key={pack.id}
+                        onClick={() => setPickerPackId(pack.id)}
+                        className="rounded-lg border border-border/60 bg-background/40 hover:border-primary p-2 text-left transition-colors"
+                        title={pack.name}
+                      >
+                        <div className="aspect-square rounded-md bg-muted/30 p-1 overflow-hidden">
+                          <div className="grid grid-cols-2 grid-rows-2 gap-1 h-full">
+                            {icons.slice(0, 4).map((u) => (
+                              <div key={u.id} className="rounded bg-white dark:bg-black flex items-center justify-center overflow-hidden">
+                                {u.imageUrl ? <img src={u.imageUrl} alt="" className="max-w-full max-h-full object-contain p-0.5" /> : null}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mt-1.5 text-[11px] truncate flex items-center gap-0.5">
+                          <Package className="h-2.5 w-2.5 text-primary shrink-0" />{pack.name}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">팩 · {icons.length}개</div>
+                      </button>
+                    ))}
+                    {ungroupedLibraryIcons.map(renderIconBtn)}
+                  </div>
+                )
               ) : (
                 <div className="text-xs text-muted-foreground text-center py-4">
                   보관함에 저장된 아이콘이 없습니다. 탐색 화면에서 아이콘을 다운로드해 보세요.

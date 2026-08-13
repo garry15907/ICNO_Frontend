@@ -44,6 +44,8 @@ type Ctx = {
 
   downloadIcon: (icon: MarketIcon) => Promise<UserIconAsset | null>;
   downloadPack: (pack: MarketIconPack) => Promise<{ added: number; skipped: number }>;
+  /** 로컬 엔진(custom_icons)과 보관함을 재동기화. 마켓 아이콘 다운로드 후 호출. */
+  reconcile: () => Promise<void>;
   requestDelete: (id: string) => void;
   renameIcon: (id: string, newTitle: string) => void;
 
@@ -100,6 +102,16 @@ export function IconLibraryProvider({ children }: { children: ReactNode }) {
       }
     })();
     return () => { cancelled = true; };
+  }, [refresh]);
+
+  // 마켓 아이콘 다운로드 등으로 엔진에 새 파일이 생긴 뒤 보관함을 갱신.
+  const reconcile = useCallback(async () => {
+    try {
+      await reconcileWithLocalEngine();
+    } catch {
+      /* engine offline */
+    }
+    refresh();
   }, [refresh]);
 
   const downloadedIconIds = useMemo(
@@ -210,6 +222,7 @@ export function IconLibraryProvider({ children }: { children: ReactNode }) {
     setSelectedUserIconAssetId,
     downloadIcon,
     downloadPack,
+    reconcile,
     requestDelete,
     renameIcon,
     editingContext,
@@ -220,7 +233,7 @@ export function IconLibraryProvider({ children }: { children: ReactNode }) {
     usageOf,
   }), [
     userIcons, downloadedIconIds, isDownloaded, iconDownloadStatus,
-    selectedUserIconAssetId, downloadIcon, downloadPack, requestDelete,
+    selectedUserIconAssetId, downloadIcon, downloadPack, reconcile, requestDelete,
     editingContext, applyIconToCurrentPreset, registerPickHandler, pickHandler, usageOf, renameIcon,
   ]);
 

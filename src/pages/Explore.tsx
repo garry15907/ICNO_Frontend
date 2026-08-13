@@ -6,6 +6,9 @@ import { Search, SlidersHorizontal, Sparkles, Image as ImageIcon, Package, Layer
 import { MarketItemCard } from "@/components/presets/PresetCard";
 import { marketItems, type CreatorResolutionType } from "@/data/mockData";
 import { useMarketPresets } from "@/lib/market-presets";
+import { useMarketIcons, useMarketIconPacks } from "@/lib/market-icons";
+import { MarketIconCard, MarketIconPackCard } from "@/components/presets/MarketIconCards";
+import { MarketIconModal, type ItemModalData } from "@/components/presets/MarketIconModal";
 import { useWishlist } from "@/lib/wishlist";
 import { MarketItemModal } from "@/components/presets/MarketItemModal";
 import { MarketPresetModal } from "@/components/presets/MarketPresetModal";
@@ -33,7 +36,6 @@ const typeFilters = [
   { id: "all", label: "전체", icon: Layers },
   { id: "preset", label: "프리셋", icon: Sparkles },
   { id: "icon", label: "아이콘", icon: ImageIcon },
-  { id: "iconpack", label: "아이콘 팩", icon: Package },
 ] as const;
 
 export default function Explore() {
@@ -42,7 +44,7 @@ export default function Explore() {
   const [price, setPrice] = useState<(typeof priceFilters)[number]>("전체");
   const [category, setCategory] = useState("전체");
   const [sort, setSort] = useState("인기순");
-  const [typeFilter, setTypeFilter] = useState<"all" | "preset" | "icon" | "iconpack">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "preset" | "icon">("all");
   const { wishlist, isWishlisted, toggle } = useWishlist();
   const [filterOpen, setFilterOpen] = useState(false);
   const [categoryQuery, setCategoryQuery] = useState("");
@@ -71,6 +73,18 @@ export default function Explore() {
     [cloudPresets, typeFilter, query, sort],
   );
 
+  const { icons: cloudIcons } = useMarketIcons();
+  const { packs: cloudPacks } = useMarketIconPacks();
+  const iconMatches = useMemo(() => {
+    if (typeFilter !== "all" && typeFilter !== "icon") return { icons: [], packs: [] };
+    const q = query.trim();
+    const match = (name: string, tags: string[]) => !q || (name + " " + tags.join(" ")).includes(q);
+    return {
+      icons: cloudIcons.filter((ic) => match(ic.name, ic.tags)),
+      packs: cloudPacks.filter((p) => match(p.name, p.tags)),
+    };
+  }, [cloudIcons, cloudPacks, typeFilter, query]);
+
   const filteredCategories = useMemo(
     () => categories.filter((c) => c.toLowerCase().includes(categoryQuery.toLowerCase())),
     [categoryQuery],
@@ -80,6 +94,26 @@ export default function Explore() {
   const openItem = marketItems.find((p) => p.id === openId);
   const openCloudId = params.get("market");
   const openCloud = cloudPresets.find((p) => p.id === openCloudId);
+
+  const openIconRow = cloudIcons.find((r) => r.id === params.get("icon"));
+  const openPackRow = cloudPacks.find((r) => r.id === params.get("pack"));
+  const openItemData: ItemModalData | null = openIconRow
+    ? {
+        type: "icon", id: openIconRow.id, name: openIconRow.name, owner_id: openIconRow.owner_id,
+        description: openIconRow.description, tags: openIconRow.tags, created_at: openIconRow.created_at,
+        views: openIconRow.views, downloads: openIconRow.downloads, wishlist_count: openIconRow.wishlist_count,
+        comment_count: openIconRow.comment_count, rating_sum: openIconRow.rating_sum, rating_count: openIconRow.rating_count,
+        singleUrl: openIconRow.imageUrl,
+      }
+    : openPackRow
+    ? {
+        type: "pack", id: openPackRow.id, name: openPackRow.name, owner_id: openPackRow.owner_id,
+        description: openPackRow.description, tags: openPackRow.tags, created_at: openPackRow.created_at,
+        views: openPackRow.views, downloads: openPackRow.downloads, wishlist_count: openPackRow.wishlist_count,
+        comment_count: openPackRow.comment_count, rating_sum: openPackRow.rating_sum, rating_count: openPackRow.rating_count,
+        iconUrls: openPackRow.iconUrls, iconCount: openPackRow.icon_count,
+      }
+    : null;
 
   const items = useMemo(() => {
     let list = [...marketItems];
@@ -272,16 +306,23 @@ export default function Explore() {
         </div>
       )}
 
-      {/* Grid */}
-      {items.length === 0 ? (
-        <div className="border border-dashed rounded-2xl p-16 text-center text-muted-foreground">
-          {cloudMatches.length > 0
-            ? "다른 상품(아이콘·팩)은 아직 없습니다."
-            : marketItems.length === 0
-            ? "아직 마켓에 올라온 항목이 없습니다."
-            : "조건에 맞는 상품이 없습니다."}
+      {/* 마켓 아이콘 / 팩 */}
+      {(iconMatches.packs.length > 0 || iconMatches.icons.length > 0) && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">마켓 아이콘</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {iconMatches.packs.map((p) => (
+              <MarketIconPackCard key={`pack-${p.id}`} pack={p} onClick={() => setParams({ pack: p.id })} />
+            ))}
+            {iconMatches.icons.map((ic) => (
+              <MarketIconCard key={`icon-${ic.id}`} icon={ic} onClick={() => setParams({ icon: ic.id })} />
+            ))}
+          </div>
         </div>
-      ) : (
+      )}
+
+      {/* 기존 mock 상품 그리드 (데이터 있을 때만) */}
+      {items.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {items.map((p) => (
             <MarketItemCard
@@ -295,6 +336,16 @@ export default function Explore() {
         </div>
       )}
 
+      {/* 아무것도 없을 때 */}
+      {items.length === 0 &&
+        cloudMatches.length === 0 &&
+        iconMatches.icons.length === 0 &&
+        iconMatches.packs.length === 0 && (
+          <div className="border border-dashed rounded-2xl p-16 text-center text-muted-foreground">
+            아직 마켓에 올라온 항목이 없습니다.
+          </div>
+        )}
+
       {openItem && (
         <MarketItemModal
           item={openItem}
@@ -305,6 +356,8 @@ export default function Explore() {
       )}
 
       {openCloud && <MarketPresetModal preset={openCloud} onClose={() => setParams({})} />}
+
+      {openItemData && <MarketIconModal item={openItemData} onClose={() => setParams({})} />}
     </div>
   );
 }
