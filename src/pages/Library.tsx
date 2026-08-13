@@ -1642,6 +1642,31 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
       )}
 
       {/* 팩 상세 */}
+      {packRemoveTarget && (
+        <Dialog open onOpenChange={(o) => { if (!o) setPackRemoveTarget(null); }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>이 아이콘을 팩에서 뺄까요?</DialogTitle>
+              <DialogDescription>
+                “{packRemoveTarget.title}”은(는) 팩에서 빠지고 개별 아이콘으로 보관함에 남습니다. 아이콘 파일이 삭제되는 것은 아닙니다.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setPackRemoveTarget(null)}>취소</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  removeIconFromPack(packRemoveTarget.packId, packRemoveTarget.filename);
+                  setPackRemoveTarget(null);
+                }}
+              >
+                삭제
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {openLibPack && (
         <Dialog open onOpenChange={(o) => { if (!o) setOpenLibPackId(null); }}>
           <DialogContent className="max-w-2xl">
