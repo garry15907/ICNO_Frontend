@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft, Play, Compass, Download as DownloadIcon } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft, Play, Compass, Search, Download as DownloadIcon } from "lucide-react";
 import { type LibraryPreset, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
 import { useLibrary } from "@/lib/library";
 import { useIconLibrary } from "@/lib/icon-library";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -22,6 +23,8 @@ import {
 } from "@/services/localEngineApi";
 import { PresetMiniPreview } from "@/components/presets/PresetMiniPreview";
 import { MarketUploadModal } from "@/components/presets/MarketUploadModal";
+import { MarketIconUploadModal } from "@/components/presets/MarketIconUploadModal";
+import type { IconToUpload } from "@/services/marketIconUpload";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -796,6 +799,56 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
   const userIconDetail = userIconDetailId
     ? userIcons.find((u) => u.id === userIconDetailId) ?? null
     : null;
+
+  // 검색 / 정렬 / 핀(상단 고정, localStorage 영속화)
+  const [iconSearch, setIconSearch] = useState("");
+  const [iconSort, setIconSort] = useState<"recent" | "name">("recent");
+  const [pinnedIcons, setPinnedIcons] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("icno.pinnedIcons") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const togglePinIcon = (id: string) => {
+    setPinnedIcons((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      try {
+        localStorage.setItem("icno.pinnedIcons", JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+  const visibleUserIcons = useMemo(() => {
+    const q = iconSearch.trim().toLowerCase();
+    const list = userIcons.filter((ic) => !q || ic.title.toLowerCase().includes(q));
+    return [...list].sort((a, b) => {
+      const pa = pinnedIcons.includes(a.id) ? 0 : 1;
+      const pb = pinnedIcons.includes(b.id) ? 0 : 1;
+      if (pa !== pb) return pa - pb; // 핀 먼저
+      if (iconSort === "name") return a.title.localeCompare(b.title);
+      return (b.downloadedAt || "").localeCompare(a.downloadedAt || ""); // 최신순
+    });
+  }, [userIcons, iconSearch, iconSort, pinnedIcons]);
+
+  // 선택 모드 + 마켓 업로드
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIconIds, setSelectedIconIds] = useState<string[]>([]);
+  const [iconMarketUpload, setIconMarketUpload] = useState<IconToUpload[] | null>(null);
+  const toggleSelectIcon = (id: string) =>
+    setSelectedIconIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIconIds([]);
+  };
+  const openMarketUploadFor = (ids: string[]) => {
+    const chosen = userIcons
+      .filter((u) => ids.includes(u.id))
+      .map((u) => ({ id: u.id, title: u.title, imageUrl: u.imageUrl }));
+    if (chosen.length > 0) setIconMarketUpload(chosen);
+  };
   const filters: { value: IconFilter; label: string }[] = [
     { value: "all", label: "전체" },
     { value: "icon", label: "단품 아이콘" },
@@ -1068,24 +1121,29 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-2">
-          {filters.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setFilter(f.value)}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
-                filter === f.value
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground",
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            value={iconSearch}
+            onChange={(e) => setIconSearch(e.target.value)}
+            placeholder="아이콘 이름 검색"
+            className="h-9 pl-9"
+          />
         </div>
-        <Button size="sm" onClick={openUploadDialog} className="gap-1.5">
-          <Upload className="h-3.5 w-3.5" /> 아이콘 업로드
+        <Select value={iconSort} onValueChange={(v) => setIconSort(v as "recent" | "name")}>
+          <SelectTrigger className="w-28 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recent">최신순</SelectItem>
+            <SelectItem value="name">이름순</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button
+          size="sm"
+          variant={selectMode ? "default" : "outline"}
+          className="h-9"
+          onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+        >
+          {selectMode ? "선택 취소" : "선택"}
         </Button>
         <input
           ref={fileRef}
@@ -1108,30 +1166,59 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         />
       </div>
 
-      {userIcons.length > 0 && (
-        <section className="space-y-3">
+      <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold flex items-center gap-1.5">
               <DownloadIcon className="h-3.5 w-3.5 text-primary" />
-              다운로드한 아이콘
+              내 아이콘
               <span className="text-muted-foreground font-normal">({userIcons.length})</span>
             </h3>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {userIcons.map((ic) => (
+            <button
+              type="button"
+              onClick={openUploadDialog}
+              className="rounded-xl border border-dashed border-border p-3 flex flex-col items-center justify-center gap-2 min-h-[180px] text-muted-foreground hover:border-primary/50 hover:text-foreground transition-all"
+            >
+              <Upload className="h-6 w-6" />
+              <span className="text-xs font-medium">아이콘 업로드</span>
+            </button>
+            {visibleUserIcons.length === 0 && iconSearch.trim() && (
+              <div className="col-span-full text-center text-sm text-muted-foreground py-8">
+                '{iconSearch}'에 맞는 아이콘이 없습니다.
+              </div>
+            )}
+            {visibleUserIcons.map((ic) => (
               <div
                 key={ic.id}
-                className="rounded-xl bg-card border border-border p-3 flex flex-col hover:shadow-glow hover:border-primary/40 transition-all"
+                className={cn(
+                  "relative rounded-xl bg-card border p-3 flex flex-col hover:shadow-glow transition-all",
+                  selectMode && selectedIconIds.includes(ic.id)
+                    ? "border-primary ring-2 ring-primary"
+                    : "border-border hover:border-primary/40",
+                )}
               >
+                {pinnedIcons.includes(ic.id) && (
+                  <div className="absolute top-2 left-2 z-10 h-5 w-5 grid place-items-center rounded-full bg-primary text-primary-foreground shadow">
+                    <Pin className="h-3 w-3" />
+                  </div>
+                )}
+                {selectMode && (
+                  <div
+                    className={cn(
+                      "absolute top-2 right-2 z-10 h-5 w-5 rounded-full border grid place-items-center",
+                      selectedIconIds.includes(ic.id)
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : "bg-background/80 border-border",
+                    )}
+                  >
+                    {selectedIconIds.includes(ic.id) && <Check className="h-3 w-3" />}
+                  </div>
+                )}
                 <button
                   type="button"
-                  onClick={() => setUserIconDetailId(ic.id)}
-                  className="aspect-square rounded-lg grid place-items-center text-5xl overflow-hidden mb-2 cursor-pointer hover:opacity-90 transition"
-                  style={{
-                    background: ic.hasTransparentBackground
-                      ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 16px 16px"
-                      : "hsl(var(--muted) / 0.5)",
-                  }}
+                  onClick={() => (selectMode ? toggleSelectIcon(ic.id) : setUserIconDetailId(ic.id))}
+                  className="aspect-square rounded-lg grid place-items-center text-5xl overflow-hidden mb-2 cursor-pointer hover:opacity-90 transition bg-white dark:bg-black"
                 >
                   {ic.imageUrl ? (
                     <img src={ic.imageUrl} alt={ic.title} className="max-w-full max-h-full object-contain" />
@@ -1153,11 +1240,17 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem onClick={() => togglePinIcon(ic.id)}>
+                        <Pin className="h-3.5 w-3.5 mr-2" /> {pinnedIcons.includes(ic.id) ? "고정 해제" : "상단 고정"}
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setUserIconDetailId(ic.id)}>
                         <Pencil className="h-3.5 w-3.5 mr-2" /> 상세 보기
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => applyIconToCurrentPreset(ic.id)}>
                         <Sparkles className="h-3.5 w-3.5 mr-2" /> 프리셋에 사용
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openMarketUploadFor([ic.id])}>
+                        <Store className="h-3.5 w-3.5 mr-2" /> 마켓에 올리기
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setIconShareTarget({ id: ic.id, name: ic.title })}>
                         <Share2 className="h-3.5 w-3.5 mr-2" /> 공유
@@ -1185,8 +1278,25 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
               </div>
             ))}
           </div>
+          {selectMode && (
+            <div className="sticky bottom-3 z-20 flex items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary/10 backdrop-blur px-4 py-2.5">
+              <span className="text-sm font-medium">{selectedIconIds.length}개 선택됨</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={exitSelectMode}>
+                  취소
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => openMarketUploadFor(selectedIconIds)}
+                  disabled={selectedIconIds.length === 0}
+                  className="gap-1.5"
+                >
+                  <Store className="h-3.5 w-3.5" /> 마켓에 올리기
+                </Button>
+              </div>
+            </div>
+          )}
         </section>
-      )}
 
       {groupIcons.length > 0 && (
         <section className="space-y-3">
@@ -1437,6 +1547,14 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {iconMarketUpload && (
+        <MarketIconUploadModal
+          icons={iconMarketUpload}
+          onClose={() => setIconMarketUpload(null)}
+          onDone={exitSelectMode}
+        />
+      )}
 
       {/* ============= 아이콘 업로드 다이얼로그 ============= */}
       <Dialog open={uploadOpen} onOpenChange={(o) => { if (!o) { setUploadOpen(false); setPendingUploads([]); } }}>

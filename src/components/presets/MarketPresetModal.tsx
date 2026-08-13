@@ -22,7 +22,7 @@ import { presetAverageRating, type MarketPresetRow } from "@/lib/market-presets"
 import { useMarketSocial, type ReportReason } from "@/lib/market-social";
 import { PresetThumbnail } from "@/components/presets/PresetThumbnail";
 import { PresetComments } from "@/components/presets/PresetComments";
-import { FollowButton } from "@/components/presets/FollowButton";
+import { CreatorCard } from "@/components/presets/CreatorCard";
 import { cn } from "@/lib/utils";
 
 const reportReasons: { id: ReportReason; label: string }[] = [
@@ -67,7 +67,6 @@ export function MarketPresetModal({
   const [busy, setBusy] = useState(false);
   const iconCount = useMemo(() => (preset.icons ?? []).length, [preset]);
   const [me, setMe] = useState<string | null>(null);
-  const [ownerName, setOwnerName] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<ReportReason>("spam");
   const [reportDetail, setReportDetail] = useState("");
@@ -106,14 +105,6 @@ export function MarketPresetModal({
     void supabase.auth.getUser().then(({ data }) => setMe(data.user?.id ?? null));
   }, []);
 
-  useEffect(() => {
-    void supabase
-      .from("profiles")
-      .select("display_name, username")
-      .eq("id", preset.owner_id)
-      .maybeSingle()
-      .then(({ data }) => setOwnerName(data?.display_name || data?.username || null));
-  }, [preset.owner_id]);
 
   // Count one view per modal open.
   useEffect(() => {
@@ -185,12 +176,7 @@ export function MarketPresetModal({
           <div className="grid md:grid-cols-[1fr_240px] gap-5">
             <div className="space-y-3">
               <h2 className="text-2xl font-bold tracking-tight">{preset.name}</h2>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-muted-foreground">
-                  {ownerName ? `@${ownerName}` : "크리에이터"}
-                </span>
-                <FollowButton userId={preset.owner_id} />
-              </div>
+              <CreatorCard userId={preset.owner_id} />
               <div className="text-xs text-muted-foreground">
                 아이콘 {iconCount}개 · {preset.canvas?.w ?? 1920}×{preset.canvas?.h ?? 1080} ·{" "}
                 {preset.created_at.slice(0, 10)} 등록
