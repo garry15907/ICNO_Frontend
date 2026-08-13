@@ -24,6 +24,7 @@ import {
   renameUserIconAsset as svcRename,
   reconcileWithLocalEngine,
 } from "@/services/iconLibraryService";
+import { deleteLibraryAsset } from "@/services/localEngineApi";
 
 export type IconDownloadStatus = "idle" | "downloading" | "success" | "failed";
 
@@ -188,12 +189,31 @@ export function IconLibraryProvider({ children }: { children: ReactNode }) {
     toast({ title: "아이콘 이름이 변경되었습니다.", description: trimmed });
   }, [refresh]);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
-    svcDelete(deleteTarget.id);
-    refresh();
-    toast({ title: "아이콘을 보관함에서 삭제했습니다." });
+    const target = deleteTarget;
     setDeleteTarget(null);
+    // 로컬 엔진의 실제 파일까지 삭제 — 안 그러면 재동기화 때 되살아난다.
+    const engineId = target.asset_id || target.storage_filename;
+    let engineFailed = false;
+    if (engineId) {
+      try {
+        await deleteLibraryAsset(engineId, true);
+      } catch {
+        engineFailed = true;
+      }
+    }
+    svcDelete(target.id);
+    refresh();
+    toast(
+      engineFailed
+        ? {
+            title: "보관함에서 삭제했지만 로컬 엔진 파일은 지우지 못했습니다.",
+            description: "로컬 엔진이 실행 중인지 확인해주세요.",
+            variant: "destructive" as any,
+          }
+        : { title: "아이콘을 보관함에서 삭제했습니다." },
+    );
   };
 
   const applyIconToCurrentPreset = useCallback((userIconAssetId: string) => {
