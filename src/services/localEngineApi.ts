@@ -296,13 +296,53 @@ export function calculate(expression: string): Promise<any> {
 
 // ── Wallpaper ─────────────────────────────────────────────────────────
 
-/** POST /api/wallpaper/upload (multipart) → returns the absolute wallpaper_path. */
-export function uploadWallpaper(
-  file: File,
-): Promise<{ wallpaper_path: string } & Record<string, any>> {
+/** POST /api/wallpaper/upload (multipart) → absolute wallpaper_path + library asset info. */
+export type UploadWallpaperResponse = {
+  wallpaper_path: string;
+  asset_id?: string;
+  storage_filename?: string;
+  display_name?: string;
+  url?: string;
+  duplicate?: boolean;
+  [k: string]: unknown;
+};
+export function uploadWallpaper(file: File): Promise<UploadWallpaperResponse> {
   const fd = new FormData();
   fd.append("file", file);
   return request("/api/wallpaper/upload", { method: "POST", body: fd });
+}
+
+/** GET /api/wallpapers/library */
+export type WallpaperLibraryAsset = {
+  asset_id: string;
+  display_name: string;
+  storage_filename: string;
+  local_image_path: string;
+  origin?: string | null;
+  width?: number | null;
+  height?: number | null;
+  file_exists: boolean;
+  created_at?: string;
+  [k: string]: unknown;
+};
+export function listWallpaperLibrary(): Promise<
+  { assets?: WallpaperLibraryAsset[] } & Record<string, any>
+> {
+  return request("/api/wallpapers/library");
+}
+
+/** PATCH /api/wallpapers/library/{asset_id} — rename only. */
+export function renameWallpaperAsset(assetId: string, display_name: string): Promise<any> {
+  return request(`/api/wallpapers/library/${encodeURIComponent(assetId)}`, {
+    method: "PATCH",
+    body: { display_name } as any,
+  });
+}
+
+/** DELETE /api/wallpapers/library/{asset_id}?force=... (409 when a preset uses it) */
+export function deleteWallpaperAsset(assetId: string, force = false): Promise<any> {
+  const qs = force ? "?force=true" : "";
+  return request(`/api/wallpapers/library/${encodeURIComponent(assetId)}${qs}`, { method: "DELETE" });
 }
 
 /** POST /api/wallpaper/apply */

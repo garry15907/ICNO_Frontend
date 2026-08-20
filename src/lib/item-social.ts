@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-export type ItemType = "icon" | "pack";
+export type ItemType = "icon" | "pack" | "wallpaper";
 export type ReportReason = "spam" | "inappropriate" | "copyright" | "malware" | "other";
 
 const k = (t: ItemType, id: string) => `${t}:${id}`;
