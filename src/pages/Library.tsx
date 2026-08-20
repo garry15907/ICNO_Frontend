@@ -810,7 +810,8 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
 
   // 검색 / 정렬 / 핀(상단 고정, localStorage 영속화)
   const [iconSearch, setIconSearch] = useState("");
-  const [iconSort, setIconSort] = useState<"recent" | "name">("recent");
+  const { prefs: iconPrefs } = useAppPreferences();
+  const [iconSort, setIconSort] = useState<"recent" | "name">(() => iconPrefs.librarySort);
   const [pinnedIcons, setPinnedIcons] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("icno.pinnedIcons") || "[]");
@@ -833,13 +834,15 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
     const q = iconSearch.trim().toLowerCase();
     const list = userIcons.filter((ic) => !q || ic.title.toLowerCase().includes(q));
     return [...list].sort((a, b) => {
-      const pa = pinnedIcons.includes(a.id) ? 0 : 1;
-      const pb = pinnedIcons.includes(b.id) ? 0 : 1;
-      if (pa !== pb) return pa - pb; // 핀 먼저
+      if (iconPrefs.pinnedFirst) {
+        const pa = pinnedIcons.includes(a.id) ? 0 : 1;
+        const pb = pinnedIcons.includes(b.id) ? 0 : 1;
+        if (pa !== pb) return pa - pb; // 핀 먼저
+      }
       if (iconSort === "name") return a.title.localeCompare(b.title);
       return (b.downloadedAt || "").localeCompare(a.downloadedAt || ""); // 최신순
     });
-  }, [userIcons, iconSearch, iconSort, pinnedIcons]);
+  }, [userIcons, iconSearch, iconSort, pinnedIcons, iconPrefs.pinnedFirst]);
 
   // 마켓 업로드 모달 (모달 안 피커에서 담기). null=닫힘, 배열=열림(초기 담긴 id)
   const [iconMarketSeed, setIconMarketSeed] = useState<string[] | null>(null);
