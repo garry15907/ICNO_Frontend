@@ -116,7 +116,7 @@ export function WallpaperLibrary() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-muted-foreground">내 배경화면을 관리하고 바로 적용하거나 마켓에 올릴 수 있습니다.</p>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => nav("/explore?tab=wallpapers")} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={() => nav("/explore")} className="gap-1.5">
             <Compass className="h-3.5 w-3.5" /> 마켓에서 찾기
           </Button>
           <label>
