@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAppPreferences } from "@/lib/app-preferences";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, UploadCloud, FileDown, Replace, Check, X, ChevronLeft, Play, Compass, Search, Download as DownloadIcon } from "lucide-react";
 import { type LibraryPreset, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
