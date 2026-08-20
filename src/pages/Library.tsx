@@ -1168,7 +1168,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <Input
@@ -1193,14 +1193,6 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           disabled={ungroupedIcons.length === 0}
         >
           <Package className="h-3.5 w-3.5 mr-1" /> 묶기
-        </Button>
-        <Button
-          size="sm"
-          className="h-9 gap-1.5"
-          onClick={() => setIconMarketSeed([])}
-          disabled={userIcons.length === 0}
-        >
-          <Store className="h-3.5 w-3.5" /> 마켓에 올리기
         </Button>
         <input
           ref={fileRef}
