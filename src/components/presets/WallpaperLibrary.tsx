@@ -171,7 +171,7 @@ export function WallpaperLibrary() {
                         <Pencil className="h-3.5 w-3.5 mr-2" />이름 변경
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => setMarketTarget({ id: a.asset_id, title: a.display_name, imageUrl: (a.url as string) || `/api/wallpapers/library/${a.asset_id}/file` })}
+                        onClick={() => setMarketTarget({ id: a.asset_id, title: a.display_name, imageUrl: srcOf(a) })}
                       >
                         <Store className="h-3.5 w-3.5 mr-2" />마켓에 올리기
                       </DropdownMenuItem>
@@ -262,11 +262,7 @@ export function WallpaperLibrary() {
       {(marketTarget || marketPickerOpen) && (
         <MarketWallpaperUploadModal
           wallpaper={marketTarget}
-          allWallpapers={assets.map((a) => ({
-            id: a.asset_id,
-            title: a.display_name,
-            imageUrl: (a.url as string) || `/api/wallpapers/library/${a.asset_id}/file`,
-          }))}
+          allWallpapers={assets.map((a) => ({ id: a.asset_id, title: a.display_name, imageUrl: srcOf(a) }))}
           onClose={() => {
             setMarketTarget(null);
             setMarketPickerOpen(false);
