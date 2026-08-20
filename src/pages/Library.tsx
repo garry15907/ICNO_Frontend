@@ -222,9 +222,15 @@ export default function Library() {
     ...savedFromContext,
     ...presets,
   ];
-  const sortedPresets = [...merged].sort(
-    (a, b) => (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0),
-  );
+  // 설정(기본 정렬 / 즐겨찾기 우선 표시)을 반영한다.
+  const sortedPresets = [...merged].sort((a, b) => {
+    if (prefs.pinnedFirst) {
+      const pin = (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0);
+      if (pin !== 0) return pin;
+    }
+    if (prefs.librarySort === "name") return String(a.name).localeCompare(String(b.name), "ko");
+    return 0;
+  });
 
   const openPresetById = (id: string) => {
     // If the user is in "pick a preset for this icon" mode, intercept the
