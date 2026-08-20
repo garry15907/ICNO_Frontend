@@ -29,6 +29,7 @@ import { getPacks, addPack, renamePack, deletePack, addIconsToPack, removeIconFr
 import { CreatorCard } from "@/components/presets/CreatorCard";
 import { GroupIconsModal } from "@/components/presets/GroupIconsModal";
 import { WallpaperLibrary } from "@/components/presets/WallpaperLibrary";
+import { CreateOption } from "@/components/presets/CreateOption";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -363,7 +364,7 @@ export default function Library() {
             <Plus className="h-6 w-6" />
           </div>
           <div className="text-sm font-semibold">새 프리셋 만들기</div>
-          <div className="text-xs text-muted-foreground">빈 프리셋 · 마켓 · 로컬 가져오기</div>
+          <div className="text-xs text-muted-foreground">빈 프리셋 · 마켓</div>
         </button>
 
         {sortedPresets.map((p) => (
@@ -704,18 +705,6 @@ export default function Library() {
   );
 }
 
-function CreateOption({ icon: Icon, title, desc, onClick }: { icon: any; title: string; desc: string; onClick?: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="text-left p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all"
-    >
-      <Icon className="h-5 w-5 text-primary mb-2" />
-      <div className="text-sm font-semibold">{title}</div>
-      <div className="text-xs text-muted-foreground mt-1">{desc}</div>
-    </button>
-  );
-}
 
 const iconStatusStyles: Record<IconLibraryStatus, string> = {
   "다운로드됨": "bg-muted text-muted-foreground border-border",
@@ -799,7 +788,9 @@ function getPackIconStates(packId: string, overrides: Record<string, PackOverrid
 }
 
 function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f: IconFilter) => void }) {
+  const nav = useNavigate();
   const { userIcons, requestDelete, applyIconToCurrentPreset, renameIcon } = useIconLibrary();
+  const [iconCreateOpen, setIconCreateOpen] = useState(false);
   const [iconShareTarget, setIconShareTarget] = useState<{ id: string; name: string } | null>(null);
   const [iconRenameTarget, setIconRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [iconRenameValue, setIconRenameValue] = useState("");
@@ -1243,11 +1234,14 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <button
               type="button"
-              onClick={openUploadDialog}
-              className="rounded-xl border border-dashed border-border p-3 flex flex-col items-center justify-center gap-2 min-h-[180px] text-muted-foreground hover:border-primary/50 hover:text-foreground transition-all"
+              onClick={() => setIconCreateOpen(true)}
+              className="group rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center min-h-[180px] gap-3"
             >
-              <Upload className="h-6 w-6" />
-              <span className="text-xs font-medium">아이콘 업로드</span>
+              <div className="h-12 w-12 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground shadow-glow">
+                <Plus className="h-6 w-6" />
+              </div>
+              <div className="text-sm font-semibold">새 아이콘 만들기</div>
+              <div className="text-xs text-muted-foreground">마켓 · 로컬 가져오기</div>
             </button>
             {packCards.length === 0 && ungroupedIcons.length === 0 && iconSearch.trim() && (
               <div className="col-span-full text-center text-sm text-muted-foreground py-8">
@@ -1724,6 +1718,30 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           </DialogContent>
         </Dialog>
       )}
+
+      {/* ============= 새 아이콘 만들기 ============= */}
+      <Dialog open={iconCreateOpen} onOpenChange={setIconCreateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>새 아이콘 만들기</DialogTitle>
+            <DialogDescription>어떻게 시작할지 선택하세요</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <CreateOption
+              icon={Store}
+              title="마켓에서 불러오기"
+              desc="마켓플레이스에서 아이콘을 다운로드"
+              onClick={() => { setIconCreateOpen(false); nav("/explore"); }}
+            />
+            <CreateOption
+              icon={Upload}
+              title="로컬 가져오기"
+              desc="내 컴퓨터에서 이미지 파일을 올리기"
+              onClick={() => { setIconCreateOpen(false); openUploadDialog(); }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ============= 아이콘 업로드 다이얼로그 ============= */}
       <Dialog open={uploadOpen} onOpenChange={(o) => { if (!o) { setUploadOpen(false); setPendingUploads([]); } }}>
