@@ -799,7 +799,9 @@ function getPackIconStates(packId: string, overrides: Record<string, PackOverrid
 }
 
 function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f: IconFilter) => void }) {
+  const nav = useNavigate();
   const { userIcons, requestDelete, applyIconToCurrentPreset, renameIcon } = useIconLibrary();
+  const [iconCreateOpen, setIconCreateOpen] = useState(false);
   const [iconShareTarget, setIconShareTarget] = useState<{ id: string; name: string } | null>(null);
   const [iconRenameTarget, setIconRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [iconRenameValue, setIconRenameValue] = useState("");
@@ -1243,11 +1245,14 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <button
               type="button"
-              onClick={openUploadDialog}
-              className="rounded-xl border border-dashed border-border p-3 flex flex-col items-center justify-center gap-2 min-h-[180px] text-muted-foreground hover:border-primary/50 hover:text-foreground transition-all"
+              onClick={() => setIconCreateOpen(true)}
+              className="group rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center min-h-[180px] gap-3"
             >
-              <Upload className="h-6 w-6" />
-              <span className="text-xs font-medium">아이콘 업로드</span>
+              <div className="h-12 w-12 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground shadow-glow">
+                <Plus className="h-6 w-6" />
+              </div>
+              <div className="text-sm font-semibold">새 아이콘 만들기</div>
+              <div className="text-xs text-muted-foreground">마켓 · 로컬 가져오기</div>
             </button>
             {packCards.length === 0 && ungroupedIcons.length === 0 && iconSearch.trim() && (
               <div className="col-span-full text-center text-sm text-muted-foreground py-8">
