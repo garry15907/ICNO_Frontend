@@ -1233,7 +1233,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                 <Plus className="h-6 w-6" />
               </div>
               <div className="text-sm font-semibold">새 아이콘 만들기</div>
-              <div className="text-xs text-muted-foreground">마켓 · 로컬 가져오기</div>
+              <div className="text-xs text-muted-foreground">마켓 · 로컬 가져오기 · 마켓에 업로드</div>
             </button>
             {packCards.length === 0 && ungroupedIcons.length === 0 && iconSearch.trim() && (
               <div className="col-span-full text-center text-sm text-muted-foreground py-8">
@@ -1718,7 +1718,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
             <DialogTitle>새 아이콘 만들기</DialogTitle>
             <DialogDescription>어떻게 시작할지 선택하세요</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-3 gap-3 pt-2">
             <CreateOption
               icon={Store}
               title="마켓에서 불러오기"
@@ -1730,6 +1730,12 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
               title="로컬 가져오기"
               desc="내 컴퓨터에서 이미지 파일을 올리기"
               onClick={() => { setIconCreateOpen(false); openUploadDialog(); }}
+            />
+            <CreateOption
+              icon={UploadCloud}
+              title="마켓에 업로드"
+              desc="내 아이콘을 마켓에 게시하기"
+              onClick={() => { setIconCreateOpen(false); setIconMarketSeed([]); }}
             />
           </div>
         </DialogContent>
