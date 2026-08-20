@@ -1,10 +1,14 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/lib/theme";
 import { useSidebarMode } from "@/lib/sidebar-mode";
+import { useAppPreferences, type NotifKey } from "@/lib/app-preferences";
+import * as engine from "@/services/localEngineApi";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
 
 const sections = [
   { id: "display", label: "화면" },
@@ -15,12 +19,60 @@ const sections = [
   { id: "about", label: "앱 정보" },
 ];
 
+const NOTIF_ROWS: { key: NotifKey; label: string }[] = [
+  { key: "all", label: "전체 알림" },
+  { key: "comment", label: "댓글" },
+  { key: "rating", label: "평점" },
+  { key: "download", label: "다운로드" },
+  { key: "sales", label: "판매" },
+  { key: "report", label: "신고" },
+  { key: "error", label: "오류" },
+];
+
 export default function Settings() {
+  const nav = useNavigate();
   const { theme, setTheme } = useTheme();
   const { mode: sidebarMode, setMode: setSidebarMode, hovered: sidebarHovered } = useSidebarMode();
+  const { prefs, update, setNotification } = useAppPreferences();
   const collapsedSidebarWidth = 72;
   const sidebarExpanded =
     sidebarMode === "expanded" || (sidebarMode === "hover" && sidebarHovered);
+
+  // 로컬 엔진 오버레이 설정 (GET/POST /api/settings — 보낸 키만 부분 업데이트)
+  const [overlayAutostart, setOverlayAutostart] = useState(false);
+  const [restoreOnExit, setRestoreOnExit] = useState(true);
+  const [engineReady, setEngineReady] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    void engine
+      .getSettings()
+      .then((s) => {
+        if (!alive) return;
+        setOverlayAutostart(!!s.overlay_autostart);
+        setRestoreOnExit(s.restore_on_exit !== false);
+        setEngineReady(true);
+      })
+      .catch(() => {
+        if (alive) setEngineReady(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const saveEngine = async (patch: Partial<engine.SettingsModel>, revert: () => void) => {
+    try {
+      await engine.saveSettings(patch);
+    } catch (e) {
+      revert();
+      toast({
+        title: "로컬 엔진에 저장하지 못했습니다",
+        description: "ICNO 데스크톱 엔진이 실행 중인지 확인해주세요.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="grid grid-cols-[200px_minmax(0,1fr)] gap-8 items-start [--settings-page-x:1rem] sm:[--settings-page-x:1.5rem] lg:[--settings-page-x:2rem]">
@@ -60,7 +112,7 @@ export default function Settings() {
             </Select>
           </Row>
           <Row label="시작 페이지">
-            <Select defaultValue="home">
+            <Select value={prefs.startPage} onValueChange={(v: any) => update({ startPage: v })}>
               <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="home">홈</SelectItem>
@@ -73,43 +125,81 @@ export default function Settings() {
 
         <Section id="library" title="보관함">
           <Row label="기본 정렬">
-            <Select defaultValue="recent"><SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="recent">최근순</SelectItem><SelectItem value="name">이름순</SelectItem></SelectContent></Select>
+            <Select value={prefs.librarySort} onValueChange={(v: any) => update({ librarySort: v })}>
+              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">최근순</SelectItem>
+                <SelectItem value="name">이름순</SelectItem>
+              </SelectContent>
+            </Select>
           </Row>
-          <Row label="즐겨찾기 우선 표시"><Switch /></Row>
-          <Row label="다운로드한 프리셋 자동 저장"><Switch defaultChecked /></Row>
-          <Row label="구매한 프리셋 자동 저장"><Switch defaultChecked /></Row>
-          <Row label="백업 / 복원"><Button variant="outline" size="sm">설정</Button></Row>
+          <Row label="즐겨찾기 우선 표시">
+            <Switch checked={prefs.pinnedFirst} onCheckedChange={(v) => update({ pinnedFirst: v })} />
+          </Row>
         </Section>
 
         <Section id="windows" title="Windows 적용">
-          <Row label="앱 시작 시 오버레이 자동 시작"><Switch /></Row>
-          <Row label="앱 종료 시 기본 데스크톱 아이콘 복원"><Switch defaultChecked /></Row>
+          <Row label="앱 시작 시 오버레이 자동 시작">
+            <Switch
+              checked={overlayAutostart}
+              disabled={!engineReady}
+              onCheckedChange={(v) => {
+                const prev = overlayAutostart;
+                setOverlayAutostart(v);
+                void saveEngine({ overlay_autostart: v }, () => setOverlayAutostart(prev));
+              }}
+            />
+          </Row>
+          <Row label="앱 종료 시 기본 데스크톱 아이콘 복원">
+            <Switch
+              checked={restoreOnExit}
+              disabled={!engineReady}
+              onCheckedChange={(v) => {
+                const prev = restoreOnExit;
+                setRestoreOnExit(v);
+                void saveEngine({ restore_on_exit: v }, () => setRestoreOnExit(prev));
+              }}
+            />
+          </Row>
+          {!engineReady && (
+            <div className="p-4 text-xs text-muted-foreground">
+              로컬 엔진에 연결되지 않아 이 설정을 저장할 수 없습니다.
+            </div>
+          )}
         </Section>
 
         <Section id="notif" title="알림">
-          {["전체 알림","댓글","평점","다운로드","판매","신고","오류"].map(l => (
-            <Row key={l} label={l}><Switch defaultChecked /></Row>
+          {NOTIF_ROWS.map((r) => (
+            <Row key={r.key} label={r.label}>
+              <Switch
+                checked={r.key === "all" ? prefs.notifications.all : prefs.notifications.all && prefs.notifications[r.key]}
+                disabled={r.key !== "all" && !prefs.notifications.all}
+                onCheckedChange={(v) => setNotification(r.key, v)}
+              />
+            </Row>
           ))}
         </Section>
 
         <Section id="account" title="계정">
-          <Row label="프로필 편집"><Button variant="outline" size="sm">편집</Button></Row>
-          <Row label="다운로드 목록"><Button variant="outline" size="sm">보기</Button></Row>
-          <Row label="찜한 프리셋"><Button variant="outline" size="sm">보기</Button></Row>
-          <Row label="구매 내역"><Button variant="outline" size="sm">보기</Button></Row>
-          <Row label="판매/업로드 관리"><Button variant="outline" size="sm">관리</Button></Row>
-          <Row label="차단된 사용자"><Button variant="outline" size="sm">관리</Button></Row>
-          <Row label="계정 삭제"><Button variant="outline" size="sm" className="text-destructive">삭제</Button></Row>
+          <Row label="프로필 편집">
+            <Button variant="outline" size="sm" onClick={() => nav("/profile")}>편집</Button>
+          </Row>
+          <Row label="다운로드 목록">
+            <Button variant="outline" size="sm" onClick={() => nav("/profile/downloads")}>보기</Button>
+          </Row>
+          <Row label="찜한 목록">
+            <Button variant="outline" size="sm" onClick={() => nav("/profile/wishlist")}>보기</Button>
+          </Row>
+          <Row label="내 상품 관리">
+            <Button variant="outline" size="sm" onClick={() => nav("/profile/sales")}>관리</Button>
+          </Row>
         </Section>
 
         <Section id="about" title="앱 정보">
           <Row label="앱 버전"><span className="text-sm text-muted-foreground">ICNO 1.2.0</span></Row>
-          <Row label="업데이트 확인"><Button variant="outline" size="sm">확인</Button></Row>
-          <Row label="오픈소스 라이선스"><Button variant="ghost" size="sm">보기</Button></Row>
-          <Row label="이용약관"><Button variant="ghost" size="sm">보기</Button></Row>
-          <Row label="개인정보 처리방침"><Button variant="ghost" size="sm">보기</Button></Row>
-          <Row label="문의 / 피드백"><Button variant="outline" size="sm">보내기</Button></Row>
+          <Row label="업데이트 확인">
+            <Button variant="outline" size="sm" onClick={() => toast({ title: "최신 버전입니다" })}>확인</Button>
+          </Row>
         </Section>
       </div>
     </div>

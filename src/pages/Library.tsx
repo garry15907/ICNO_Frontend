@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAppPreferences } from "@/lib/app-preferences";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, UploadCloud, FileDown, Replace, Check, X, ChevronLeft, Play, Compass, Search, Download as DownloadIcon } from "lucide-react";
 import { type LibraryPreset, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
@@ -63,6 +64,7 @@ function writePinned(ids: string[]) {
 
 export default function Library() {
   const nav = useNavigate();
+  const { prefs } = useAppPreferences();
   const [searchParams, setSearchParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
   const [pinned, setPinned] = useState<string[]>(() => readPinned());
@@ -222,9 +224,15 @@ export default function Library() {
     ...savedFromContext,
     ...presets,
   ];
-  const sortedPresets = [...merged].sort(
-    (a, b) => (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0),
-  );
+  // 설정(기본 정렬 / 즐겨찾기 우선 표시)을 반영한다.
+  const sortedPresets = [...merged].sort((a, b) => {
+    if (prefs.pinnedFirst) {
+      const pin = (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0);
+      if (pin !== 0) return pin;
+    }
+    if (prefs.librarySort === "name") return String(a.name).localeCompare(String(b.name), "ko");
+    return 0;
+  });
 
   const openPresetById = (id: string) => {
     // If the user is in "pick a preset for this icon" mode, intercept the
@@ -802,7 +810,8 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
 
   // 검색 / 정렬 / 핀(상단 고정, localStorage 영속화)
   const [iconSearch, setIconSearch] = useState("");
-  const [iconSort, setIconSort] = useState<"recent" | "name">("recent");
+  const { prefs: iconPrefs } = useAppPreferences();
+  const [iconSort, setIconSort] = useState<"recent" | "name">(() => iconPrefs.librarySort);
   const [pinnedIcons, setPinnedIcons] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("icno.pinnedIcons") || "[]");
@@ -825,13 +834,15 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
     const q = iconSearch.trim().toLowerCase();
     const list = userIcons.filter((ic) => !q || ic.title.toLowerCase().includes(q));
     return [...list].sort((a, b) => {
-      const pa = pinnedIcons.includes(a.id) ? 0 : 1;
-      const pb = pinnedIcons.includes(b.id) ? 0 : 1;
-      if (pa !== pb) return pa - pb; // 핀 먼저
+      if (iconPrefs.pinnedFirst) {
+        const pa = pinnedIcons.includes(a.id) ? 0 : 1;
+        const pb = pinnedIcons.includes(b.id) ? 0 : 1;
+        if (pa !== pb) return pa - pb; // 핀 먼저
+      }
       if (iconSort === "name") return a.title.localeCompare(b.title);
       return (b.downloadedAt || "").localeCompare(a.downloadedAt || ""); // 최신순
     });
-  }, [userIcons, iconSearch, iconSort, pinnedIcons]);
+  }, [userIcons, iconSearch, iconSort, pinnedIcons, iconPrefs.pinnedFirst]);
 
   // 마켓 업로드 모달 (모달 안 피커에서 담기). null=닫힘, 배열=열림(초기 담긴 id)
   const [iconMarketSeed, setIconMarketSeed] = useState<string[] | null>(null);

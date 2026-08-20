@@ -92,6 +92,10 @@ export type SettingsModel = {
   grid_cell_w: number;
   grid_cell_h: number;
   grid_cols: number;
+  /** 앱 시작 시 오버레이 자동 시작. */
+  overlay_autostart?: boolean;
+  /** 앱 종료 시 기본 데스크톱 아이콘 복원. */
+  restore_on_exit?: boolean;
 };
 
 // ── Core request helper ────────────────────────────────────────────────
@@ -281,7 +285,8 @@ export function pickTargetFile(): Promise<any> {
 export function getSettings(): Promise<SettingsModel> {
   return request("/api/settings");
 }
-export function saveSettings(payload: SettingsModel): Promise<any> {
+/** 보낸 필드만 부분 업데이트된다. */
+export function saveSettings(payload: Partial<SettingsModel>): Promise<any> {
   return request("/api/settings", { method: "POST", body: payload as any });
 }
 

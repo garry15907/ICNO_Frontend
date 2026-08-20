@@ -27,6 +27,8 @@ export type MarketPresetRow = {
   canvas: { w: number; h: number };
   icons: MarketPresetIcon[];
   is_public: boolean;
+  /** 소유자 외에는 목록에서 감춰진다. */
+  is_hidden?: boolean;
   created_at: string;
   likes: number;
   downloads: number;
