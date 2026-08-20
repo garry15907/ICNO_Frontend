@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Image as ImageIcon, MoreHorizontal, Pencil, Store, Trash2, Loader2, Upload as UploadIcon, Compass } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Image as ImageIcon, MoreHorizontal, Pencil, Store, Trash2, Loader2, Upload as UploadIcon, Compass, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import {
 } from "@/services/localEngineApi";
 import { MarketWallpaperUploadModal } from "@/components/presets/MarketWallpaperUploadModal";
 import type { WallpaperToUpload } from "@/services/marketWallpaperUpload";
+import { CreateOption } from "@/pages/Library";
 
 /** 보관함 > 배경화면 탭 — 아이콘 보관함과 동일한 구조(단일 전용). */
 export function WallpaperLibrary() {
@@ -29,6 +30,8 @@ export function WallpaperLibrary() {
   const [deleteTarget, setDeleteTarget] = useState<WallpaperLibraryAsset | null>(null);
   const [marketTarget, setMarketTarget] = useState<WallpaperToUpload | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -141,18 +144,19 @@ export function WallpaperLibrary() {
         <div className="border border-dashed border-border rounded-2xl p-16 text-center text-sm text-muted-foreground">
           불러오는 중…
         </div>
-      ) : assets.length === 0 ? (
-        <div className="border border-dashed border-border rounded-2xl p-16 text-center space-y-3">
-          <div className="mx-auto h-12 w-12 rounded-xl bg-primary/10 grid place-items-center text-primary">
-            <ImageIcon className="h-6 w-6" />
-          </div>
-          <div className="font-semibold">배경화면이 없습니다</div>
-          <p className="text-sm text-muted-foreground">
-            파일을 추가하거나 마켓에서 배경화면을 다운로드하면 이곳에 보입니다.
-          </p>
-        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="group rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center min-h-[180px] gap-3"
+          >
+            <div className="h-12 w-12 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground shadow-glow">
+              <Plus className="h-6 w-6" />
+            </div>
+            <div className="text-sm font-semibold">새 배경화면 만들기</div>
+            <div className="text-xs text-muted-foreground">마켓 · 로컬 가져오기</div>
+          </button>
           {assets.map((a) => (
             <div key={a.asset_id} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
               <div className="relative aspect-video bg-muted/30 overflow-hidden">
@@ -202,6 +206,40 @@ export function WallpaperLibrary() {
           ))}
         </div>
       )}
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          void handleUploadFiles(e.target.files);
+          if (fileRef.current) fileRef.current.value = "";
+        }}
+      />
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>새 배경화면 만들기</DialogTitle>
+            <DialogDescription>어떻게 시작할지 선택하세요</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <CreateOption
+              icon={Store}
+              title="마켓에서 불러오기"
+              desc="마켓플레이스에서 배경화면을 다운로드"
+              onClick={() => { setCreateOpen(false); nav("/explore"); }}
+            />
+            <CreateOption
+              icon={UploadIcon}
+              title="로컬 가져오기"
+              desc="내 컴퓨터에서 이미지 파일을 올리기"
+              onClick={() => { setCreateOpen(false); fileRef.current?.click(); }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!renameTarget} onOpenChange={(o) => !o && setRenameTarget(null)}>
         <DialogContent className="max-w-sm">
