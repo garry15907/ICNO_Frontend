@@ -25,6 +25,7 @@ import { ProfileMain, Wishlist, Downloads, Sales, Following } from "./pages/Prof
 import CreatorProfile from "./pages/CreatorProfile";
 import NotFound from "./pages/NotFound";
 import { readPreferences } from "@/lib/app-preferences";
+import * as engine from "@/services/localEngineApi";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,21 @@ function StartPageRedirect() {
   return null;
 }
 
+/** overlay_autostart 가 켜져 있으면 앱 로드 시 오버레이를 한 번 시작한다. */
+function OverlayAutostart() {
+  useEffect(() => {
+    void engine
+      .getSettings()
+      .then((s) => {
+        if (s.overlay_autostart) return engine.startOverlay();
+      })
+      .catch(() => {
+        /* 로컬 엔진 미실행 — 무시 */
+      });
+  }, []);
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -61,6 +77,7 @@ const App = () => (
           <IconLibraryProvider>
           <AppLayout>
             <StartPageRedirect />
+            <OverlayAutostart />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
