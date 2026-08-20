@@ -1,16 +1,25 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { marketplacePresets, libraryPresets, downloadedIds, purchasedIds, reviews as mockReviews, followedCreators, marketItems } from "@/data/mockData";
 import { useProfile, isImageAvatar } from "@/lib/profile";
 import { useAuth } from "@/lib/auth";
 import { useMarketPresets } from "@/lib/market-presets";
 import { useWishlistedPresets, useDownloadedPresets } from "@/lib/market-collections";
+import {
+  useProfileStats,
+  useMyFollowing,
+  useWishlistedItems,
+  useDownloadedItems,
+  useMyMarketItems,
+  itemKindLabel,
+  type MarketItemLite,
+} from "@/lib/profile-stats";
 import { MarketPresetListRow } from "@/components/presets/MarketPresetListRow";
 import { useMarketSocial } from "@/lib/market-social";
+import { useItemSocial } from "@/lib/item-social";
 import { supabase } from "@/integrations/supabase/client";
 import { useWishlist } from "@/lib/wishlist";
 import { Button } from "@/components/ui/button";
-import { Heart, Download, Receipt, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft, TrendingUp, MessageSquare, Activity, Calendar, Shield, Upload, Eye, EyeOff, Pencil, Trash2, Flag, CheckCircle2, Info, ChevronRight, Users, UserMinus } from "lucide-react";
+import { Heart, Download, Store, Star, RotateCcw, ExternalLink, FolderOpen, Camera, ChevronLeft, TrendingUp, MessageSquare, Activity, Calendar, Shield, Upload, Eye, EyeOff, Pencil, Trash2, Flag, CheckCircle2, Info, ChevronRight, Users, UserMinus, ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -68,27 +77,27 @@ export function ProfileMain() {
     reader.readAsDataURL(file);
     e.target.value = "";
   };
-  // 마켓 기능(찜/다운로드/구매/판매/팔로우)은 아직 백엔드가 없어 0으로 표시합니다.
+  // 실집계: 프리셋 + 아이템(아이콘/팩/배경) 합산.
+  const { stats: counts } = useProfileStats();
   const stats = [
-    { label: "찜", value: 0, to: "/profile/wishlist", icon: Heart },
-    { label: "다운로드", value: 0, to: "/profile/downloads", icon: Download },
-    { label: "구매", value: 0, to: "/profile/purchases", icon: Receipt },
-    { label: "내 상품", value: 0, to: "/profile/sales", icon: Store },
-    { label: "팔로잉", value: 0, to: "/profile/following", icon: Users },
+    { label: "찜", value: counts.wishlist, to: "/profile/wishlist", icon: Heart },
+    { label: "다운로드", value: counts.downloads, to: "/profile/downloads", icon: Download },
+    { label: "내 상품", value: counts.myItems, to: "/profile/sales", icon: Store },
+    { label: "팔로잉", value: counts.following, to: "/profile/following", icon: Users },
   ];
-  const [following, setFollowing] = useState<typeof followedCreators>([]);
-  const [unfollowTarget, setUnfollowTarget] = useState<string | null>(null);
-  const handleUnfollow = () => {
+  const { creators: following } = useMyFollowing();
+  const { toggleFollow } = useMarketSocial();
+  const [unfollowTarget, setUnfollowTarget] = useState<{ id: string; name: string } | null>(null);
+  const handleUnfollow = async () => {
     if (!unfollowTarget) return;
-    setFollowing((prev) => prev.filter((c) => c.name !== unfollowTarget));
-    toast({ title: "팔로우 해제됨", description: `@${unfollowTarget} 팔로우를 해제했습니다.` });
+    await toggleFollow(unfollowTarget.id);
+    toast({ title: "팔로우 해제됨", description: `${unfollowTarget.name} 팔로우를 해제했습니다.` });
     setUnfollowTarget(null);
   };
   const quickMenus = [
-    { title: "찜한 프리셋", desc: "하트를 누른 마켓 프리셋", icon: Heart, to: "/profile/wishlist" },
-    { title: "다운로드 목록", desc: "다운로드한 마켓 프리셋", icon: Download, to: "/profile/downloads" },
-    { title: "구매 내역", desc: "구매한 유료 프리셋 확인", icon: Receipt, to: "/profile/purchases" },
-    { title: "내 상품 관리", desc: "업로드한 프리셋 관리", icon: Store, to: "/profile/sales" },
+    { title: "찜한 목록", desc: "하트를 누른 프리셋·아이콘·배경", icon: Heart, to: "/profile/wishlist" },
+    { title: "다운로드 목록", desc: "다운로드한 마켓 항목", icon: Download, to: "/profile/downloads" },
+    { title: "내 상품 관리", desc: "업로드한 프리셋·아이콘·배경 관리", icon: Store, to: "/profile/sales" },
     { title: "팔로우 목록", desc: "팔로우한 크리에이터 모아보기", icon: Users, to: "/profile/following" },
   ];
   const recent: { icon: typeof Download; text: string; preset: string; time: string }[] = [];
@@ -123,7 +132,7 @@ export function ProfileMain() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((s) => (
           <button key={s.label} onClick={() => nav(s.to)} className="rounded-2xl border border-border bg-card p-5 text-left hover:border-primary/40 hover:shadow-glow transition-all">
             <s.icon className="h-5 w-5 text-primary mb-3" />
@@ -186,44 +195,48 @@ export function ProfileMain() {
         </div>
         {following.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
-            팔로우 기능은 준비 중입니다.
+            아직 팔로우한 크리에이터가 없습니다.
           </div>
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {following.map((c) => (
-              <li
-                key={c.name}
-                className="group flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:shadow-glow transition-all"
-              >
-                <button
-                  onClick={() => nav(`/creator/${c.name}`)}
-                  className="h-11 w-11 rounded-full bg-gradient-primary grid place-items-center text-2xl shrink-0"
-                  aria-label={`${c.name} 프로필 보기`}
+            {following.map((c) => {
+              const name = c.display_name || c.username || "크리에이터";
+              return (
+                <li
+                  key={c.id}
+                  className="group flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:shadow-glow transition-all"
                 >
-                  {c.avatar}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-semibold truncate">@{c.name}</span>
-                    {c.isNew && <Badge className="text-[9px] h-4 px-1.5 bg-primary/15 text-primary hover:bg-primary/20">NEW</Badge>}
+                  <button
+                    onClick={() => nav(`/creator/${encodeURIComponent(name)}`)}
+                    className="h-11 w-11 rounded-full bg-gradient-primary grid place-items-center text-base font-semibold text-primary-foreground shrink-0 overflow-hidden"
+                    aria-label={`${name} 프로필 보기`}
+                  >
+                    {c.avatar_url ? (
+                      <img src={c.avatar_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      name.slice(0, 1).toUpperCase()
+                    )}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">{name}</div>
+                    {c.username && <div className="text-[11px] text-muted-foreground truncate">@{c.username}</div>}
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      팔로워 {c.follower_count.toLocaleString()}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground truncate">{c.role}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    업로드 {c.uploads} · 팔로워 {c.followers.toLocaleString()}
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="opacity-0 group-hover:opacity-100 transition"
-                  onClick={() => setUnfollowTarget(c.name)}
-                  aria-label="팔로우 해제"
-                  title="팔로우 해제"
-                >
-                  <UserMinus className="h-4 w-4" />
-                </Button>
-              </li>
-            ))}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="opacity-0 group-hover:opacity-100 transition"
+                    onClick={() => setUnfollowTarget({ id: c.id, name })}
+                    aria-label="팔로우 해제"
+                    title="팔로우 해제"
+                  >
+                    <UserMinus className="h-4 w-4" />
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -233,12 +246,12 @@ export function ProfileMain() {
           <AlertDialogHeader>
             <AlertDialogTitle>팔로우를 해제할까요?</AlertDialogTitle>
             <AlertDialogDescription>
-              {unfollowTarget ? `@${unfollowTarget} 크리에이터를 팔로우 해제합니다.` : ""}
+              {unfollowTarget ? `${unfollowTarget.name} 크리에이터를 팔로우 해제합니다.` : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction onClick={handleUnfollow}>해제</AlertDialogAction>
+            <AlertDialogAction onClick={() => void handleUnfollow()}>해제</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -351,6 +364,8 @@ export function Wishlist() {
   const nav = useNavigate();
   const { presets, loading, signedIn } = useWishlistedPresets();
   const { toggleWishlist } = useMarketSocial();
+  const { items, loading: itemsLoading, reload: reloadItems } = useWishlistedItems();
+  const { toggleWishlist: toggleItemWishlist } = useItemSocial();
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string } | null>(null);
   const handleUnlike = async () => {
     if (!confirmTarget) return;
@@ -358,15 +373,16 @@ export function Wishlist() {
     setConfirmTarget(null);
   };
   return (
-    <ProfileList title="찜한 프리셋" subtitle="하트를 누른 마켓 프리셋을 모아봅니다.">
+    <ProfileList title="찜한 목록" subtitle="하트를 누른 프리셋·아이콘·배경화면을 모아봅니다.">
       {signedIn === false ? (
         <SignInPrompt />
-      ) : loading ? (
+      ) : loading || itemsLoading ? (
         <Empty text="불러오는 중…" />
-      ) : presets.length === 0 ? (
-        <Empty text="찜한 프리셋이 없습니다. 탐색에서 하트를 눌러 담아보세요." />
+      ) : presets.length === 0 && items.length === 0 ? (
+        <Empty text="찜한 항목이 없습니다. 탐색에서 하트를 눌러 담아보세요." />
       ) : (
-        presets.map((p) => (
+        <>
+        {presets.map((p) => (
           <MarketPresetListRow
             key={p.id}
             preset={p}
@@ -383,7 +399,28 @@ export function Wishlist() {
               </Button>
             }
           />
-        ))
+        ))}
+        {items.map((it) => (
+          <ItemRow
+            key={`${it.kind}:${it.id}`}
+            item={it}
+            actions={
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label="찜 해제"
+                title="찜 해제"
+                onClick={async () => {
+                  await toggleItemWishlist(it.kind, it.id);
+                  await reloadItems();
+                }}
+              >
+                <Heart className="h-4 w-4 fill-destructive text-destructive" />
+              </Button>
+            }
+          />
+        ))}
+        </>
       )}
       <AlertDialog open={!!confirmTarget} onOpenChange={(o) => !o && setConfirmTarget(null)}>
         <AlertDialogContent>
@@ -406,16 +443,18 @@ export function Wishlist() {
 export function Downloads() {
   const nav = useNavigate();
   const { presets, loading, signedIn } = useDownloadedPresets();
+  const { items, loading: itemsLoading } = useDownloadedItems();
   return (
-    <ProfileList title="다운로드 목록" subtitle="내가 다운로드한 마켓 프리셋입니다.">
+    <ProfileList title="다운로드 목록" subtitle="내가 다운로드한 마켓 항목입니다.">
       {signedIn === false ? (
         <SignInPrompt />
-      ) : loading ? (
+      ) : loading || itemsLoading ? (
         <Empty text="불러오는 중…" />
-      ) : presets.length === 0 ? (
-        <Empty text="다운로드한 프리셋이 없습니다." />
+      ) : presets.length === 0 && items.length === 0 ? (
+        <Empty text="다운로드한 항목이 없습니다." />
       ) : (
-        presets.map((p) => (
+        <>
+        {presets.map((p) => (
           <MarketPresetListRow
             key={p.id}
             preset={p}
@@ -426,44 +465,61 @@ export function Downloads() {
               </Button>
             }
           />
-        ))
+        ))}
+        {items.map((it) => (
+          <ItemRow
+            key={`${it.kind}:${it.id}`}
+            item={it}
+            actions={
+              <Button size="sm" variant="outline" onClick={() => nav("/library")}>
+                <FolderOpen className="h-3.5 w-3.5 mr-1" />보관함
+              </Button>
+            }
+          />
+        ))}
+        </>
       )}
     </ProfileList>
   );
 }
 
-export function Purchases() {
-  const items = marketplacePresets.filter((p) => purchasedIds.includes(p.id));
+/** 아이콘 / 팩 / 배경화면 공용 목록 행. */
+function ItemRow({ item, actions, badge }: { item: MarketItemLite; actions?: React.ReactNode; badge?: string }) {
   return (
-    <ProfileList title="구매 내역" subtitle="구매한 유료 프리셋 목록입니다.">
-      {items.length === 0 && <Empty text="구매 내역이 없습니다." />}
-      {items.map((p) => (
-        <div key={p.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
-          <img src={p.thumbnail} className="h-16 w-24 object-cover rounded-md" alt="" />
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-sm truncate">{p.name}</div>
-            <div className="text-xs text-muted-foreground">@{p.creator.name} · 2026-04-15 · 결제 완료</div>
-          </div>
-          <span className="font-semibold text-sm">₩{p.price.toLocaleString()}</span>
-          <Button size="sm" variant="outline"><Receipt className="h-3.5 w-3.5 mr-1" />영수증</Button>
-          <Button size="sm" variant="outline"><Download className="h-3.5 w-3.5 mr-1" />다시 다운로드</Button>
+    <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
+      <div className="h-16 w-24 rounded-md bg-muted grid place-items-center overflow-hidden shrink-0">
+        {item.imageUrl ? (
+          <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <ImageIcon className="h-5 w-5 text-muted-foreground" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-sm truncate">{item.name}</div>
+        <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+          <Badge variant="secondary" className="text-[10px]">{itemKindLabel(item.kind)}</Badge>
+          <span>다운로드 {item.downloads.toLocaleString()}</span>
+          {badge && <Badge variant="outline" className="text-[10px]">{badge}</Badge>}
         </div>
-      ))}
-    </ProfileList>
+      </div>
+      {actions}
+    </div>
   );
 }
 
 export function Sales() {
   const { presets: my, loading, reload } = useMarketPresets({ mine: true });
+  const { items, loading: itemsLoading, setPublic, remove } = useMyMarketItems();
+  const totalDownloads =
+    my.reduce((s, p) => s + (p.downloads ?? 0), 0) + items.reduce((s, i) => s + i.downloads, 0);
   return (
-    <ProfileList title="내 상품" subtitle="내가 업로드한 프리셋을 관리합니다.">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+    <ProfileList title="내 상품" subtitle="내가 업로드한 프리셋·아이콘·배경화면을 관리합니다.">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         {[
-          { l: "내 상품 수", v: my.length.toString() },
-          { l: "총 다운로드", v: "0" },
-          { l: "평균 평점", v: "-" },
-          { l: "이번 달 판매", v: "0" },
-          { l: "예상 수익", v: "준비 중" },
+          { l: "내 상품 수", v: (my.length + items.length).toString() },
+          { l: "프리셋", v: my.length.toString() },
+          { l: "아이콘 · 배경", v: items.length.toString() },
+          { l: "총 다운로드", v: totalDownloads.toLocaleString() },
         ].map(s => (
           <div key={s.l} className="rounded-xl border border-border bg-card p-4">
             <div className="text-xs text-muted-foreground">{s.l}</div>
@@ -471,15 +527,34 @@ export function Sales() {
           </div>
         ))}
       </div>
-      {!loading && my.length === 0 && (
+      {!loading && !itemsLoading && my.length === 0 && items.length === 0 && (
         <Empty text="업로드한 상품이 없습니다. 보관함에서 '마켓에 올리기'로 등록해보세요." />
       )}
       {my.map((p) => (
         <MarketPresetListRow
           key={p.id}
           preset={p}
-          badge={p.is_public ? "공개" : "비공개"}
+          badge={p.is_hidden ? "숨김" : p.is_public ? "공개" : "비공개"}
           actions={
+            <>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                const { error } = await supabase
+                  .from("market_presets")
+                  .update({ is_hidden: !p.is_hidden })
+                  .eq("id", p.id);
+                if (error) {
+                  toast({ title: "변경에 실패했습니다", description: error.message, variant: "destructive" });
+                  return;
+                }
+                void reload();
+              }}
+            >
+              {p.is_hidden ? <Eye className="h-3.5 w-3.5 mr-1" /> : <EyeOff className="h-3.5 w-3.5 mr-1" />}
+              {p.is_hidden ? "공개" : "숨기기"}
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -496,6 +571,44 @@ export function Sales() {
             >
               <Trash2 className="h-3.5 w-3.5 mr-1" />내리기
             </Button>
+            </>
+          }
+        />
+      ))}
+      {items.map((it) => (
+        <ItemRow
+          key={`${it.kind}:${it.id}`}
+          item={it}
+          badge={it.is_public ? "공개" : "숨김"}
+          actions={
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  const err = await setPublic(it, !it.is_public);
+                  if (err) toast({ title: "변경에 실패했습니다", description: err, variant: "destructive" });
+                }}
+              >
+                {it.is_public ? <EyeOff className="h-3.5 w-3.5 mr-1" /> : <Eye className="h-3.5 w-3.5 mr-1" />}
+                {it.is_public ? "숨기기" : "공개"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive"
+                onClick={async () => {
+                  const err = await remove(it);
+                  if (err) {
+                    toast({ title: "삭제에 실패했습니다", description: err, variant: "destructive" });
+                    return;
+                  }
+                  toast({ title: "마켓에서 내렸습니다", description: it.name });
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />내리기
+              </Button>
+            </>
           }
         />
       ))}
@@ -504,8 +617,8 @@ export function Sales() {
 }
 
 export function Reviews() {
-  const myReviews = mockReviews;
-  const receivedReviews = mockReviews;
+  const myReviews: { id: string; rating: number; text: string; date: string; likes: number }[] = [];
+  const receivedReviews: typeof myReviews = [];
   const myComments: { id: string; preset: string; text: string; date: string }[] = [];
   return (
     <div className="space-y-6">
@@ -632,56 +745,65 @@ function SignInPrompt() {
 
 export function Following() {
   const nav = useNavigate();
-  const [following, setFollowing] = useState(followedCreators);
-  const [unfollowTarget, setUnfollowTarget] = useState<string | null>(null);
-  const handleUnfollow = () => {
+  const { creators: following, loading, signedIn } = useMyFollowing();
+  const { toggleFollow } = useMarketSocial();
+  const [unfollowTarget, setUnfollowTarget] = useState<{ id: string; name: string } | null>(null);
+  const handleUnfollow = async () => {
     if (!unfollowTarget) return;
-    setFollowing((prev) => prev.filter((c) => c.name !== unfollowTarget));
-    toast({ title: "팔로우 해제됨", description: `@${unfollowTarget} 팔로우를 해제했습니다.` });
+    await toggleFollow(unfollowTarget.id);
+    toast({ title: "팔로우 해제됨", description: `${unfollowTarget.name} 팔로우를 해제했습니다.` });
     setUnfollowTarget(null);
   };
   return (
     <ProfileList title="팔로우 목록" subtitle="내가 팔로우한 크리에이터입니다.">
-      {following.length === 0 ? (
+      {signedIn === false ? (
+        <SignInPrompt />
+      ) : loading ? (
+        <Empty text="불러오는 중…" />
+      ) : following.length === 0 ? (
         <Empty text="아직 팔로우한 크리에이터가 없습니다." />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {following.map((c) => (
-            <div
-              key={c.name}
-              className="group flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-glow transition-all"
-            >
-              <button
-                onClick={() => nav(`/creator/${c.name}`)}
-                className="h-12 w-12 rounded-full bg-gradient-primary grid place-items-center text-2xl shrink-0"
-                aria-label={`${c.name} 프로필 보기`}
+          {following.map((c) => {
+            const name = c.display_name || c.username || "크리에이터";
+            return (
+              <div
+                key={c.id}
+                className="group flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-glow transition-all"
               >
-                {c.avatar}
-              </button>
-              <button
-                onClick={() => nav(`/creator/${c.name}`)}
-                className="flex-1 min-w-0 text-left"
-              >
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold truncate hover:text-primary transition-colors">@{c.name}</span>
-                  {c.isNew && <Badge className="text-[9px] h-4 px-1.5 bg-primary/15 text-primary hover:bg-primary/20">NEW</Badge>}
-                </div>
-                <div className="text-[11px] text-muted-foreground truncate">{c.role}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  업로드 {c.uploads} · 팔로워 {c.followers.toLocaleString()}
-                </div>
-              </button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setUnfollowTarget(c.name)}
-                aria-label="팔로우 해제"
-                title="팔로우 해제"
-              >
-                <UserMinus className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+                <button
+                  onClick={() => nav(`/creator/${encodeURIComponent(name)}`)}
+                  className="h-12 w-12 rounded-full bg-gradient-primary grid place-items-center text-lg font-semibold text-primary-foreground shrink-0 overflow-hidden"
+                  aria-label={`${name} 프로필 보기`}
+                >
+                  {c.avatar_url ? (
+                    <img src={c.avatar_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    name.slice(0, 1).toUpperCase()
+                  )}
+                </button>
+                <button
+                  onClick={() => nav(`/creator/${encodeURIComponent(name)}`)}
+                  className="flex-1 min-w-0 text-left"
+                >
+                  <div className="text-sm font-semibold truncate hover:text-primary transition-colors">{name}</div>
+                  {c.username && <div className="text-[11px] text-muted-foreground truncate">@{c.username}</div>}
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    팔로워 {c.follower_count.toLocaleString()}
+                  </div>
+                </button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setUnfollowTarget({ id: c.id, name })}
+                  aria-label="팔로우 해제"
+                  title="팔로우 해제"
+                >
+                  <UserMinus className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          })}
         </div>
       )}
       <AlertDialog open={!!unfollowTarget} onOpenChange={(o) => !o && setUnfollowTarget(null)}>
@@ -689,12 +811,12 @@ export function Following() {
           <AlertDialogHeader>
             <AlertDialogTitle>팔로우를 해제할까요?</AlertDialogTitle>
             <AlertDialogDescription>
-              {unfollowTarget ? `@${unfollowTarget} 크리에이터를 팔로우 해제합니다.` : ""}
+              {unfollowTarget ? `${unfollowTarget.name} 크리에이터를 팔로우 해제합니다.` : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction onClick={handleUnfollow}>해제</AlertDialogAction>
+            <AlertDialogAction onClick={() => void handleUnfollow()}>해제</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
