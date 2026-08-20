@@ -63,6 +63,7 @@ function writePinned(ids: string[]) {
 
 export default function Library() {
   const nav = useNavigate();
+  const { prefs } = useAppPreferences();
   const [searchParams, setSearchParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
   const [pinned, setPinned] = useState<string[]>(() => readPinned());
