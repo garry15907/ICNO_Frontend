@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, FileDown, Replace, Check, X, ChevronLeft, Play, Compass, Search, Download as DownloadIcon } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Sparkles, Store, Pin, Image as ImageIcon, Package, Trash2, Share2, Pencil, Copy, Link as LinkIcon, Upload, UploadCloud, FileDown, Replace, Check, X, ChevronLeft, Play, Compass, Search, Download as DownloadIcon } from "lucide-react";
 import { type LibraryPreset, LibraryStatus, libraryIcons, libraryIconPacks, IconLibraryStatus, marketplacePresets } from "@/data/mockData";
 import { useLibrary } from "@/lib/library";
 import { useIconLibrary } from "@/lib/icon-library";
@@ -1168,7 +1168,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <Input
@@ -1193,14 +1193,6 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
           disabled={ungroupedIcons.length === 0}
         >
           <Package className="h-3.5 w-3.5 mr-1" /> 묶기
-        </Button>
-        <Button
-          size="sm"
-          className="h-9 gap-1.5"
-          onClick={() => setIconMarketSeed([])}
-          disabled={userIcons.length === 0}
-        >
-          <Store className="h-3.5 w-3.5" /> 마켓에 올리기
         </Button>
         <input
           ref={fileRef}
@@ -1241,7 +1233,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
                 <Plus className="h-6 w-6" />
               </div>
               <div className="text-sm font-semibold">새 아이콘 만들기</div>
-              <div className="text-xs text-muted-foreground">마켓 · 로컬 가져오기</div>
+              <div className="text-xs text-muted-foreground">마켓 · 로컬 가져오기 · 마켓에 업로드</div>
             </button>
             {packCards.length === 0 && ungroupedIcons.length === 0 && iconSearch.trim() && (
               <div className="col-span-full text-center text-sm text-muted-foreground py-8">
@@ -1726,7 +1718,7 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
             <DialogTitle>새 아이콘 만들기</DialogTitle>
             <DialogDescription>어떻게 시작할지 선택하세요</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-3 gap-3 pt-2">
             <CreateOption
               icon={Store}
               title="마켓에서 불러오기"
@@ -1738,6 +1730,12 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
               title="로컬 가져오기"
               desc="내 컴퓨터에서 이미지 파일을 올리기"
               onClick={() => { setIconCreateOpen(false); openUploadDialog(); }}
+            />
+            <CreateOption
+              icon={UploadCloud}
+              title="마켓에 업로드"
+              desc="내 아이콘을 마켓에 게시하기"
+              onClick={() => { setIconCreateOpen(false); setIconMarketSeed([]); }}
             />
           </div>
         </DialogContent>

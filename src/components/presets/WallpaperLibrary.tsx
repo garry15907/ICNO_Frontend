@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MoreHorizontal, Pencil, Store, Trash2, Loader2, Upload as UploadIcon, Compass, Plus } from "lucide-react";
+import { MoreHorizontal, Pencil, Store, Trash2, Loader2, Upload as UploadIcon, UploadCloud, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ export function WallpaperLibrary() {
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<WallpaperLibraryAsset | null>(null);
   const [marketTarget, setMarketTarget] = useState<WallpaperToUpload | null>(null);
+  const [marketPickerOpen, setMarketPickerOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -116,28 +117,11 @@ export function WallpaperLibrary() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-sm text-muted-foreground">내 배경화면을 관리하고 바로 적용하거나 마켓에 올릴 수 있습니다.</p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => nav("/explore")} className="gap-1.5">
-            <Compass className="h-3.5 w-3.5" /> 마켓에서 찾기
-          </Button>
-          <label>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              multiple
-              className="hidden"
-              onChange={(e) => void handleUploadFiles(e.target.files)}
-            />
-            <Button size="sm" asChild disabled={uploading} className="gap-1.5">
-              <span>
-                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UploadIcon className="h-3.5 w-3.5" />}
-                배경화면 추가
-              </span>
-            </Button>
-          </label>
-        </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <p className="text-sm text-muted-foreground">
+          내 배경화면을 관리하고 바로 적용하거나 마켓에 올릴 수 있습니다.
+          {uploading ? " · 업로드 중…" : ""}
+        </p>
       </div>
 
       {loading ? (
@@ -155,7 +139,7 @@ export function WallpaperLibrary() {
               <Plus className="h-6 w-6" />
             </div>
             <div className="text-sm font-semibold">새 배경화면 만들기</div>
-            <div className="text-xs text-muted-foreground">마켓 · 로컬 가져오기</div>
+            <div className="text-xs text-muted-foreground">마켓 · 로컬 가져오기 · 마켓에 업로드</div>
           </button>
           {assets.map((a) => (
             <div key={a.asset_id} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
@@ -187,7 +171,7 @@ export function WallpaperLibrary() {
                         <Pencil className="h-3.5 w-3.5 mr-2" />이름 변경
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => setMarketTarget({ id: a.asset_id, title: a.display_name, imageUrl: (a.url as string) || `/api/wallpapers/library/${a.asset_id}/file` })}
+                        onClick={() => setMarketTarget({ id: a.asset_id, title: a.display_name, imageUrl: srcOf(a) })}
                       >
                         <Store className="h-3.5 w-3.5 mr-2" />마켓에 올리기
                       </DropdownMenuItem>
@@ -224,7 +208,7 @@ export function WallpaperLibrary() {
             <DialogTitle>새 배경화면 만들기</DialogTitle>
             <DialogDescription>어떻게 시작할지 선택하세요</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-3 gap-3 pt-2">
             <CreateOption
               icon={Store}
               title="마켓에서 불러오기"
@@ -236,6 +220,12 @@ export function WallpaperLibrary() {
               title="로컬 가져오기"
               desc="내 컴퓨터에서 이미지 파일을 올리기"
               onClick={() => { setCreateOpen(false); fileRef.current?.click(); }}
+            />
+            <CreateOption
+              icon={UploadCloud}
+              title="마켓에 업로드"
+              desc="내 배경화면을 마켓에 게시하기"
+              onClick={() => { setCreateOpen(false); setMarketPickerOpen(true); }}
             />
           </div>
         </DialogContent>
@@ -269,8 +259,15 @@ export function WallpaperLibrary() {
         </DialogContent>
       </Dialog>
 
-      {marketTarget && (
-        <MarketWallpaperUploadModal wallpaper={marketTarget} onClose={() => setMarketTarget(null)} />
+      {(marketTarget || marketPickerOpen) && (
+        <MarketWallpaperUploadModal
+          wallpaper={marketTarget}
+          allWallpapers={assets.map((a) => ({ id: a.asset_id, title: a.display_name, imageUrl: srcOf(a) }))}
+          onClose={() => {
+            setMarketTarget(null);
+            setMarketPickerOpen(false);
+          }}
+        />
       )}
     </div>
   );
