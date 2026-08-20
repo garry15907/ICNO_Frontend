@@ -17,7 +17,7 @@ import {
 } from "@/services/localEngineApi";
 import { MarketWallpaperUploadModal } from "@/components/presets/MarketWallpaperUploadModal";
 import type { WallpaperToUpload } from "@/services/marketWallpaperUpload";
-import { CreateOption } from "@/pages/Library";
+import { CreateOption } from "@/components/presets/CreateOption";
 
 /** 보관함 > 배경화면 탭 — 아이콘 보관함과 동일한 구조(단일 전용). */
 export function WallpaperLibrary() {

@@ -29,6 +29,7 @@ import { getPacks, addPack, renamePack, deletePack, addIconsToPack, removeIconFr
 import { CreatorCard } from "@/components/presets/CreatorCard";
 import { GroupIconsModal } from "@/components/presets/GroupIconsModal";
 import { WallpaperLibrary } from "@/components/presets/WallpaperLibrary";
+import { CreateOption } from "@/components/presets/CreateOption";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -704,18 +705,6 @@ export default function Library() {
   );
 }
 
-export function CreateOption({ icon: Icon, title, desc, onClick }: { icon: any; title: string; desc: string; onClick?: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="text-left p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all"
-    >
-      <Icon className="h-5 w-5 text-primary mb-2" />
-      <div className="text-sm font-semibold">{title}</div>
-      <div className="text-xs text-muted-foreground mt-1">{desc}</div>
-    </button>
-  );
-}
 
 const iconStatusStyles: Record<IconLibraryStatus, string> = {
   "다운로드됨": "bg-muted text-muted-foreground border-border",
