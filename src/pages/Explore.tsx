@@ -9,6 +9,9 @@ import { useMarketPresets } from "@/lib/market-presets";
 import { useMarketIcons, useMarketIconPacks } from "@/lib/market-icons";
 import { MarketIconCard, MarketIconPackCard } from "@/components/presets/MarketIconCards";
 import { MarketIconModal, type ItemModalData } from "@/components/presets/MarketIconModal";
+import { useMarketWallpapers } from "@/lib/market-wallpapers";
+import { MarketWallpaperCard } from "@/components/presets/MarketWallpaperCard";
+import { MarketWallpaperModal } from "@/components/presets/MarketWallpaperModal";
 import { useWishlist } from "@/lib/wishlist";
 import { MarketItemModal } from "@/components/presets/MarketItemModal";
 import { MarketPresetModal } from "@/components/presets/MarketPresetModal";
@@ -36,6 +39,7 @@ const typeFilters = [
   { id: "all", label: "전체", icon: Layers },
   { id: "preset", label: "프리셋", icon: Sparkles },
   { id: "icon", label: "아이콘", icon: ImageIcon },
+  { id: "wallpaper", label: "배경화면", icon: Monitor },
 ] as const;
 
 export default function Explore() {
@@ -44,7 +48,7 @@ export default function Explore() {
   const [price, setPrice] = useState<(typeof priceFilters)[number]>("전체");
   const [category, setCategory] = useState("전체");
   const [sort, setSort] = useState("인기순");
-  const [typeFilter, setTypeFilter] = useState<"all" | "preset" | "icon">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "preset" | "icon" | "wallpaper">("all");
   const { wishlist, isWishlisted, toggle } = useWishlist();
   const [filterOpen, setFilterOpen] = useState(false);
   const [categoryQuery, setCategoryQuery] = useState("");
@@ -85,6 +89,22 @@ export default function Explore() {
     };
   }, [cloudIcons, cloudPacks, typeFilter, query]);
 
+  const { wallpapers: cloudWallpapers } = useMarketWallpapers();
+  const wallpaperMatches = useMemo(() => {
+    if (typeFilter !== "all" && typeFilter !== "wallpaper") return [];
+    const q = query.trim();
+    const list = cloudWallpapers.filter((w) => !q || (w.name + " " + w.tags.join(" ")).includes(q));
+    const sorted = [...list];
+    if (sort === "인기순" || sort === "다운로드순") sorted.sort((a, b) => b.downloads - a.downloads || b.likes - a.likes);
+    if (sort === "최신순") sorted.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    if (sort === "평점순")
+      sorted.sort(
+        (a, b) =>
+          (b.rating_count ? b.rating_sum / b.rating_count : 0) - (a.rating_count ? a.rating_sum / a.rating_count : 0),
+      );
+    return sorted;
+  }, [cloudWallpapers, typeFilter, query, sort]);
+
   const filteredCategories = useMemo(
     () => categories.filter((c) => c.toLowerCase().includes(categoryQuery.toLowerCase())),
     [categoryQuery],
@@ -97,6 +117,7 @@ export default function Explore() {
 
   const openIconRow = cloudIcons.find((r) => r.id === params.get("icon"));
   const openPackRow = cloudPacks.find((r) => r.id === params.get("pack"));
+  const openWallpaperRow = cloudWallpapers.find((r) => r.id === params.get("wallpaper"));
   const openItemData: ItemModalData | null = openIconRow
     ? {
         type: "icon", id: openIconRow.id, name: openIconRow.name, owner_id: openIconRow.owner_id,
@@ -147,7 +168,7 @@ export default function Explore() {
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold tracking-tight">마켓플레이스</h2>
-        <p className="text-muted-foreground mt-1">데스크톱 프리셋, 아이콘 단품, 아이콘 팩을 둘러보세요.</p>
+        <p className="text-muted-foreground mt-1">데스크톱 프리셋, 아이콘 단품/팩, 배경화면을 둘러보세요.</p>
       </div>
 
       {/* Product type tabs */}
@@ -322,6 +343,17 @@ export default function Explore() {
       )}
 
       {/* 기존 mock 상품 그리드 (데이터 있을 때만) */}
+      {wallpaperMatches.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">마켓 배경화면</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {wallpaperMatches.map((w) => (
+              <MarketWallpaperCard key={`wp-${w.id}`} wallpaper={w} onClick={() => setParams({ wallpaper: w.id })} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {items.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {items.map((p) => (
@@ -340,7 +372,8 @@ export default function Explore() {
       {items.length === 0 &&
         cloudMatches.length === 0 &&
         iconMatches.icons.length === 0 &&
-        iconMatches.packs.length === 0 && (
+        iconMatches.packs.length === 0 &&
+        wallpaperMatches.length === 0 && (
           <div className="border border-dashed rounded-2xl p-16 text-center text-muted-foreground">
             아직 마켓에 올라온 항목이 없습니다.
           </div>
@@ -358,6 +391,8 @@ export default function Explore() {
       {openCloud && <MarketPresetModal preset={openCloud} onClose={() => setParams({})} />}
 
       {openItemData && <MarketIconModal item={openItemData} onClose={() => setParams({})} />}
+
+      {openWallpaperRow && <MarketWallpaperModal wallpaper={openWallpaperRow} onClose={() => setParams({})} />}
     </div>
   );
 }

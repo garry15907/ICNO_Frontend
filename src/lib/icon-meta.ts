@@ -6,6 +6,7 @@
  */
 const PACKS_KEY = "icno.icon-packs";
 const ORIGINS_KEY = "icno.icon-origins";
+const WALLPAPER_ORIGINS_KEY = "icno.wallpaper-origins";
 
 export type LibraryIconPack = {
   id: string;
@@ -16,7 +17,7 @@ export type LibraryIconPack = {
 
 export type IconOrigin = {
   ownerId?: string; // 마켓 제작자(uploader)
-  marketType?: "icon" | "pack";
+  marketType?: "icon" | "pack" | "wallpaper";
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -88,4 +89,19 @@ export function setIconOrigin(storageFilename: string, origin: IconOrigin) {
 export function getIconOrigin(storageFilename?: string | null): IconOrigin | undefined {
   if (!storageFilename) return undefined;
   return getOrigins()[storageFilename];
+}
+
+// ── 배경화면 마켓 제작자 정보 ──────────────────────────────────────────────
+export function getWallpaperOrigins(): Record<string, IconOrigin> {
+  return read<Record<string, IconOrigin>>(WALLPAPER_ORIGINS_KEY, {});
+}
+export function setWallpaperOrigin(storageFilename: string, origin: IconOrigin) {
+  if (!storageFilename) return;
+  const all = getWallpaperOrigins();
+  all[storageFilename] = { ...all[storageFilename], ...origin };
+  write(WALLPAPER_ORIGINS_KEY, all);
+}
+export function getWallpaperOrigin(storageFilename?: string | null): IconOrigin | undefined {
+  if (!storageFilename) return undefined;
+  return getWallpaperOrigins()[storageFilename];
 }
