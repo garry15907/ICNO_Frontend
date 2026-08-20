@@ -704,7 +704,7 @@ export default function Library() {
   );
 }
 
-function CreateOption({ icon: Icon, title, desc, onClick }: { icon: any; title: string; desc: string; onClick?: () => void }) {
+export function CreateOption({ icon: Icon, title, desc, onClick }: { icon: any; title: string; desc: string; onClick?: () => void }) {
   return (
     <button
       onClick={onClick}
