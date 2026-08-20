@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Image as ImageIcon, MoreHorizontal, Pencil, Store, Trash2, Loader2, Upload as UploadIcon, Compass, Plus } from "lucide-react";
+import { MoreHorizontal, Pencil, Store, Trash2, Loader2, Upload as UploadIcon, Compass, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
