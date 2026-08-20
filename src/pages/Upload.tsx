@@ -49,6 +49,7 @@ import { getPacks } from "@/lib/icon-meta";
 import {
   uploadIconImage,
   uploadWallpaper,
+  listWallpaperLibrary,
   ApiError,
   createPreset,
   updatePreset,
