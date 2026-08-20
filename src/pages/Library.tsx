@@ -1730,6 +1730,30 @@ function IconLibrary({ filter, setFilter }: { filter: IconFilter; setFilter: (f:
         </Dialog>
       )}
 
+      {/* ============= 새 아이콘 만들기 ============= */}
+      <Dialog open={iconCreateOpen} onOpenChange={setIconCreateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>새 아이콘 만들기</DialogTitle>
+            <DialogDescription>어떻게 시작할지 선택하세요</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <CreateOption
+              icon={Store}
+              title="마켓에서 불러오기"
+              desc="마켓플레이스에서 아이콘을 다운로드"
+              onClick={() => { setIconCreateOpen(false); nav("/explore"); }}
+            />
+            <CreateOption
+              icon={Upload}
+              title="로컬 가져오기"
+              desc="내 컴퓨터에서 이미지 파일을 올리기"
+              onClick={() => { setIconCreateOpen(false); openUploadDialog(); }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ============= 아이콘 업로드 다이얼로그 ============= */}
       <Dialog open={uploadOpen} onOpenChange={(o) => { if (!o) { setUploadOpen(false); setPendingUploads([]); } }}>
         <DialogContent className="max-w-2xl">
