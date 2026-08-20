@@ -363,7 +363,7 @@ export default function Library() {
             <Plus className="h-6 w-6" />
           </div>
           <div className="text-sm font-semibold">새 프리셋 만들기</div>
-          <div className="text-xs text-muted-foreground">빈 프리셋 · 마켓 · 로컬 가져오기</div>
+          <div className="text-xs text-muted-foreground">빈 프리셋 · 마켓</div>
         </button>
 
         {sortedPresets.map((p) => (
