@@ -28,6 +28,7 @@ import type { IconToUpload } from "@/services/marketIconUpload";
 import { getPacks, addPack, renamePack, deletePack, addIconsToPack, removeIconFromPack, getIconOrigin, type LibraryIconPack } from "@/lib/icon-meta";
 import { CreatorCard } from "@/components/presets/CreatorCard";
 import { GroupIconsModal } from "@/components/presets/GroupIconsModal";
+import { WallpaperLibrary } from "@/components/presets/WallpaperLibrary";
 
 const statusStyles: Record<LibraryStatus, string> = {
   "현재 적용 중": "bg-success text-success-foreground border-success",
@@ -64,14 +65,14 @@ export default function Library() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
   const [pinned, setPinned] = useState<string[]>(() => readPinned());
-  const [tab, setTab] = useState<"presets" | "icons">(
-    () => (searchParams.get("tab") === "icons" ? "icons" : "presets"),
-  );
+  const [tab, setTab] = useState<"presets" | "icons" | "wallpapers">(() => {
+    const t = searchParams.get("tab");
+    return t === "icons" || t === "wallpapers" ? t : "presets";
+  });
   const [iconFilter, setIconFilter] = useState<"all" | "icon" | "iconpack" | "downloaded" | "purchased" | "mine">("all");
   useEffect(() => {
     const t = searchParams.get("tab");
-    if (t === "icons" && tab !== "icons") setTab("icons");
-    if (t === "presets" && tab !== "presets") setTab("presets");
+    if ((t === "icons" || t === "wallpapers" || t === "presets") && t !== tab) setTab(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
   const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(null);
@@ -336,6 +337,7 @@ export default function Library() {
         <TabsList>
           <TabsTrigger value="presets" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />프리셋</TabsTrigger>
           <TabsTrigger value="icons" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" />아이콘</TabsTrigger>
+          <TabsTrigger value="wallpapers" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" />배경화면</TabsTrigger>
         </TabsList>
 
         <TabsContent value="presets" className="mt-0">
@@ -460,6 +462,10 @@ export default function Library() {
 
         <TabsContent value="icons" className="mt-0 space-y-5">
           <IconLibrary filter={iconFilter} setFilter={setIconFilter} />
+        </TabsContent>
+
+        <TabsContent value="wallpapers" className="mt-0 space-y-5">
+          <WallpaperLibrary />
         </TabsContent>
       </Tabs>
 
