@@ -1168,17 +1168,36 @@ function FullscreenEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [userIcons, items.length]);
 
-  const libraryWallpapers = useMemo<LibraryWallpaper[]>(() => {
-    const seen = new Set<string>();
-    const out: LibraryWallpaper[] = [];
-    for (const sv of savedPresets) {
-      const mp = marketplacePresets.find((m) => m.id === sv.presetId);
-      if (!mp || seen.has(mp.id)) continue;
-      seen.add(mp.id);
-      out.push({ id: mp.id, name: mp.name, url: mp.thumbnail, fileName: mp.wallpaperName });
-    }
-    return out;
-  }, [savedPresets]);
+  // 배경화면 보관함은 로컬 엔진(GET /api/wallpapers/library)이 유일한 소스입니다.
+  const [libraryWallpapers, setLibraryWallpapers] = useState<LibraryWallpaper[]>([]);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await listWallpaperLibrary();
+        if (!alive) return;
+        setLibraryWallpapers(
+          (res.assets ?? []).map((a) => ({
+            id: a.asset_id,
+            name: a.display_name,
+            url: localEngineUrl(
+              typeof a.url === "string" && a.url ? a.url : `/api/wallpapers/library/${a.asset_id}/file`,
+            ),
+            fileName: a.storage_filename,
+          })),
+        );
+      } catch {
+        if (alive) setLibraryWallpapers([]);
+      }
+    };
+    void load();
+    const on = () => void load();
+    window.addEventListener("wallpaper-library:refresh", on);
+    return () => {
+      alive = false;
+      window.removeEventListener("wallpaper-library:refresh", on);
+    };
+  }, []);
   const pickLibraryWallpaper = async (w: LibraryWallpaper) => {
     try {
       const file = await urlToFile(w.url, w.fileName || `${w.id}.jpg`);
