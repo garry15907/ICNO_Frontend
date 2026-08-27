@@ -279,6 +279,10 @@ export function deactivateOverlay(): Promise<any> {
 export function pickTargetFile(): Promise<any> {
   return request("/api/icons/pick-file");
 }
+export function pickTargetFolder(): Promise<any> {
+  return request("/api/icons/pick-folder");
+}
+
 
 // ── Settings ───────────────────────────────────────────────────────────
 
