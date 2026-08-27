@@ -1062,35 +1062,42 @@ function FullscreenEditor({
   // 받는다. Electron 이 있으면 그쪽을 우선.
   const pickTargetForSelected = async (kind: "file" | "folder") => {
     if (!selected) return;
+    const isDefaultName = (n?: string) =>
+      !n || /^아이콘\s*\d+$/.test(n.trim()) || /_source$/i.test(n.trim());
+    const applyPick = (path: string, pickedName?: string) => {
+      if (!path) {
+        // 사용자가 대화상자를 취소한 경우 — 아무 변화 없이 무시
+        return;
+      }
+      const patch: Partial<PlacedIcon> = { target_path: path };
+      if (pickedName && isDefaultName(selected.name)) patch.name = pickedName;
+      update(selected.id, patch);
+    };
+
+    // Electron 은 종류별 전용 API 가 있을 때만 사용한다.
+    // (generic selectIconTarget 은 폴더 전용 동작을 하는 빌드가 있어 파일 선택이 깨진다)
     const api = (window as any).electronAPI;
-    if (api?.selectIconTarget) {
+    const electronPicker =
+      kind === "folder"
+        ? api?.selectIconFolder ?? api?.selectFolder
+        : api?.selectIconFile ?? api?.selectFile;
+    if (typeof electronPicker === "function") {
       shouldRestoreFsRef.current = !!document.fullscreenElement;
       try {
-        const result = await api.selectIconTarget();
-        const path: string | undefined = result?.path ?? result;
-        if (path) update(selected.id, { target_path: path });
+        const result = await electronPicker();
+        applyPick(result?.path ?? result?.file_path ?? (typeof result === "string" ? result : ""), result?.name);
       } catch {
-        toast({ title: "선택을 취소했습니다" });
+        /* 취소 — 무시 */
       }
       return;
     }
+
     // 로컬 엔진 네이티브 파일/폴더 선택 (절대경로 반환)
     try {
-      const picker = kind === "folder" ? pickTargetFolder : pickTargetFile;
-      const res = await picker();
-      const path: string = res?.file_path ?? "";
-      const pickedName: string = res?.name ?? "";
-      if (path) {
-        const patch: Partial<PlacedIcon> = { target_path: path };
-        // 이름이 아직 기본값이거나 비어있으면 선택한 파일/폴더 이름을 기본값으로 사용
-        if (pickedName && (!selected.name || /^아이콘\s+\d+$/.test(selected.name))) {
-          patch.name = pickedName;
-        }
-        update(selected.id, patch);
-      } else {
-        toast({ title: "선택을 취소했습니다" });
-      }
+      const res = kind === "folder" ? await pickTargetFolder() : await pickTargetFile();
+      applyPick(res?.file_path ?? "", res?.name ?? "");
     } catch (err) {
+
       toast({
         title: kind === "folder" ? "폴더 선택에 실패했습니다." : "파일 선택에 실패했습니다.",
         description:
