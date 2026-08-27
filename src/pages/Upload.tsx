@@ -1615,17 +1615,18 @@ function FullscreenEditor({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button size="sm" variant="outline" className="flex-1 h-7 text-[11px]">
-                        <FolderOpen className="h-3 w-3" /> {selected.target_path ? "연결 변경" : "대상 지정"}
+                        <FolderOpen className="h-3 w-3" /> {selected.target_path ? "연결 변경 ▾" : "대상 지정 ▾"}
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="min-w-[140px]">
+                    <DropdownMenuContent align="start" className="min-w-[160px]">
                       <DropdownMenuItem className="text-[11px]" onClick={() => pickTargetForSelected("file")}>
-                        <span className="mr-2">📂</span> 실행 파일
+                        <span className="mr-2">📂</span> 실행 파일/프로그램
                       </DropdownMenuItem>
                       <DropdownMenuItem className="text-[11px]" onClick={() => pickTargetForSelected("folder")}>
                         <span className="mr-2">📁</span> 폴더
                       </DropdownMenuItem>
                     </DropdownMenuContent>
+
                   </DropdownMenu>
                   {selected.target_path && (
                     <Button
