@@ -21,7 +21,7 @@ import {
   Grid3x3,
   Trash2,
   Plus,
-  FolderOpen,
+  
   Eye,
   Save,
   ImagePlus,
@@ -60,12 +60,6 @@ import {
   type PresetModel,
   type PresetIconModel,
 } from "@/services/localEngineApi";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 
 type LibraryWallpaper = { id: string; name: string; url: string; fileName: string };
@@ -1059,51 +1053,22 @@ function FullscreenEditor({
   // Pick a program/file/folder to bind as the selected icon's launch target.
   // 브라우저 <input type=file> 은 절대경로를 못 주므로(파일명만 넘어와 오버레이가
   // 실행 못 함), 로컬 엔진의 네이티브 파일/폴더 대화상자를 사용해 실제 절대경로를
-  // 받는다. Electron 이 있으면 그쪽을 우선.
+  // 받는다.
   const pickTargetForSelected = async (kind: "file" | "folder") => {
     if (!selected) return;
     const isDefaultName = (n?: string) =>
       !n || /^아이콘\s*\d+$/.test(n.trim()) || /_source$/i.test(n.trim());
-    const applyPick = (path: string, pickedName?: string) => {
-      if (!path) {
-        // 사용자가 대화상자를 취소한 경우 — 아무 변화 없이 무시
-        return;
-      }
-      const patch: Partial<PlacedIcon> = { target_path: path };
-      if (pickedName && isDefaultName(selected.name)) patch.name = pickedName;
-      update(selected.id, patch);
-    };
-
-    // Electron 은 종류별 전용 API 가 있을 때만 사용한다.
-    // (generic selectIconTarget 은 폴더 전용 동작을 하는 빌드가 있어 파일 선택이 깨진다)
-    const api = (window as any).electronAPI;
-    const electronPicker =
-      kind === "folder"
-        ? api?.selectIconFolder ?? api?.selectFolder
-        : api?.selectIconFile ?? api?.selectFile;
-    if (typeof electronPicker === "function") {
-      shouldRestoreFsRef.current = !!document.fullscreenElement;
-      try {
-        const result = await electronPicker();
-        applyPick(result?.path ?? result?.file_path ?? (typeof result === "string" ? result : ""), result?.name);
-      } catch {
-        /* 취소 — 무시 */
-      }
-      return;
-    }
-
-    // 로컬 엔진 네이티브 파일/폴더 선택 (절대경로 반환)
     try {
       const res = kind === "folder" ? await pickTargetFolder() : await pickTargetFile();
-      applyPick(res?.file_path ?? "", res?.name ?? "");
+      const path = res?.file_path ?? "";
+      if (!path) return; // 취소 → 변화 없음
+      const patch: Partial<PlacedIcon> = { target_path: path };
+      if (res?.name && isDefaultName(selected.name)) patch.name = res.name;
+      update(selected.id, patch);
     } catch (err) {
-
       toast({
         title: kind === "folder" ? "폴더 선택에 실패했습니다." : "파일 선택에 실패했습니다.",
-        description:
-          err instanceof ApiError && err.status === 0
-            ? "ICNO Desktop App이 실행 중인지 확인해주세요."
-            : "로컬 엔진 파일/폴더 선택을 사용할 수 없습니다.",
+        description: "ICNO 로컬 엔진(python main.py)이 실행 중인지 확인해주세요.",
         variant: "destructive",
       });
     }
@@ -1612,22 +1577,22 @@ function FullscreenEditor({
                   )}
                 </div>
                 <div className="flex gap-1.5">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="sm" variant="outline" className="flex-1 h-7 text-[11px]">
-                        <FolderOpen className="h-3 w-3" /> {selected.target_path ? "연결 변경 ▾" : "대상 지정 ▾"}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="min-w-[160px]">
-                      <DropdownMenuItem className="text-[11px]" onClick={() => pickTargetForSelected("file")}>
-                        <span className="mr-2">📂</span> 실행 파일/프로그램
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-[11px]" onClick={() => pickTargetForSelected("folder")}>
-                        <span className="mr-2">📁</span> 폴더
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-
-                  </DropdownMenu>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-7 text-[11px]"
+                    onClick={() => pickTargetForSelected("file")}
+                  >
+                    <span className="mr-1.5">📂</span> 실행 파일
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-7 text-[11px]"
+                    onClick={() => pickTargetForSelected("folder")}
+                  >
+                    <span className="mr-1.5">📁</span> 폴더
+                  </Button>
                   {selected.target_path && (
                     <Button
                       size="sm"
